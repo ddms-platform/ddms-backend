@@ -1,7 +1,19 @@
+using DDMS.Backend.Configurations;
+using DDMS.Backend.Data;
+using DDMS.Backend.Middleware;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllers();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+builder.Services.AddProjectDependencies();
 
 // Swagger config
 builder.Services.AddEndpointsApiExplorer();
@@ -29,9 +41,17 @@ if ( app.Environment.IsDevelopment() )
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/health/db", async (AppDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
+    return canConnect
+        ? Results.Ok(new { status = "ok", database = "connected" })
+        : Results.Problem("Database connection failed");
+});
 
 app.Run();
