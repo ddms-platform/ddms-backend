@@ -38,6 +38,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<conversation_member> conversation_members { get; set; }
 
+    public virtual DbSet<email_verification_token> email_verification_tokens { get; set; }
+
     public virtual DbSet<dock> docks { get; set; }
 
     public virtual DbSet<dock_schedule> dock_schedules { get; set; }
@@ -419,6 +421,24 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.user_id)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_conv_members_user");
+        });
+
+        modelBuilder.Entity<email_verification_token>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            entity.HasIndex(e => new { e.email, e.purpose }, "idx_email_verify_token_email_purpose");
+
+            entity.HasIndex(e => e.expires_at, "idx_email_verify_token_expires");
+
+            entity.Property(e => e.created_at)
+                .HasMaxLength(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.Property(e => e.email).HasMaxLength(255);
+            entity.Property(e => e.expires_at).HasMaxLength(6);
+            entity.Property(e => e.token_hash).HasMaxLength(64);
+            entity.Property(e => e.purpose).HasMaxLength(20);
+            entity.Property(e => e.used_at).HasMaxLength(6);
         });
 
         modelBuilder.Entity<dock>(entity =>
@@ -883,6 +903,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.is_active)
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
+            entity.Property(e => e.email_verified_at).HasMaxLength(6);
             entity.Property(e => e.password_hash).HasMaxLength(255);
             entity.Property(e => e.phone).HasMaxLength(20);
             entity.Property(e => e.updated_at)
