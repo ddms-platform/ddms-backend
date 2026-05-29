@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
-using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -28,8 +28,8 @@ public static class JwtBearerExtensions
 
                 var error = new ApiErrorResponse
                 {
-                    code = isExpired ? ErrorDefinitions.Codes.AuthTokenExpired : ErrorDefinitions.Codes.AuthUnauthorized,
-                    message = isExpired ? ErrorDefinitions.Messages.TokenExpired : ErrorDefinitions.Messages.Unauthorized
+                    code = isExpired ? ErrorCode.AuthTokenExpired : ErrorCode.AuthUnauthorized,
+                    message = isExpired ? ErrorCode.Messages.TokenExpired : ErrorCode.Messages.Unauthorized
                 };
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(error));

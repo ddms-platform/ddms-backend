@@ -35,8 +35,8 @@ public class AuthController : ControllerBase
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
     {
-        var result = await _authService.VerifyEmailAsync(request, GetIpAddress(), GetUserAgent());
-        return Ok(ApiResponse<AuthTokensResponse>.Ok(result));
+        var result = await _authService.VerifyEmailAsync(request);
+        return Ok(ApiResponse<VerifyEmailResponse>.Ok(result));
     }
 
     [HttpPost("resend-verification-email")]

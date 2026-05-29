@@ -39,7 +39,7 @@ public class AuthService : IAuthService
 
         if (await _userRepository.EmailExistsAsync(email))
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthEmailAlreadyExists, ErrorDefinitions.Messages.EmailAlreadyExists);
+            throw new AppException(ErrorCode.AuthEmailAlreadyExists, ErrorCode.Messages.EmailAlreadyExists);
         }
 
         var user = new user
@@ -62,7 +62,7 @@ public class AuthService : IAuthService
         {
             requiresEmailVerification = true,
             email = email,
-            message = ErrorDefinitions.Messages.CheckEmailForVerification,
+            message = ErrorCode.Messages.CheckEmailForVerification,
             verificationLink = _hostEnvironment.IsDevelopment() ? verificationLink : null
         };
     }
@@ -75,12 +75,12 @@ public class AuthService : IAuthService
 
         if (user is null || string.IsNullOrWhiteSpace(user.password_hash))
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
+            throw new AppException(ErrorCode.AuthInvalidCredentials, ErrorCode.Messages.InvalidCredentials);
         }
 
         if (!BCrypt.Net.BCrypt.Verify(request.password, user.password_hash))
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
+            throw new AppException(ErrorCode.AuthInvalidCredentials, ErrorCode.Messages.InvalidCredentials);
         }
 
         _authSessionService.EnsureAccountActive(user);
@@ -89,30 +89,34 @@ public class AuthService : IAuthService
         return await _authSessionService.IssueTokensAsync(user, ipAddress, userAgent);
     }
 
-    public async Task<AuthTokensResponse> VerifyEmailAsync(
-        VerifyEmailRequest request,
-        string? ipAddress,
-        string? userAgent)
+    public async Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request)
     {
-        var email = await _emailVerificationService.VerifyByTokenAsync(request.token);
-        var user = await _userRepository.GetByEmailAsync(email);
+        var result = await _emailVerificationService.VerifyByTokenAsync(request.token);
+        var user = await _userRepository.GetByEmailAsync(result.email);
 
         if (user is null)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
+            throw new AppException(ErrorCode.AuthInvalidCredentials, ErrorCode.Messages.InvalidCredentials);
         }
 
         _authSessionService.EnsureAccountActive(user);
-        return await _authSessionService.IssueTokensAsync(user, ipAddress, userAgent);
+
+        return new VerifyEmailResponse
+        {
+            alreadyVerified = result.alreadyVerified,
+            message = result.alreadyVerified
+                ? ErrorCode.Messages.EmailAlreadyVerified
+                : ErrorCode.Messages.EmailVerified
+        };
     }
 
     public async Task<MessageResponse> ResendVerificationEmailAsync(ResendVerificationEmailRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["email"] = [ErrorDefinitions.Messages.EmailRequired]
+                ["email"] = [ErrorCode.Messages.EmailRequired]
             });
         }
 
@@ -121,19 +125,19 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            return new MessageResponse { message = ErrorDefinitions.Messages.VerificationLinkSent };
+            return new MessageResponse { message = ErrorCode.Messages.VerificationLinkSent };
         }
 
         if (user.email_verified_at is not null)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.EmailAlreadyVerified);
+            throw new AppException(ErrorCode.AuthValidationFailed, ErrorCode.Messages.EmailAlreadyVerified);
         }
 
         var link = await _emailVerificationService.SendVerificationLinkAsync(email);
 
         return new MessageResponse
         {
-            message = ErrorDefinitions.Messages.VerificationLinkSent,
+            message = ErrorCode.Messages.VerificationLinkSent,
             verificationLink = _hostEnvironment.IsDevelopment() ? link : null
         };
     }
@@ -142,7 +146,7 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrWhiteSpace(request.refreshToken))
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenInvalid, ErrorDefinitions.Messages.RefreshTokenInvalid);
+            throw new AppException(ErrorCode.AuthRefreshTokenInvalid, ErrorCode.Messages.RefreshTokenInvalid);
         }
 
         var tokenHash = _tokenService.HashToken(request.refreshToken.Trim());
@@ -150,18 +154,18 @@ public class AuthService : IAuthService
 
         if (existingToken is null)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenInvalid, ErrorDefinitions.Messages.RefreshTokenInvalid);
+            throw new AppException(ErrorCode.AuthRefreshTokenInvalid, ErrorCode.Messages.RefreshTokenInvalid);
         }
 
         if (existingToken.revoked)
         {
             await _refreshTokenRepository.RevokeAllActiveForUserAsync(existingToken.user_id);
-            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenReuseDetected, ErrorDefinitions.Messages.RefreshTokenReuseDetected);
+            throw new AppException(ErrorCode.AuthRefreshTokenReuseDetected, ErrorCode.Messages.RefreshTokenReuseDetected);
         }
 
         if (existingToken.expires_at <= DateTime.UtcNow)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenExpired, ErrorDefinitions.Messages.RefreshTokenExpired);
+            throw new AppException(ErrorCode.AuthRefreshTokenExpired, ErrorCode.Messages.RefreshTokenExpired);
         }
 
         await _refreshTokenRepository.RevokeAsync(existingToken);
@@ -222,31 +226,31 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(request.fullName))
         {
-            fieldErrors["fullName"] = [ErrorDefinitions.Messages.FullNameRequired];
+            fieldErrors["fullName"] = [ErrorCode.Messages.FullNameRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            fieldErrors["email"] = [ErrorDefinitions.Messages.EmailRequired];
+            fieldErrors["email"] = [ErrorCode.Messages.EmailRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.password))
         {
-            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordRequired];
+            fieldErrors["password"] = [ErrorCode.Messages.PasswordRequired];
         }
         else if (request.password.Length < 8)
         {
-            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordMinLength];
+            fieldErrors["password"] = [ErrorCode.Messages.PasswordMinLength];
         }
 
         if (request.password != request.confirmPassword)
         {
-            fieldErrors["confirmPassword"] = [ErrorDefinitions.Messages.ConfirmPasswordMismatch];
+            fieldErrors["confirmPassword"] = [ErrorCode.Messages.ConfirmPasswordMismatch];
         }
 
         if (fieldErrors.Count > 0)
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, fieldErrors);
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, fieldErrors);
         }
     }
 
@@ -256,17 +260,17 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            fieldErrors["email"] = [ErrorDefinitions.Messages.EmailRequired];
+            fieldErrors["email"] = [ErrorCode.Messages.EmailRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.password))
         {
-            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordRequired];
+            fieldErrors["password"] = [ErrorCode.Messages.PasswordRequired];
         }
 
         if (fieldErrors.Count > 0)
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, fieldErrors);
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, fieldErrors);
         }
     }
 }

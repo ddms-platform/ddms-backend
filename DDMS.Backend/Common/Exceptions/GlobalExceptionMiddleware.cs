@@ -1,14 +1,12 @@
-using DDMS.Backend.Common.Constants;
-using DDMS.Backend.Common.Exceptions;
-using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Responses;
 
-namespace DDMS.Backend.Middleware;
+namespace DDMS.Backend.Common.Exceptions;
 
-public class ExceptionMiddleware
+public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
 
-    public ExceptionMiddleware(RequestDelegate next)
+    public GlobalExceptionMiddleware(RequestDelegate next)
     {
         _next = next;
     }
@@ -27,13 +25,18 @@ public class ExceptionMiddleware
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        if (context.Response.HasStarted)
+        {
+            throw exception;
+        }
+
         context.Response.ContentType = "application/json";
 
         var statusCode = StatusCodes.Status500InternalServerError;
         var error = new ApiErrorResponse
         {
-            code = ErrorDefinitions.Codes.UncategorizedError,
-            message = ErrorDefinitions.Messages.UncategorizedError
+            code = ErrorCode.UncategorizedError,
+            message = ErrorCode.Messages.UncategorizedError
         };
 
         switch (exception)
@@ -42,7 +45,7 @@ public class ExceptionMiddleware
                 statusCode = StatusCodes.Status400BadRequest;
                 error = new ApiErrorResponse
                 {
-                    code = validationException.ErrorCode,
+                    code = validationException.Code,
                     message = validationException.Message,
                     fieldErrors = validationException.FieldErrors
                 };
@@ -51,7 +54,7 @@ public class ExceptionMiddleware
                 statusCode = StatusCodes.Status401Unauthorized;
                 error = new ApiErrorResponse
                 {
-                    code = unauthorizedException.ErrorCode,
+                    code = unauthorizedException.Code,
                     message = unauthorizedException.Message
                 };
                 break;
@@ -59,7 +62,7 @@ public class ExceptionMiddleware
                 statusCode = StatusCodes.Status403Forbidden;
                 error = new ApiErrorResponse
                 {
-                    code = forbiddenException.ErrorCode,
+                    code = forbiddenException.Code,
                     message = forbiddenException.Message
                 };
                 break;
@@ -67,28 +70,29 @@ public class ExceptionMiddleware
                 statusCode = StatusCodes.Status404NotFound;
                 error = new ApiErrorResponse
                 {
-                    code = notFoundException.ErrorCode,
+                    code = notFoundException.Code,
                     message = notFoundException.Message
                 };
                 break;
             case AppException appException:
-                statusCode = appException.ErrorCode switch
+                statusCode = appException.Code switch
                 {
-                    ErrorDefinitions.Codes.AuthInvalidCredentials => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthUnauthorized => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthEmailNotVerified => StatusCodes.Status403Forbidden,
-                    ErrorDefinitions.Codes.AuthGoogleTokenInvalid => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthOtpRateLimited => StatusCodes.Status429TooManyRequests,
-                    ErrorDefinitions.Codes.AuthRateLimited => StatusCodes.Status429TooManyRequests,
-                    ErrorDefinitions.Codes.AuthRefreshTokenInvalid => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthRefreshTokenExpired => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthRefreshTokenRevoked => StatusCodes.Status401Unauthorized,
-                    ErrorDefinitions.Codes.AuthRefreshTokenReuseDetected => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthInvalidCredentials => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthUnauthorized => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthEmailNotVerified => StatusCodes.Status403Forbidden,
+                    ErrorCode.AuthAccountInactive => StatusCodes.Status403Forbidden,
+                    ErrorCode.AuthGoogleTokenInvalid => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthOtpRateLimited => StatusCodes.Status429TooManyRequests,
+                    ErrorCode.AuthRateLimited => StatusCodes.Status429TooManyRequests,
+                    ErrorCode.AuthRefreshTokenInvalid => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthRefreshTokenExpired => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthRefreshTokenRevoked => StatusCodes.Status401Unauthorized,
+                    ErrorCode.AuthRefreshTokenReuseDetected => StatusCodes.Status401Unauthorized,
                     _ => StatusCodes.Status400BadRequest
                 };
                 error = new ApiErrorResponse
                 {
-                    code = appException.ErrorCode,
+                    code = appException.Code,
                     message = appException.Message,
                     fieldErrors = appException.FieldErrors
                 };

@@ -1,7 +1,9 @@
 namespace DDMS.Backend.Models.Services.Interfaces;
 
+public record EmailVerificationResult(string email, bool alreadyVerified);
+
 public interface IEmailVerificationService
 {
     Task<string> SendVerificationLinkAsync(string email);
-    Task<string> VerifyByTokenAsync(string token);
+    Task<EmailVerificationResult> VerifyByTokenAsync(string token);
 }

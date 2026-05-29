@@ -20,6 +20,12 @@ public class EmailVerificationTokenRepository : IEmailVerificationTokenRepositor
             .FirstOrDefaultAsync(x => x.token_hash == tokenHash && x.used_at == null && x.expires_at > DateTime.UtcNow);
     }
 
+    public Task<email_verification_token?> GetByTokenHashAnyAsync(string tokenHash)
+    {
+        return _dbContext.email_verification_tokens
+            .FirstOrDefaultAsync(x => x.token_hash == tokenHash);
+    }
+
     public Task<email_verification_token?> GetLatestCreatedAsync(string email, string purpose)
     {
         return _dbContext.email_verification_tokens

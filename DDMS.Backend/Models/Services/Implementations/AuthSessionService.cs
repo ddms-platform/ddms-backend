@@ -60,7 +60,7 @@ public class AuthSessionService : IAuthSessionService
     {
         if (user.email_verified_at is null)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthEmailNotVerified, ErrorDefinitions.Messages.EmailNotVerified);
+            throw new AppException(ErrorCode.AuthEmailNotVerified, ErrorCode.Messages.EmailNotVerified);
         }
     }
 
@@ -68,7 +68,7 @@ public class AuthSessionService : IAuthSessionService
     {
         if (user.is_active is false)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthAccountInactive, ErrorDefinitions.Messages.AccountInactive);
+            throw new AppException(ErrorCode.AuthAccountInactive, ErrorCode.Messages.AccountInactive);
         }
     }
 }

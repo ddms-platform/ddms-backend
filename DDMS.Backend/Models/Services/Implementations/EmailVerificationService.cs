@@ -41,7 +41,7 @@ public class EmailVerificationService : IEmailVerificationService
             email = normalizedEmail,
             token_hash = HashToken(rawToken),
             purpose = VerificationPurposes.EmailVerification,
-            expires_at = DateTime.UtcNow.AddHours(_options.tokenExpiryHours),
+            expires_at = DateTime.UtcNow.AddMinutes(_options.tokenExpiryMinutes),
             created_at = DateTime.UtcNow
         };
 
@@ -49,37 +49,51 @@ public class EmailVerificationService : IEmailVerificationService
         await _tokenRepository.AddAsync(entity);
 
         var link = BuildVerificationLink(rawToken);
-        await _emailSender.SendVerificationLinkEmailAsync(normalizedEmail, link, _options.tokenExpiryHours);
+        await _emailSender.SendVerificationLinkEmailAsync(normalizedEmail, link, _options.tokenExpiryMinutes);
 
         return link;
     }
 
-    public async Task<string> VerifyByTokenAsync(string token)
+    public async Task<EmailVerificationResult> VerifyByTokenAsync(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["token"] = [ErrorDefinitions.Messages.VerificationTokenRequired]
+                ["token"] = [ErrorCode.Messages.VerificationTokenRequired]
             });
         }
 
-        var record = await _tokenRepository.GetByTokenHashAsync(HashToken(token.Trim()));
+        var record = await _tokenRepository.GetByTokenHashAnyAsync(HashToken(token.Trim()));
 
         if (record is null)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthOtpExpired, ErrorDefinitions.Messages.VerificationTokenExpired);
+            throw new AppException(ErrorCode.AuthOtpInvalid, ErrorCode.Messages.VerificationTokenInvalid);
+        }
+
+        var user = await _userRepository.GetByEmailAsync(record.email);
+
+        // Idempotent: a previously verified account re-clicking the link is a
+        // success, not an error.
+        if (user is not null && user.email_verified_at is not null)
+        {
+            return new EmailVerificationResult(record.email, alreadyVerified: true);
+        }
+
+        // Beyond this point the token must still be usable (unused & unexpired).
+        if (record.used_at is not null || record.expires_at <= DateTime.UtcNow)
+        {
+            throw new AppException(ErrorCode.AuthOtpExpired, ErrorCode.Messages.VerificationTokenExpired);
         }
 
         await _tokenRepository.MarkUsedAsync(record);
 
-        var user = await _userRepository.GetByEmailAsync(record.email);
         if (user is not null)
         {
             await _userRepository.MarkEmailVerifiedAsync(user.id);
         }
 
-        return record.email;
+        return new EmailVerificationResult(record.email, alreadyVerified: false);
     }
 
     private string BuildVerificationLink(string rawToken)
@@ -95,7 +109,7 @@ public class EmailVerificationService : IEmailVerificationService
         var count = await _tokenRepository.CountRecentRequestsAsync(email, purpose, since);
         if (count >= _options.maxRequestsPerHour)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthOtpRateLimited, ErrorDefinitions.Messages.VerificationRateLimited);
+            throw new AppException(ErrorCode.AuthOtpRateLimited, ErrorCode.Messages.VerificationRateLimited);
         }
 
         var latest = await _tokenRepository.GetLatestCreatedAsync(email, purpose);
@@ -104,7 +118,7 @@ public class EmailVerificationService : IEmailVerificationService
             var cooldownEnds = latest.created_at.AddSeconds(_options.resendCooldownSeconds);
             if (DateTime.UtcNow < cooldownEnds)
             {
-                throw new AppException(ErrorDefinitions.Codes.AuthOtpRateLimited, ErrorDefinitions.Messages.VerificationRateLimited);
+                throw new AppException(ErrorCode.AuthOtpRateLimited, ErrorCode.Messages.VerificationRateLimited);
             }
         }
     }

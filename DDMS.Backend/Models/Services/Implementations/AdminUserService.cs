@@ -76,9 +76,9 @@ public class AdminUserService : IAdminUserService
 
         if (string.IsNullOrWhiteSpace(request.fullName))
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["fullName"] = [ErrorDefinitions.Messages.FullNameRequired]
+                ["fullName"] = [ErrorCode.Messages.FullNameRequired]
             });
         }
 
@@ -112,9 +112,9 @@ public class AdminUserService : IAdminUserService
 
         if (request.roles.Count == 0)
         {
-            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["roles"] = [ErrorDefinitions.Messages.InvalidRole]
+                ["roles"] = [ErrorCode.Messages.InvalidRole]
             });
         }
 
@@ -125,13 +125,13 @@ public class AdminUserService : IAdminUserService
 
         if (normalizedRoles.Any(x => !AllowedRoles.Contains(x)))
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.InvalidRole);
+            throw new AppException(ErrorCode.AuthValidationFailed, ErrorCode.Messages.InvalidRole);
         }
 
         var roles = await _roleRepository.GetByNamesAsync(normalizedRoles);
         if (roles.Count != normalizedRoles.Count)
         {
-            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.InvalidRole);
+            throw new AppException(ErrorCode.AuthValidationFailed, ErrorCode.Messages.InvalidRole);
         }
 
         await _adminUserRepository.SetRolesAsync(id, roles.Select(x => x.id));
@@ -158,7 +158,7 @@ public class AdminUserService : IAdminUserService
     {
         if (targetUserId == currentUserId)
         {
-            throw new ForbiddenException(ErrorDefinitions.Messages.CannotModifySelf);
+            throw new ForbiddenException(ErrorCode.Messages.CannotModifySelf);
         }
     }
 

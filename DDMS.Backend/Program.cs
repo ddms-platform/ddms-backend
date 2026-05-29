@@ -2,11 +2,11 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Configurations;
 using DDMS.Backend.Data;
 using DDMS.Backend.Extensions;
-using DDMS.Backend.Middleware;
 using DDMS.Backend.Models.Repositories.Implementations;
 using DDMS.Backend.Models.Repositories.Interfaces;
 using DDMS.Backend.Models.Services.Implementations;
@@ -106,8 +106,8 @@ builder.Services.AddRateLimiter(options =>
         context.HttpContext.Response.ContentType = "application/json";
         await context.HttpContext.Response.WriteAsJsonAsync(new ApiErrorResponse
         {
-            code = ErrorDefinitions.Codes.AuthRateLimited,
-            message = ErrorDefinitions.Messages.AuthRateLimited
+            code = ErrorCode.AuthRateLimited,
+            message = ErrorCode.Messages.AuthRateLimited
         });
     };
 
@@ -138,7 +138,7 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

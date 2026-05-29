@@ -6,7 +6,7 @@ public interface IAuthService
 {
     Task<RegisterResponse> RegisterAsync(RegisterRequest request);
     Task<AuthTokensResponse> LoginAsync(LoginRequest request, string? ipAddress, string? userAgent);
-    Task<AuthTokensResponse> VerifyEmailAsync(VerifyEmailRequest request, string? ipAddress, string? userAgent);
+    Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request);
     Task<MessageResponse> ResendVerificationEmailAsync(ResendVerificationEmailRequest request);
     Task<AuthTokensResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, string? userAgent);
     Task LogoutAsync(LogoutRequest request);
