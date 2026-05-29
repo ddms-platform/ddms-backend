@@ -44,10 +44,12 @@ public class AuthSessionService : IAuthSessionService
         };
 
         await _refreshTokenRepository.AddAsync(refreshTokenEntity);
+        await _refreshTokenRepository.EnforceSessionLimitAsync(user.id, _jwtOptions.maxRefreshTokensPerUser);
 
         return new AuthTokensResponse
         {
             token = accessToken,
+            accessToken = accessToken,
             refreshToken = refreshToken,
             authenticated = true,
             expiresInSeconds = _jwtOptions.accessTokenMinutes * 60
@@ -58,7 +60,7 @@ public class AuthSessionService : IAuthSessionService
     {
         if (user.email_verified_at is null)
         {
-            throw new AppException(ErrorCodes.AuthEmailNotVerified, MessageConstants.EmailNotVerified);
+            throw new AppException(ErrorDefinitions.Codes.AuthEmailNotVerified, ErrorDefinitions.Messages.EmailNotVerified);
         }
     }
 
@@ -66,7 +68,7 @@ public class AuthSessionService : IAuthSessionService
     {
         if (user.is_active is false)
         {
-            throw new AppException(ErrorCodes.AuthAccountInactive, MessageConstants.AccountInactive);
+            throw new AppException(ErrorDefinitions.Codes.AuthAccountInactive, ErrorDefinitions.Messages.AccountInactive);
         }
     }
 }

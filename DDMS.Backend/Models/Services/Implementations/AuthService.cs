@@ -39,7 +39,7 @@ public class AuthService : IAuthService
 
         if (await _userRepository.EmailExistsAsync(email))
         {
-            throw new AppException(ErrorCodes.AuthEmailAlreadyExists, MessageConstants.EmailAlreadyExists);
+            throw new AppException(ErrorDefinitions.Codes.AuthEmailAlreadyExists, ErrorDefinitions.Messages.EmailAlreadyExists);
         }
 
         var user = new user
@@ -62,7 +62,7 @@ public class AuthService : IAuthService
         {
             requiresEmailVerification = true,
             email = email,
-            message = MessageConstants.CheckEmailForVerification,
+            message = ErrorDefinitions.Messages.CheckEmailForVerification,
             verificationLink = _hostEnvironment.IsDevelopment() ? verificationLink : null
         };
     }
@@ -75,12 +75,12 @@ public class AuthService : IAuthService
 
         if (user is null || string.IsNullOrWhiteSpace(user.password_hash))
         {
-            throw new AppException(ErrorCodes.AuthInvalidCredentials, MessageConstants.InvalidCredentials);
+            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
         }
 
         if (!BCrypt.Net.BCrypt.Verify(request.password, user.password_hash))
         {
-            throw new AppException(ErrorCodes.AuthInvalidCredentials, MessageConstants.InvalidCredentials);
+            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
         }
 
         _authSessionService.EnsureAccountActive(user);
@@ -99,7 +99,7 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            throw new AppException(ErrorCodes.AuthInvalidCredentials, MessageConstants.InvalidCredentials);
+            throw new AppException(ErrorDefinitions.Codes.AuthInvalidCredentials, ErrorDefinitions.Messages.InvalidCredentials);
         }
 
         _authSessionService.EnsureAccountActive(user);
@@ -110,9 +110,9 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["email"] = [MessageConstants.EmailRequired]
+                ["email"] = [ErrorDefinitions.Messages.EmailRequired]
             });
         }
 
@@ -121,19 +121,19 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            return new MessageResponse { message = MessageConstants.VerificationLinkSent };
+            return new MessageResponse { message = ErrorDefinitions.Messages.VerificationLinkSent };
         }
 
         if (user.email_verified_at is not null)
         {
-            throw new AppException(ErrorCodes.AuthValidationFailed, MessageConstants.EmailAlreadyVerified);
+            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.EmailAlreadyVerified);
         }
 
         var link = await _emailVerificationService.SendVerificationLinkAsync(email);
 
         return new MessageResponse
         {
-            message = MessageConstants.VerificationLinkSent,
+            message = ErrorDefinitions.Messages.VerificationLinkSent,
             verificationLink = _hostEnvironment.IsDevelopment() ? link : null
         };
     }
@@ -142,7 +142,7 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrWhiteSpace(request.refreshToken))
         {
-            throw new AppException(ErrorCodes.AuthRefreshTokenInvalid, MessageConstants.RefreshTokenInvalid);
+            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenInvalid, ErrorDefinitions.Messages.RefreshTokenInvalid);
         }
 
         var tokenHash = _tokenService.HashToken(request.refreshToken.Trim());
@@ -150,17 +150,18 @@ public class AuthService : IAuthService
 
         if (existingToken is null)
         {
-            throw new AppException(ErrorCodes.AuthRefreshTokenInvalid, MessageConstants.RefreshTokenInvalid);
+            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenInvalid, ErrorDefinitions.Messages.RefreshTokenInvalid);
         }
 
         if (existingToken.revoked)
         {
-            throw new AppException(ErrorCodes.AuthRefreshTokenRevoked, MessageConstants.RefreshTokenRevoked);
+            await _refreshTokenRepository.RevokeAllActiveForUserAsync(existingToken.user_id);
+            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenReuseDetected, ErrorDefinitions.Messages.RefreshTokenReuseDetected);
         }
 
         if (existingToken.expires_at <= DateTime.UtcNow)
         {
-            throw new AppException(ErrorCodes.AuthRefreshTokenExpired, MessageConstants.RefreshTokenExpired);
+            throw new AppException(ErrorDefinitions.Codes.AuthRefreshTokenExpired, ErrorDefinitions.Messages.RefreshTokenExpired);
         }
 
         await _refreshTokenRepository.RevokeAsync(existingToken);
@@ -188,6 +189,11 @@ public class AuthService : IAuthService
         await _refreshTokenRepository.RevokeAsync(existingToken);
     }
 
+    public async Task LogoutAllAsync(Guid userId)
+    {
+        await _refreshTokenRepository.RevokeAllActiveForUserAsync(userId);
+    }
+
     public async Task<CurrentUserResponse> GetMeAsync(Guid userId)
     {
         var user = await _userRepository.GetByIdWithRolesAsync(userId);
@@ -198,6 +204,7 @@ public class AuthService : IAuthService
         }
 
         _authSessionService.EnsureAccountActive(user);
+        _authSessionService.EnsureEmailVerified(user);
 
         return new CurrentUserResponse
         {
@@ -215,31 +222,31 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(request.fullName))
         {
-            fieldErrors["fullName"] = [MessageConstants.FullNameRequired];
+            fieldErrors["fullName"] = [ErrorDefinitions.Messages.FullNameRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            fieldErrors["email"] = [MessageConstants.EmailRequired];
+            fieldErrors["email"] = [ErrorDefinitions.Messages.EmailRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.password))
         {
-            fieldErrors["password"] = [MessageConstants.PasswordRequired];
+            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordRequired];
         }
         else if (request.password.Length < 8)
         {
-            fieldErrors["password"] = [MessageConstants.PasswordMinLength];
+            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordMinLength];
         }
 
         if (request.password != request.confirmPassword)
         {
-            fieldErrors["confirmPassword"] = [MessageConstants.ConfirmPasswordMismatch];
+            fieldErrors["confirmPassword"] = [ErrorDefinitions.Messages.ConfirmPasswordMismatch];
         }
 
         if (fieldErrors.Count > 0)
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, fieldErrors);
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, fieldErrors);
         }
     }
 
@@ -249,17 +256,17 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(request.email))
         {
-            fieldErrors["email"] = [MessageConstants.EmailRequired];
+            fieldErrors["email"] = [ErrorDefinitions.Messages.EmailRequired];
         }
 
         if (string.IsNullOrWhiteSpace(request.password))
         {
-            fieldErrors["password"] = [MessageConstants.PasswordRequired];
+            fieldErrors["password"] = [ErrorDefinitions.Messages.PasswordRequired];
         }
 
         if (fieldErrors.Count > 0)
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, fieldErrors);
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, fieldErrors);
         }
     }
 }

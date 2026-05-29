@@ -3,14 +3,17 @@ using System.Security.Claims;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Auth;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DDMS.Backend.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting(RateLimitPolicies.Auth)]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
@@ -72,8 +75,23 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAll()
+    {
+        var userId = GetCurrentUserId();
+        await _authService.LogoutAllAsync(userId);
+        return Ok(ApiResponse<object>.Ok(new { loggedOut = true }));
+    }
+
+    [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
+    {
+        var result = await _authService.GetMeAsync(GetCurrentUserId());
+        return Ok(ApiResponse<CurrentUserResponse>.Ok(result));
+    }
+
+    private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -82,8 +100,7 @@ public class AuthController : ControllerBase
             throw new UnauthorizedException();
         }
 
-        var result = await _authService.GetMeAsync(userId);
-        return Ok(ApiResponse<CurrentUserResponse>.Ok(result));
+        return userId;
     }
 
     private string? GetIpAddress()

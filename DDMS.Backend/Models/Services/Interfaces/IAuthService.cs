@@ -10,5 +10,6 @@ public interface IAuthService
     Task<MessageResponse> ResendVerificationEmailAsync(ResendVerificationEmailRequest request);
     Task<AuthTokensResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, string? userAgent);
     Task LogoutAsync(LogoutRequest request);
+    Task LogoutAllAsync(Guid userId);
     Task<CurrentUserResponse> GetMeAsync(Guid userId);
 }

@@ -33,7 +33,7 @@ public class GoogleAuthService : IGoogleAuthService
     {
         if (string.IsNullOrWhiteSpace(request.idToken))
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
                 ["idToken"] = ["Google idToken is required"]
             });
@@ -41,7 +41,7 @@ public class GoogleAuthService : IGoogleAuthService
 
         if (string.IsNullOrWhiteSpace(_googleOptions.clientId))
         {
-            throw new AppException(ErrorCodes.AuthGoogleTokenInvalid, MessageConstants.GoogleTokenInvalid);
+            throw new AppException(ErrorDefinitions.Codes.AuthGoogleTokenInvalid, ErrorDefinitions.Messages.GoogleTokenInvalid);
         }
 
         GoogleJsonWebSignature.Payload payload;
@@ -56,12 +56,12 @@ public class GoogleAuthService : IGoogleAuthService
         }
         catch
         {
-            throw new AppException(ErrorCodes.AuthGoogleTokenInvalid, MessageConstants.GoogleTokenInvalid);
+            throw new AppException(ErrorDefinitions.Codes.AuthGoogleTokenInvalid, ErrorDefinitions.Messages.GoogleTokenInvalid);
         }
 
         if (string.IsNullOrWhiteSpace(payload.Email))
         {
-            throw new AppException(ErrorCodes.AuthGoogleTokenInvalid, MessageConstants.GoogleTokenInvalid);
+            throw new AppException(ErrorDefinitions.Codes.AuthGoogleTokenInvalid, ErrorDefinitions.Messages.GoogleTokenInvalid);
         }
 
         var email = payload.Email.Trim().ToLowerInvariant();
@@ -96,7 +96,7 @@ public class GoogleAuthService : IGoogleAuthService
             }
             else if (user.google_id != payload.Subject)
             {
-                throw new AppException(ErrorCodes.AuthGoogleTokenInvalid, MessageConstants.GoogleTokenInvalid);
+                throw new AppException(ErrorDefinitions.Codes.AuthGoogleTokenInvalid, ErrorDefinitions.Messages.GoogleTokenInvalid);
             }
 
             if (user.email_verified_at is null)

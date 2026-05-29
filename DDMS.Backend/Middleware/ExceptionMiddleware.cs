@@ -32,8 +32,8 @@ public class ExceptionMiddleware
         var statusCode = StatusCodes.Status500InternalServerError;
         var error = new ApiErrorResponse
         {
-            code = ErrorCodes.UncategorizedError,
-            message = MessageConstants.UncategorizedError
+            code = ErrorDefinitions.Codes.UncategorizedError,
+            message = ErrorDefinitions.Messages.UncategorizedError
         };
 
         switch (exception)
@@ -74,11 +74,16 @@ public class ExceptionMiddleware
             case AppException appException:
                 statusCode = appException.ErrorCode switch
                 {
-                    ErrorCodes.AuthInvalidCredentials => StatusCodes.Status401Unauthorized,
-                    ErrorCodes.AuthUnauthorized => StatusCodes.Status401Unauthorized,
-                    ErrorCodes.AuthEmailNotVerified => StatusCodes.Status403Forbidden,
-                    ErrorCodes.AuthGoogleTokenInvalid => StatusCodes.Status401Unauthorized,
-                    ErrorCodes.AuthOtpRateLimited => StatusCodes.Status429TooManyRequests,
+                    ErrorDefinitions.Codes.AuthInvalidCredentials => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthUnauthorized => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthEmailNotVerified => StatusCodes.Status403Forbidden,
+                    ErrorDefinitions.Codes.AuthGoogleTokenInvalid => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthOtpRateLimited => StatusCodes.Status429TooManyRequests,
+                    ErrorDefinitions.Codes.AuthRateLimited => StatusCodes.Status429TooManyRequests,
+                    ErrorDefinitions.Codes.AuthRefreshTokenInvalid => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthRefreshTokenExpired => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthRefreshTokenRevoked => StatusCodes.Status401Unauthorized,
+                    ErrorDefinitions.Codes.AuthRefreshTokenReuseDetected => StatusCodes.Status401Unauthorized,
                     _ => StatusCodes.Status400BadRequest
                 };
                 error = new ApiErrorResponse

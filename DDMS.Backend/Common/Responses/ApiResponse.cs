@@ -10,7 +10,7 @@ public class ApiResponse<T>
     public static ApiResponse<T> Ok(T result) =>
         new()
         {
-            code = ErrorCodes.Success,
+            code = ErrorDefinitions.Codes.Success,
             result = result
         };
 }

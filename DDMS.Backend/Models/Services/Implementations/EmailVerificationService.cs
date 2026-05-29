@@ -58,9 +58,9 @@ public class EmailVerificationService : IEmailVerificationService
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["token"] = [MessageConstants.VerificationTokenRequired]
+                ["token"] = [ErrorDefinitions.Messages.VerificationTokenRequired]
             });
         }
 
@@ -68,7 +68,7 @@ public class EmailVerificationService : IEmailVerificationService
 
         if (record is null)
         {
-            throw new AppException(ErrorCodes.AuthOtpExpired, MessageConstants.VerificationTokenExpired);
+            throw new AppException(ErrorDefinitions.Codes.AuthOtpExpired, ErrorDefinitions.Messages.VerificationTokenExpired);
         }
 
         await _tokenRepository.MarkUsedAsync(record);
@@ -95,7 +95,7 @@ public class EmailVerificationService : IEmailVerificationService
         var count = await _tokenRepository.CountRecentRequestsAsync(email, purpose, since);
         if (count >= _options.maxRequestsPerHour)
         {
-            throw new AppException(ErrorCodes.AuthOtpRateLimited, MessageConstants.VerificationRateLimited);
+            throw new AppException(ErrorDefinitions.Codes.AuthOtpRateLimited, ErrorDefinitions.Messages.VerificationRateLimited);
         }
 
         var latest = await _tokenRepository.GetLatestCreatedAsync(email, purpose);
@@ -104,7 +104,7 @@ public class EmailVerificationService : IEmailVerificationService
             var cooldownEnds = latest.created_at.AddSeconds(_options.resendCooldownSeconds);
             if (DateTime.UtcNow < cooldownEnds)
             {
-                throw new AppException(ErrorCodes.AuthOtpRateLimited, MessageConstants.VerificationRateLimited);
+                throw new AppException(ErrorDefinitions.Codes.AuthOtpRateLimited, ErrorDefinitions.Messages.VerificationRateLimited);
             }
         }
     }

@@ -15,15 +15,18 @@ public class AdminUserService : IAdminUserService
     private readonly IAdminUserRepository _adminUserRepository;
     private readonly IUserRepository _userRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
 
     public AdminUserService(
         IAdminUserRepository adminUserRepository,
         IUserRepository userRepository,
-        IRoleRepository roleRepository)
+        IRoleRepository roleRepository,
+        IRefreshTokenRepository refreshTokenRepository)
     {
         _adminUserRepository = adminUserRepository;
         _userRepository = userRepository;
         _roleRepository = roleRepository;
+        _refreshTokenRepository = refreshTokenRepository;
     }
 
     public async Task<PagedResponse<AdminUserListItemResponse>> GetUsersAsync(AdminUserListQuery query)
@@ -73,17 +76,24 @@ public class AdminUserService : IAdminUserService
 
         if (string.IsNullOrWhiteSpace(request.fullName))
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["fullName"] = [MessageConstants.FullNameRequired]
+                ["fullName"] = [ErrorDefinitions.Messages.FullNameRequired]
             });
         }
+
+        var wasActive = user.is_active ?? true;
 
         user.full_name = request.fullName.Trim();
         user.phone = string.IsNullOrWhiteSpace(request.phone) ? null : request.phone.Trim();
         user.is_active = request.isActive;
 
         await _userRepository.UpdateAsync(user);
+
+        if (wasActive && request.isActive == false)
+        {
+            await _refreshTokenRepository.RevokeAllActiveForUserAsync(id);
+        }
         return MapToListItem(user);
     }
 
@@ -102,9 +112,9 @@ public class AdminUserService : IAdminUserService
 
         if (request.roles.Count == 0)
         {
-            throw new ValidationException(MessageConstants.ValidationFailed, new Dictionary<string, List<string>>
+            throw new ValidationException(ErrorDefinitions.Messages.ValidationFailed, new Dictionary<string, List<string>>
             {
-                ["roles"] = [MessageConstants.InvalidRole]
+                ["roles"] = [ErrorDefinitions.Messages.InvalidRole]
             });
         }
 
@@ -115,13 +125,13 @@ public class AdminUserService : IAdminUserService
 
         if (normalizedRoles.Any(x => !AllowedRoles.Contains(x)))
         {
-            throw new AppException(ErrorCodes.AuthValidationFailed, MessageConstants.InvalidRole);
+            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.InvalidRole);
         }
 
         var roles = await _roleRepository.GetByNamesAsync(normalizedRoles);
         if (roles.Count != normalizedRoles.Count)
         {
-            throw new AppException(ErrorCodes.AuthValidationFailed, MessageConstants.InvalidRole);
+            throw new AppException(ErrorDefinitions.Codes.AuthValidationFailed, ErrorDefinitions.Messages.InvalidRole);
         }
 
         await _adminUserRepository.SetRolesAsync(id, roles.Select(x => x.id));
@@ -141,13 +151,14 @@ public class AdminUserService : IAdminUserService
 
         user.is_active = false;
         await _userRepository.UpdateAsync(user);
+        await _refreshTokenRepository.RevokeAllActiveForUserAsync(id);
     }
 
     private static void EnsureNotSelf(Guid targetUserId, Guid currentUserId)
     {
         if (targetUserId == currentUserId)
         {
-            throw new ForbiddenException(MessageConstants.CannotModifySelf);
+            throw new ForbiddenException(ErrorDefinitions.Messages.CannotModifySelf);
         }
     }
 
