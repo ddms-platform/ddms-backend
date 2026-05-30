@@ -29,22 +29,42 @@ public class EmailSender : IEmailSender
             return;
         }
 
-        using var client = new SmtpClient(_emailOptions.smtpHost, _emailOptions.smtpPort)
+        if (string.IsNullOrWhiteSpace(_emailOptions.smtpHost)
+            || string.IsNullOrWhiteSpace(_emailOptions.smtpUser)
+            || string.IsNullOrWhiteSpace(_emailOptions.smtpPassword)
+            || string.IsNullOrWhiteSpace(_emailOptions.fromAddress))
         {
-            EnableSsl = _emailOptions.enableSsl,
-            Credentials = new NetworkCredential(_emailOptions.smtpUser, _emailOptions.smtpPassword)
-        };
+            _logger.LogError(
+                "SMTP is enabled but Email settings are incomplete. Configure Gmail via User Secrets (see SECRETS.md).");
+            throw new InvalidOperationException(
+                "Email SMTP is not configured. Set Email:* values via dotnet user-secrets (see SECRETS.md).");
+        }
 
-        using var message = new MailMessage
+        try
         {
-            From = new MailAddress(_emailOptions.fromAddress, _emailOptions.fromName),
-            Subject = subject,
-            Body = body,
-            IsBodyHtml = true
-        };
-        message.To.Add(toEmail);
+            using var client = new SmtpClient(_emailOptions.smtpHost, _emailOptions.smtpPort)
+            {
+                EnableSsl = _emailOptions.enableSsl,
+                Credentials = new NetworkCredential(_emailOptions.smtpUser, _emailOptions.smtpPassword)
+            };
 
-        await client.SendMailAsync(message);
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_emailOptions.fromAddress, _emailOptions.fromName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+            message.To.Add(toEmail);
+
+            await client.SendMailAsync(message);
+            _logger.LogInformation("Verification email sent to {Email}", toEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send verification email to {Email}", toEmail);
+            throw;
+        }
     }
 
     private static string BuildVerificationEmailHtml(string verificationLink, int expiryMinutes)
