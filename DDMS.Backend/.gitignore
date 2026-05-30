@@ -74,6 +74,11 @@ Desktop.ini
 .env.local
 .env.*.local
 
+# Local secrets (use dotnet user-secrets instead — see SECRETS.md)
+secrets.json
+appsettings.Local.json
+**/secrets.json
+
 # Temporary files
 temp/
 tmp/
