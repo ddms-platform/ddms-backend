@@ -55,6 +55,12 @@ public static class ErrorCode
         public const string EmailVerified = "Email verified successfully";
         public const string EmailAlreadyVerified = "Email is already verified";
 
+        public const string PasswordResetTokenRequired = "Password reset token is required";
+        public const string PasswordResetTokenInvalid = "Invalid or expired password reset link";
+        public const string PasswordResetLinkSent = "If an account exists for this email, a password reset link has been sent";
+        public const string PasswordResetSuccess = "Password reset successfully";
+        public const string PasswordResetSocialAccount = "This account uses Google sign-in and has no password to reset";
+
         public const string InvalidToken = "Invalid token";
         public const string TokenExpired = "Token expired";
 

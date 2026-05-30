@@ -14,6 +14,7 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IAuthSessionService _authSessionService;
     private readonly IEmailVerificationService _emailVerificationService;
+    private readonly IPasswordResetService _passwordResetService;
     private readonly IHostEnvironment _hostEnvironment;
 
     public AuthService(
@@ -22,6 +23,7 @@ public class AuthService : IAuthService
         ITokenService tokenService,
         IAuthSessionService authSessionService,
         IEmailVerificationService emailVerificationService,
+        IPasswordResetService passwordResetService,
         IHostEnvironment hostEnvironment)
     {
         _userRepository = userRepository;
@@ -29,6 +31,7 @@ public class AuthService : IAuthService
         _tokenService = tokenService;
         _authSessionService = authSessionService;
         _emailVerificationService = emailVerificationService;
+        _passwordResetService = passwordResetService;
         _hostEnvironment = hostEnvironment;
     }
 
@@ -139,6 +142,39 @@ public class AuthService : IAuthService
         {
             message = ErrorCode.Messages.VerificationLinkSent,
             verificationLink = _hostEnvironment.IsDevelopment() ? link : null
+        };
+    }
+
+    public async Task<MessageResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.email))
+        {
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            {
+                ["email"] = [ErrorCode.Messages.EmailRequired]
+            });
+        }
+
+        var email = request.email.Trim().ToLowerInvariant();
+        var link = await _passwordResetService.SendResetLinkAsync(email);
+
+        return new MessageResponse
+        {
+            message = ErrorCode.Messages.PasswordResetLinkSent,
+            verificationLink = _hostEnvironment.IsDevelopment() ? link : null
+        };
+    }
+
+    public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        await _passwordResetService.ResetPasswordByTokenAsync(
+            request.token,
+            request.password,
+            request.confirmPassword);
+
+        return new ResetPasswordResponse
+        {
+            message = ErrorCode.Messages.PasswordResetSuccess
         };
     }
 
