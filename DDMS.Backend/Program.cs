@@ -35,6 +35,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
@@ -136,6 +137,23 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+
+// ── Cloudinary ───────────────────────────────────────────────
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+
+// ── Boat ─────────────────────────────────────────────────────
+builder.Services.AddScoped<IBoatRepository, BoatRepository>();
+builder.Services.AddScoped<IBoatCabinRepository, BoatCabinRepository>();
+builder.Services.AddScoped<IBoatAddonRepository, BoatAddonRepository>();
+builder.Services.AddScoped<IBoatImageRepository, BoatImageRepository>();
+builder.Services.AddScoped<IBoatService, BoatService>();
+builder.Services.AddScoped<IBoatCabinService, BoatCabinService>();
+builder.Services.AddScoped<IBoatAddonService, BoatAddonService>();
+builder.Services.AddScoped<IBoatImageService, BoatImageService>();
+
+// ── Dock ─────────────────────────────────────────────────────
+builder.Services.AddScoped<IDockRepository, DockRepository>();
+builder.Services.AddScoped<IDockService, DockService>();
 
 var app = builder.Build();
 
