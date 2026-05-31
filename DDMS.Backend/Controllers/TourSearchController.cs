@@ -1,48 +1,67 @@
-using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Responses;
+
 using DDMS.Backend.Models.DTOs.TourSearch;
+
 using DDMS.Backend.Services.Interfaces;
+
 using Microsoft.AspNetCore.Mvc;
+
+using Swashbuckle.AspNetCore.Annotations;
+
+
 
 namespace DDMS.Backend.Controllers;
 
+
+
 [ApiController]
+
 [Route("api/tour-search")]
+
+[Produces("application/json")]
+
+[SwaggerTag("Search & Filter — location, price, date, duration, sort, remaining capacity")]
+
 public class TourSearchController : ControllerBase
+
 {
+
     private readonly ITourSearchService _service;
 
+
+
     public TourSearchController(ITourSearchService service)
+
     {
+
         _service = service;
+
     }
+
+
 
     [HttpGet]
-    public async Task<IActionResult> Search(
-        [FromQuery] string? location,
-        [FromQuery] decimal? min_price,
-        [FromQuery] decimal? max_price,
-        [FromQuery] DateTime? date,
-        [FromQuery] string? status,
-        [FromQuery] int? min_duration_minutes,
-        [FromQuery] int? max_duration_minutes,
-        [FromQuery] string? sort_by,
-        [FromQuery] bool sort_desc,
-        CancellationToken cancellationToken)
-    {
-        var data = await _service.SearchAsync(new TourSearchRequest
-        {
-            location = location,
-            min_price = min_price,
-            max_price = max_price,
-            date = date,
-            status = status,
-            min_duration_minutes = min_duration_minutes,
-            max_duration_minutes = max_duration_minutes,
-            sort_by = sort_by,
-            sort_desc = sort_desc
-        }, cancellationToken);
 
-        return Ok(ApiResponse<List<TourSearchResponse>>.Ok(data, MessageConstants.SEARCH_RESULT_FETCHED));
+    [SwaggerOperation(
+
+        Summary = "Search available tour schedules",
+
+        Description = "Filter by location, price range, date, status, duration. Sort by price or rating. Returns remaining_capacity per slot.")]
+
+    [ProducesResponseType(typeof(ApiResponse<List<TourSearchResponse>>), StatusCodes.Status200OK)]
+
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+
+    public async Task<IActionResult> Search([FromQuery] TourSearchRequest request, CancellationToken cancellationToken)
+
+    {
+
+        var data = await _service.SearchAsync(request, cancellationToken);
+
+        return Ok(ApiResponse<List<TourSearchResponse>>.Ok(data));
+
     }
+
 }
+
+

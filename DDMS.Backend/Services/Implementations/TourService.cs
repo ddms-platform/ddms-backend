@@ -9,7 +9,6 @@ namespace DDMS.Backend.Services.Implementations;
 public class TourService : ITourService
 {
     private static readonly HashSet<string> ValidStatus = ["active", "inactive"];
-    private static readonly HashSet<string> ValidCancelPolicy = ["free", "partial", "no_refund"];
     private readonly ITourRepository _tourRepository;
 
     public TourService(ITourRepository tourRepository)
@@ -19,8 +18,6 @@ public class TourService : ITourService
 
     public async Task<TourResponse> CreateAsync(CreateTourRequest request, CancellationToken cancellationToken)
     {
-        ValidateTourPayload(request);
-
         var newTour = new tour
         {
             id = Guid.NewGuid(),
@@ -45,10 +42,8 @@ public class TourService : ITourService
 
     public async Task<TourResponse> UpdateAsync(Guid id, UpdateTourRequest request, CancellationToken cancellationToken)
     {
-        ValidateTourPayload(request);
-
         var currentTour = await _tourRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Tour not found");
+            ?? throw new NotFoundException(ErrorCode.TourNotFound, ErrorCode.Messages.TourNotFound);
 
         currentTour.name = request.name.Trim();
         currentTour.price = request.price;
@@ -68,7 +63,7 @@ public class TourService : ITourService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         var currentTour = await _tourRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Tour not found");
+            ?? throw new NotFoundException(ErrorCode.TourNotFound, ErrorCode.Messages.TourNotFound);
 
         _tourRepository.Delete(currentTour);
         await _tourRepository.SaveChangesAsync(cancellationToken);
@@ -77,7 +72,7 @@ public class TourService : ITourService
     public async Task<TourResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var currentTour = await _tourRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Tour not found");
+            ?? throw new NotFoundException(ErrorCode.TourNotFound, ErrorCode.Messages.TourNotFound);
 
         return MapTour(currentTour);
     }
@@ -86,39 +81,11 @@ public class TourService : ITourService
     {
         if (!string.IsNullOrWhiteSpace(request.status) && !ValidStatus.Contains(request.status))
         {
-            throw new BadRequestException("Invalid tour status");
+            throw new AppException(ErrorCode.TourInvalidStatus, ErrorCode.Messages.TourInvalidStatus);
         }
 
         var tours = await _tourRepository.GetListAsync(request.status, request.location, cancellationToken);
         return tours.Select(MapTour).ToList();
-    }
-
-    private static void ValidateTourPayload(CreateTourRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.name))
-        {
-            throw new BadRequestException("Tour name is required");
-        }
-
-        if (request.price < 0)
-        {
-            throw new BadRequestException("Price must be greater than or equal to 0");
-        }
-
-        if (request.duration_minutes <= 0)
-        {
-            throw new BadRequestException("Duration must be greater than 0");
-        }
-
-        if (!ValidStatus.Contains(request.status))
-        {
-            throw new BadRequestException("Invalid tour status");
-        }
-
-        if (!ValidCancelPolicy.Contains(request.cancel_policy))
-        {
-            throw new BadRequestException("Invalid cancel policy");
-        }
     }
 
     private static TourResponse MapTour(tour source)

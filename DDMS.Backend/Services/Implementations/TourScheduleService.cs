@@ -8,7 +8,6 @@ namespace DDMS.Backend.Services.Implementations;
 
 public class TourScheduleService : ITourScheduleService
 {
-    private static readonly HashSet<string> ValidStatus = ["scheduled", "ongoing", "completed", "cancelled"];
     private readonly ITourScheduleRepository _repository;
 
     public TourScheduleService(ITourScheduleRepository repository)
@@ -18,7 +17,7 @@ public class TourScheduleService : ITourScheduleService
 
     public async Task<TourScheduleResponse> CreateAsync(CreateTourScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateRequestAsync(request, cancellationToken);
+        await ValidateBusinessRulesAsync(request, cancellationToken);
 
         var schedule = new tour_schedule
         {
@@ -40,9 +39,10 @@ public class TourScheduleService : ITourScheduleService
 
     public async Task<TourScheduleResponse> UpdateAsync(Guid id, UpdateTourScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateRequestAsync(request, cancellationToken);
+        await ValidateBusinessRulesAsync(request, cancellationToken);
+
         var schedule = await _repository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Schedule not found");
+            ?? throw new NotFoundException(ErrorCode.ScheduleNotFound, ErrorCode.Messages.ScheduleNotFound);
 
         schedule.tour_id = request.tour_id;
         schedule.boat_id = request.boat_id;
@@ -60,7 +60,7 @@ public class TourScheduleService : ITourScheduleService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         var schedule = await _repository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Schedule not found");
+            ?? throw new NotFoundException(ErrorCode.ScheduleNotFound, ErrorCode.Messages.ScheduleNotFound);
 
         _repository.Delete(schedule);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -72,31 +72,21 @@ public class TourScheduleService : ITourScheduleService
         return schedules.Select(Map).ToList();
     }
 
-    private async Task ValidateRequestAsync(CreateTourScheduleRequest request, CancellationToken cancellationToken)
+    private async Task ValidateBusinessRulesAsync(CreateTourScheduleRequest request, CancellationToken cancellationToken)
     {
         if (!await _repository.ExistsTourAsync(request.tour_id, cancellationToken))
         {
-            throw new BadRequestException("Tour does not exist");
+            throw new AppException(ErrorCode.TourNotExists, ErrorCode.Messages.TourNotExists);
         }
 
         if (request.boat_id.HasValue && !await _repository.ExistsBoatAsync(request.boat_id.Value, cancellationToken))
         {
-            throw new BadRequestException("Boat does not exist");
+            throw new AppException(ErrorCode.BoatNotExists, ErrorCode.Messages.BoatNotExists);
         }
 
         if (request.dock_id.HasValue && !await _repository.ExistsDockAsync(request.dock_id.Value, cancellationToken))
         {
-            throw new BadRequestException("Dock does not exist");
-        }
-
-        if (request.end_time <= request.start_time)
-        {
-            throw new BadRequestException("End time must be greater than start time");
-        }
-
-        if (!ValidStatus.Contains(request.status))
-        {
-            throw new BadRequestException("Invalid schedule status");
+            throw new AppException(ErrorCode.DockNotExists, ErrorCode.Messages.DockNotExists);
         }
     }
 

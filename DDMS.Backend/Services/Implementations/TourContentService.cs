@@ -32,14 +32,15 @@ public class TourContentService : ITourContentService
 
         await _repository.AddImageAsync(image, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(image);
+        return TourContentMapper.Map(image);
     }
 
     public async Task<TourImageResponse> UpdateImageAsync(Guid id, UpdateTourImageRequest request, CancellationToken cancellationToken)
     {
         await EnsureTourExistsAsync(request.tour_id, cancellationToken);
+
         var image = await _repository.GetImageByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Tour image not found");
+            ?? throw new NotFoundException(ErrorCode.TourImageNotFound, ErrorCode.Messages.TourImageNotFound);
 
         image.tour_id = request.tour_id;
         image.image_url = request.image_url;
@@ -49,13 +50,13 @@ public class TourContentService : ITourContentService
 
         _repository.UpdateImage(image);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(image);
+        return TourContentMapper.Map(image);
     }
 
     public async Task DeleteImageAsync(Guid id, CancellationToken cancellationToken)
     {
         var image = await _repository.GetImageByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Tour image not found");
+            ?? throw new NotFoundException(ErrorCode.TourImageNotFound, ErrorCode.Messages.TourImageNotFound);
 
         _repository.DeleteImage(image);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -65,7 +66,7 @@ public class TourContentService : ITourContentService
     {
         await EnsureTourExistsAsync(tourId, cancellationToken);
         var images = await _repository.GetImagesByTourIdAsync(tourId, cancellationToken);
-        return images.Select(Map).ToList();
+        return images.Select(TourContentMapper.Map).ToList();
     }
 
     public async Task<FaqResponse> CreateFaqAsync(CreateFaqRequest request, CancellationToken cancellationToken)
@@ -85,14 +86,15 @@ public class TourContentService : ITourContentService
 
         await _repository.AddFaqAsync(faq, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(faq);
+        return TourContentMapper.Map(faq);
     }
 
     public async Task<FaqResponse> UpdateFaqAsync(Guid id, UpdateFaqRequest request, CancellationToken cancellationToken)
     {
         await EnsureTourExistsAsync(request.tour_id, cancellationToken);
+
         var faq = await _repository.GetFaqByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Faq not found");
+            ?? throw new NotFoundException(ErrorCode.FaqNotFound, ErrorCode.Messages.FaqNotFound);
 
         faq.tour_id = request.tour_id;
         faq.question = request.question;
@@ -102,13 +104,13 @@ public class TourContentService : ITourContentService
 
         _repository.UpdateFaq(faq);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(faq);
+        return TourContentMapper.Map(faq);
     }
 
     public async Task DeleteFaqAsync(Guid id, CancellationToken cancellationToken)
     {
         var faq = await _repository.GetFaqByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Faq not found");
+            ?? throw new NotFoundException(ErrorCode.FaqNotFound, ErrorCode.Messages.FaqNotFound);
 
         _repository.DeleteFaq(faq);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -118,12 +120,12 @@ public class TourContentService : ITourContentService
     {
         await EnsureTourExistsAsync(tourId, cancellationToken);
         var faqs = await _repository.GetFaqsByTourIdAsync(tourId, cancellationToken);
-        return faqs.Select(Map).ToList();
+        return faqs.Select(TourContentMapper.Map).ToList();
     }
 
     public async Task<DockScheduleResponse> CreateDockScheduleAsync(CreateDockScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateDockScheduleRequestAsync(request, null, cancellationToken);
+        await ValidateDockScheduleBusinessAsync(request, null, cancellationToken);
 
         var dockSchedule = new dock_schedule
         {
@@ -138,14 +140,15 @@ public class TourContentService : ITourContentService
 
         await _repository.AddDockScheduleAsync(dockSchedule, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(dockSchedule);
+        return TourContentMapper.Map(dockSchedule);
     }
 
     public async Task<DockScheduleResponse> UpdateDockScheduleAsync(Guid id, UpdateDockScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateDockScheduleRequestAsync(request, id, cancellationToken);
+        await ValidateDockScheduleBusinessAsync(request, id, cancellationToken);
+
         var dockSchedule = await _repository.GetDockScheduleByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Dock schedule not found");
+            ?? throw new NotFoundException(ErrorCode.DockScheduleNotFound, ErrorCode.Messages.DockScheduleNotFound);
 
         dockSchedule.dock_id = request.dock_id;
         dockSchedule.boat_id = request.boat_id;
@@ -155,13 +158,13 @@ public class TourContentService : ITourContentService
 
         _repository.UpdateDockSchedule(dockSchedule);
         await _repository.SaveChangesAsync(cancellationToken);
-        return Map(dockSchedule);
+        return TourContentMapper.Map(dockSchedule);
     }
 
     public async Task DeleteDockScheduleAsync(Guid id, CancellationToken cancellationToken)
     {
         var dockSchedule = await _repository.GetDockScheduleByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Dock schedule not found");
+            ?? throw new NotFoundException(ErrorCode.DockScheduleNotFound, ErrorCode.Messages.DockScheduleNotFound);
 
         _repository.DeleteDockSchedule(dockSchedule);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -171,36 +174,34 @@ public class TourContentService : ITourContentService
     {
         if (!await _repository.ExistsDockAsync(dockId, cancellationToken))
         {
-            throw new BadRequestException("Dock does not exist");
+            throw new AppException(ErrorCode.DockNotExists, ErrorCode.Messages.DockNotExists);
         }
 
         var dockSchedules = await _repository.GetDockSchedulesByDockIdAsync(dockId, cancellationToken);
-        return dockSchedules.Select(Map).ToList();
+        return dockSchedules.Select(TourContentMapper.Map).ToList();
     }
 
     private async Task EnsureTourExistsAsync(Guid tourId, CancellationToken cancellationToken)
     {
         if (!await _repository.ExistsTourAsync(tourId, cancellationToken))
         {
-            throw new BadRequestException("Tour does not exist");
+            throw new AppException(ErrorCode.TourNotExists, ErrorCode.Messages.TourNotExists);
         }
     }
 
-    private async Task ValidateDockScheduleRequestAsync(CreateDockScheduleRequest request, Guid? excludeId, CancellationToken cancellationToken)
+    private async Task ValidateDockScheduleBusinessAsync(
+        CreateDockScheduleRequest request,
+        Guid? excludeId,
+        CancellationToken cancellationToken)
     {
         if (!await _repository.ExistsDockAsync(request.dock_id, cancellationToken))
         {
-            throw new BadRequestException("Dock does not exist");
+            throw new AppException(ErrorCode.DockNotExists, ErrorCode.Messages.DockNotExists);
         }
 
         if (!await _repository.ExistsBoatAsync(request.boat_id, cancellationToken))
         {
-            throw new BadRequestException("Boat does not exist");
-        }
-
-        if (request.end_time <= request.start_time)
-        {
-            throw new BadRequestException("End time must be greater than start time");
+            throw new AppException(ErrorCode.BoatNotExists, ErrorCode.Messages.BoatNotExists);
         }
 
         var hasOverlap = await _repository.HasOverlapAsync(
@@ -212,45 +213,7 @@ public class TourContentService : ITourContentService
 
         if (hasOverlap)
         {
-            throw new BadRequestException("Dock time slot overlaps with existing schedule");
+            throw new AppException(ErrorCode.DockScheduleOverlap, ErrorCode.Messages.DockScheduleOverlap);
         }
-    }
-
-    private static TourImageResponse Map(tour_image source)
-    {
-        return new TourImageResponse
-        {
-            id = source.id,
-            tour_id = source.tour_id,
-            image_url = source.image_url,
-            public_id = source.public_id,
-            caption = source.caption,
-            sort_order = source.sort_order
-        };
-    }
-
-    private static FaqResponse Map(faq source)
-    {
-        return new FaqResponse
-        {
-            id = source.id,
-            tour_id = source.tour_id,
-            question = source.question,
-            answer = source.answer,
-            sort_order = source.sort_order
-        };
-    }
-
-    private static DockScheduleResponse Map(dock_schedule source)
-    {
-        return new DockScheduleResponse
-        {
-            id = source.id,
-            dock_id = source.dock_id,
-            boat_id = source.boat_id,
-            schedule_id = source.schedule_id,
-            start_time = source.start_time,
-            end_time = source.end_time
-        };
     }
 }

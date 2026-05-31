@@ -17,7 +17,7 @@ public class RouteService : IRouteService
 
     public async Task<RouteResponse> CreateAsync(CreateRouteRequest request, CancellationToken cancellationToken)
     {
-        await ValidateRequestAsync(request, cancellationToken);
+        await EnsureTourExistsAsync(request.tour_id, cancellationToken);
 
         var route = new route
         {
@@ -38,9 +38,10 @@ public class RouteService : IRouteService
 
     public async Task<RouteResponse> UpdateAsync(Guid id, UpdateRouteRequest request, CancellationToken cancellationToken)
     {
-        await ValidateRequestAsync(request, cancellationToken);
+        await EnsureTourExistsAsync(request.tour_id, cancellationToken);
+
         var route = await _repository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Route not found");
+            ?? throw new NotFoundException(ErrorCode.RouteNotFound, ErrorCode.Messages.RouteNotFound);
 
         route.tour_id = request.tour_id;
         route.name = request.name;
@@ -57,7 +58,7 @@ public class RouteService : IRouteService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         var route = await _repository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Route not found");
+            ?? throw new NotFoundException(ErrorCode.RouteNotFound, ErrorCode.Messages.RouteNotFound);
 
         _repository.Delete(route);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -69,16 +70,11 @@ public class RouteService : IRouteService
         return routes.Select(Map).ToList();
     }
 
-    private async Task ValidateRequestAsync(CreateRouteRequest request, CancellationToken cancellationToken)
+    private async Task EnsureTourExistsAsync(Guid tourId, CancellationToken cancellationToken)
     {
-        if (!await _repository.ExistsTourAsync(request.tour_id, cancellationToken))
+        if (!await _repository.ExistsTourAsync(tourId, cancellationToken))
         {
-            throw new BadRequestException("Tour does not exist");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.start_point) || string.IsNullOrWhiteSpace(request.end_point))
-        {
-            throw new BadRequestException("Start point and end point are required");
+            throw new AppException(ErrorCode.TourNotExists, ErrorCode.Messages.TourNotExists);
         }
     }
 
