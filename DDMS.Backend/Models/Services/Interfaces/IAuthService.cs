@@ -8,6 +8,8 @@ public interface IAuthService
     Task<AuthTokensResponse> LoginAsync(LoginRequest request, string? ipAddress, string? userAgent);
     Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request);
     Task<MessageResponse> ResendVerificationEmailAsync(ResendVerificationEmailRequest request);
+    Task<MessageResponse> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request);
     Task<AuthTokensResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, string? userAgent);
     Task LogoutAsync(LogoutRequest request);
     Task LogoutAllAsync(Guid userId);

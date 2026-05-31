@@ -46,6 +46,20 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<MessageResponse>.Ok(result));
     }
 
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var result = await _authService.ForgotPasswordAsync(request);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
+        return Ok(ApiResponse<ResetPasswordResponse>.Ok(result));
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {

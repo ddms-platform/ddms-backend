@@ -70,6 +70,19 @@ public class UserRepository : IUserRepository
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task UpdatePasswordHashAsync(Guid userId, string passwordHash)
+    {
+        var entity = await _dbContext.users.FirstOrDefaultAsync(x => x.id == userId);
+        if (entity is null)
+        {
+            return;
+        }
+
+        entity.password_hash = passwordHash;
+        entity.updated_at = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+    }
+
     public async Task AssignRoleAsync(Guid userId, string roleName)
     {
         var role = await _dbContext.roles.FirstOrDefaultAsync(x => x.name == roleName);

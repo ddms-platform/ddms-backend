@@ -11,5 +11,6 @@ public interface IUserRepository
     Task<user> AddAsync(user entity);
     Task UpdateAsync(user entity);
     Task MarkEmailVerifiedAsync(Guid userId);
+    Task UpdatePasswordHashAsync(Guid userId, string passwordHash);
     Task AssignRoleAsync(Guid userId, string roleName);
 }
