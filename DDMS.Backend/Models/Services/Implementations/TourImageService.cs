@@ -126,7 +126,7 @@ public class TourImageService : ITourImageService
 
         if (errors.Count > 0)
         {
-            throw new AppException(ErrorCode.TourImageValidationFailed, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(ErrorCode.TourImageValidationFailed, ErrorCode.Messages.TourValidationFailed, errors);
         }
     }
 
@@ -134,7 +134,7 @@ public class TourImageService : ITourImageService
     {
         if (sortOrder < 0)
         {
-            throw new AppException(ErrorCode.TourImageValidationFailed, ErrorCode.Messages.ValidationFailed,
+            throw new AppException(ErrorCode.TourImageValidationFailed, ErrorCode.Messages.TourValidationFailed,
                 new Dictionary<string, List<string>>
                 {
                     ["sortOrder"] = [ErrorCode.Messages.TourImageSortOrderInvalid]

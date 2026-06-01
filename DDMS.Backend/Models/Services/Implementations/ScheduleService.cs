@@ -26,7 +26,7 @@ public class ScheduleService : IScheduleService
             var normalizedStatus = query.status.Trim().ToLowerInvariant();
             if (!TourConstants.ScheduleStatuses.Allowed.Contains(normalizedStatus))
             {
-                throw new AppException(ErrorCode.ScheduleStatusInvalid, ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+                throw new AppException(ErrorCode.ScheduleStatusInvalid, ErrorCode.Messages.TourValidationFailed, new Dictionary<string, List<string>>
                 {
                     ["status"] = [ErrorCode.Messages.ScheduleStatusInvalid]
                 });
@@ -95,7 +95,7 @@ public class ScheduleService : IScheduleService
         var normalizedStatus = request.status.Trim().ToLowerInvariant();
         if (!TourConstants.ScheduleStatuses.Allowed.Contains(normalizedStatus))
         {
-            throw new AppException(ErrorCode.ScheduleStatusInvalid, ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new AppException(ErrorCode.ScheduleStatusInvalid, ErrorCode.Messages.TourValidationFailed, new Dictionary<string, List<string>>
             {
                 ["status"] = [ErrorCode.Messages.ScheduleStatusInvalid]
             });
@@ -156,7 +156,7 @@ public class ScheduleService : IScheduleService
     {
         if (endTime <= startTime)
         {
-            throw new AppException(ErrorCode.ScheduleTimeInvalid, ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new AppException(ErrorCode.ScheduleTimeInvalid, ErrorCode.Messages.TourValidationFailed, new Dictionary<string, List<string>>
             {
                 ["endTime"] = [ErrorCode.Messages.ScheduleTimeInvalid]
             });

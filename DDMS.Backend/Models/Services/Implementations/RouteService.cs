@@ -141,7 +141,7 @@ public class RouteService : IRouteService
 
         if (errors.Count > 0)
         {
-            throw new AppException(ErrorCode.RouteValidationFailed, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(ErrorCode.RouteValidationFailed, ErrorCode.Messages.TourValidationFailed, errors);
         }
     }
 

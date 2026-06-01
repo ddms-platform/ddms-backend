@@ -80,7 +80,7 @@ public class TourSearchService : ITourSearchService
 
         if (errors.Count > 0)
         {
-            throw new AppException(ErrorCode.TourSearchValidationFailed, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(ErrorCode.TourSearchValidationFailed, ErrorCode.Messages.TourValidationFailed, errors);
         }
     }
 

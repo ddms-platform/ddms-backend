@@ -24,7 +24,7 @@ public class TourService : ITourService
             var normalizedStatus = query.status.Trim().ToLowerInvariant();
             if (!TourConstants.Statuses.Allowed.Contains(normalizedStatus))
             {
-                throw new AppException(ErrorCode.TourStatusInvalid, ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+                throw new AppException(ErrorCode.TourStatusInvalid, ErrorCode.Messages.TourValidationFailed, new Dictionary<string, List<string>>
                 {
                     ["status"] = [ErrorCode.Messages.TourStatusInvalid]
                 });
@@ -90,7 +90,7 @@ public class TourService : ITourService
         var normalizedStatus = request.status.Trim().ToLowerInvariant();
         if (!TourConstants.Statuses.Allowed.Contains(normalizedStatus))
         {
-            throw new AppException(ErrorCode.TourStatusInvalid, ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            throw new AppException(ErrorCode.TourStatusInvalid, ErrorCode.Messages.TourValidationFailed, new Dictionary<string, List<string>>
             {
                 ["status"] = [ErrorCode.Messages.TourStatusInvalid]
             });
@@ -151,7 +151,7 @@ public class TourService : ITourService
 
         if (errors.Count > 0)
         {
-            throw new AppException(ErrorCode.TourValidationFailed, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(ErrorCode.TourValidationFailed, ErrorCode.Messages.TourValidationFailed, errors);
         }
     }
 
@@ -180,7 +180,7 @@ public class TourService : ITourService
             var code = errors.ContainsKey("cancelPolicy")
                 ? ErrorCode.TourCancelPolicyInvalid
                 : ErrorCode.TourCancelHoursInvalid;
-            throw new AppException(code, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(code, ErrorCode.Messages.TourValidationFailed, errors);
         }
 
         return (cancelPolicy, cancelHours);

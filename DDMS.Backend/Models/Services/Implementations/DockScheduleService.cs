@@ -113,7 +113,7 @@ public class DockScheduleService : IDockScheduleService
     {
         if (endTime <= startTime)
         {
-            throw new AppException(ErrorCode.DockScheduleTimeInvalid, ErrorCode.Messages.ValidationFailed,
+            throw new AppException(ErrorCode.DockScheduleTimeInvalid, ErrorCode.Messages.TourValidationFailed,
                 new Dictionary<string, List<string>>
                 {
                     ["endTime"] = [ErrorCode.Messages.DockScheduleTimeInvalid]

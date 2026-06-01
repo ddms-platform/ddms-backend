@@ -119,7 +119,7 @@ public class FaqService : IFaqService
 
         if (errors.Count > 0)
         {
-            throw new AppException(ErrorCode.FaqValidationFailed, ErrorCode.Messages.ValidationFailed, errors);
+            throw new AppException(ErrorCode.FaqValidationFailed, ErrorCode.Messages.TourValidationFailed, errors);
         }
     }
 
