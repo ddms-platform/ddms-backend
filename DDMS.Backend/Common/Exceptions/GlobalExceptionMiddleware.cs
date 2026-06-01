@@ -1,4 +1,6 @@
-﻿using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Localization;
+using DDMS.Backend.Common.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DDMS.Backend.Common.Exceptions;
 
@@ -90,16 +92,34 @@ public class GlobalExceptionMiddleware
                     ErrorCode.AuthRefreshTokenReuseDetected => StatusCodes.Status401Unauthorized,
                     _ => StatusCodes.Status400BadRequest
                 };
-                error = new ApiErrorResponse
-                {
-                    code = appException.Code,
-                    message = appException.Message,
-                    fieldErrors = appException.FieldErrors
-                };
+                var localizer = context.RequestServices.GetRequiredService<IErrorMessageLocalizer>();
+                error = BuildAppExceptionResponse(appException, localizer);
                 break;
         }
 
         context.Response.StatusCode = statusCode;
         await context.Response.WriteAsJsonAsync(error);
+    }
+
+    private static ApiErrorResponse BuildAppExceptionResponse(
+        AppException appException,
+        IErrorMessageLocalizer localizer)
+    {
+        if (!ErrorCode.IsTourModuleError(appException.Code))
+        {
+            return new ApiErrorResponse
+            {
+                code = appException.Code,
+                message = appException.Message,
+                fieldErrors = appException.FieldErrors
+            };
+        }
+
+        return new ApiErrorResponse
+        {
+            code = appException.Code,
+            message = localizer.Localize(appException.Message),
+            fieldErrors = localizer.LocalizeFieldErrors(appException.FieldErrors)
+        };
     }
 }

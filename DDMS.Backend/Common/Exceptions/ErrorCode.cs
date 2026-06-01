@@ -104,39 +104,44 @@ public static class ErrorCode
 
         public const string CannotModifySelf = "Cannot modify your own account";
         public const string InvalidRole = "Invalid role";
-        public const string TourNameRequired = "Tour name is required";
-        public const string TourPriceInvalid = "Tour price must be greater than or equal to 0";
-        public const string TourDurationInvalid = "Tour duration minutes must be greater than 0";
-        public const string TourStatusInvalid = "Tour status must be active or inactive";
-        public const string TourCancelPolicyInvalid = "Cancel policy must be free, partial, or no_refund";
-        public const string TourCancelHoursInvalid = "Cancel hours is required and must be >= 0 when policy is partial or no_refund";
-        public const string ScheduleStatusInvalid = "Schedule status must be scheduled, ongoing, completed, or cancelled";
-        public const string ScheduleTimeInvalid = "Schedule end time must be greater than start time";
-        public const string ScheduleTourNotFound = "Tour not found or not owned by current user";
-        public const string ScheduleBoatNotFound = "Boat not found";
-        public const string ScheduleDockNotFound = "Dock not found";
-        public const string RouteTourNotFound = "Tour not found or not owned by current user";
-        public const string RouteStartPointRequired = "Route start point is required";
-        public const string RouteEndPointRequired = "Route end point is required";
-        public const string RouteSortOrderInvalid = "Route sort order must be greater than or equal to 0";
-        public const string TourSearchSortInvalid = "Sort by must be price or rating";
-        public const string TourSearchSortOrderInvalid = "Sort order must be asc or desc";
-        public const string TourSearchPriceRangeInvalid = "Minimum price must be less than or equal to maximum price";
-        public const string TourSearchDurationRangeInvalid = "Minimum duration must be less than or equal to maximum duration";
-        public const string TourImageFileRequired = "Image file is required";
-        public const string TourImageTourNotFound = "Tour not found or not owned by current user";
-        public const string TourImageUploadFailed = "Failed to upload image to Cloudinary";
-        public const string TourImageSortOrderInvalid = "Image sort order must be greater than or equal to 0";
-        public const string FaqQuestionRequired = "FAQ question is required";
-        public const string FaqAnswerRequired = "FAQ answer is required";
-        public const string FaqSortOrderInvalid = "FAQ sort order must be greater than or equal to 0";
-        public const string FaqTourNotFound = "Tour not found or not owned by current user";
-        public const string DockScheduleTimeInvalid = "Dock schedule end time must be greater than start time";
-        public const string DockScheduleBoatOverlap = "Boat already has an overlapping dock schedule";
-        public const string DockScheduleDockCapacityExceeded = "Dock capacity exceeded for the selected time slot";
-        public const string DockScheduleBoatNotFound = "Boat not found";
-        public const string DockScheduleDockNotFound = "Dock not found";
+
+        /// <summary>Tour module: resource keys (TourResources.resx).</summary>
+        public const string TourValidationFailed = nameof(TourValidationFailed);
+        public const string TourNameRequired = nameof(TourNameRequired);
+        public const string TourPriceInvalid = nameof(TourPriceInvalid);
+        public const string TourDurationInvalid = nameof(TourDurationInvalid);
+        public const string TourStatusInvalid = nameof(TourStatusInvalid);
+        public const string TourCancelPolicyInvalid = nameof(TourCancelPolicyInvalid);
+        public const string TourCancelHoursInvalid = nameof(TourCancelHoursInvalid);
+        public const string ScheduleStatusInvalid = nameof(ScheduleStatusInvalid);
+        public const string ScheduleTimeInvalid = nameof(ScheduleTimeInvalid);
+        public const string ScheduleTourNotFound = nameof(ScheduleTourNotFound);
+        public const string ScheduleBoatNotFound = nameof(ScheduleBoatNotFound);
+        public const string ScheduleDockNotFound = nameof(ScheduleDockNotFound);
+        public const string RouteTourNotFound = nameof(RouteTourNotFound);
+        public const string RouteStartPointRequired = nameof(RouteStartPointRequired);
+        public const string RouteEndPointRequired = nameof(RouteEndPointRequired);
+        public const string RouteSortOrderInvalid = nameof(RouteSortOrderInvalid);
+        public const string TourSearchSortInvalid = nameof(TourSearchSortInvalid);
+        public const string TourSearchSortOrderInvalid = nameof(TourSearchSortOrderInvalid);
+        public const string TourSearchPriceRangeInvalid = nameof(TourSearchPriceRangeInvalid);
+        public const string TourSearchDurationRangeInvalid = nameof(TourSearchDurationRangeInvalid);
+        public const string TourImageFileRequired = nameof(TourImageFileRequired);
+        public const string TourImageTourNotFound = nameof(TourImageTourNotFound);
+        public const string TourImageUploadFailed = nameof(TourImageUploadFailed);
+        public const string TourImageSortOrderInvalid = nameof(TourImageSortOrderInvalid);
+        public const string FaqQuestionRequired = nameof(FaqQuestionRequired);
+        public const string FaqAnswerRequired = nameof(FaqAnswerRequired);
+        public const string FaqSortOrderInvalid = nameof(FaqSortOrderInvalid);
+        public const string FaqTourNotFound = nameof(FaqTourNotFound);
+        public const string DockScheduleTimeInvalid = nameof(DockScheduleTimeInvalid);
+        public const string DockScheduleBoatOverlap = nameof(DockScheduleBoatOverlap);
+        public const string DockScheduleDockCapacityExceeded = nameof(DockScheduleDockCapacityExceeded);
+        public const string DockScheduleBoatNotFound = nameof(DockScheduleBoatNotFound);
+        public const string DockScheduleDockNotFound = nameof(DockScheduleDockNotFound);
 
         public const string UncategorizedError = "Uncategorized error";
     }
+
+    public static bool IsTourModuleError(int code) => code is >= 2100 and <= 2605;
 }
