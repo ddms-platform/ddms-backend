@@ -58,6 +58,9 @@ public class BoatRepository : IBoatRepository
     public async Task<List<boat>> GetAllAsync()
     {
         return await _dbContext.boats
+            .Include(b => b.boat_cabins)
+            .Include(b => b.boat_services)
+            .Include(b => b.boat_images)
             .OrderBy(b => b.name)
             .AsNoTracking()
             .ToListAsync();
@@ -75,31 +78,21 @@ public class BoatRepository : IBoatRepository
             .Include(b => b.boat_cabins)
             .Include(b => b.boat_services)
             .Include(b => b.boat_images.OrderBy(i => i.sort_order))
+            .Include(b => b.boat_maintenances.OrderByDescending(m => m.start_time))
             .FirstOrDefaultAsync(b => b.id == id);
     }
 
     public async Task<BoatStatsResponse> GetStatsAsync()
     {
-        var stats = await _dbContext.boats
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                total = g.Count(),
-                active = g.Count(b => b.status == "active"),
-                maintenance = g.Count(b => b.status == "maintenance"),
-                idle = g.Count(b => b.status == "idle"),
-            })
-            .FirstOrDefaultAsync();
-
-        if (stats is null)
-            return new BoatStatsResponse();
+        var total = await _dbContext.boats.CountAsync();
+        var idle = await _dbContext.boats.CountAsync(b => b.status == "idle");
+        var running = await _dbContext.boats.CountAsync(b => b.status == "running");
 
         return new BoatStatsResponse
         {
-            total = stats.total,
-            active = stats.active,
-            maintenance = stats.maintenance,
-            idle = stats.idle,
+            total = total,
+            idle = idle,
+            running = running,
         };
     }
 

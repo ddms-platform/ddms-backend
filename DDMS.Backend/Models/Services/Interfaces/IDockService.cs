@@ -12,4 +12,8 @@ public interface IDockService
     Task<DockListItemResponse> CreateAsync(CreateDockRequest request);
     Task<DockListItemResponse> UpdateAsync(Guid id, UpdateDockRequest request);
     Task DeleteAsync(Guid id);
+
+    Task<List<DockScheduleResponse>> GetSchedulesAsync(Guid dockId);
+    Task<DockScheduleResponse> AddScheduleAsync(Guid dockId, CreateDockScheduleRequest request);
+    Task DeleteScheduleAsync(Guid dockId, Guid scheduleId);
 }

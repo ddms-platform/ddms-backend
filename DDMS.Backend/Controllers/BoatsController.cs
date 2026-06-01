@@ -74,13 +74,13 @@ public class BoatsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 
-    // ── Public endpoints (for user frontend) ─────────────────
+    // ── Public endpoints (cho user frontend) ─────────────────
 
     [HttpGet("api/boats")]
     public async Task<IActionResult> GetBoatsPublic([FromQuery] BoatListQuery query)
     {
-        // Only active boats for public
-        query.status = "active";
+        // Chỉ hiện thuyền đang hoạt động (running) cho public
+        query.status = "running";
         var result = await _boatService.GetBoatsAsync(query);
         return Ok(ApiResponse<PagedResponse<BoatListItemResponse>>.Ok(result));
     }

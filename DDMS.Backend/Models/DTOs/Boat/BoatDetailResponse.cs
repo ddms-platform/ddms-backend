@@ -12,4 +12,5 @@ public class BoatDetailResponse
     public List<BoatCabinResponse> cabins { get; init; } = [];
     public List<BoatServiceResponse> services { get; init; } = [];
     public List<BoatImageResponse> images { get; init; } = [];
+    public List<BoatMaintenanceResponse> maintenances { get; init; } = [];
 }

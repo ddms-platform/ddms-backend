@@ -18,6 +18,8 @@ public class DocksController : ControllerBase
         _dockService = dockService;
     }
 
+    // ── Dock CRUD ─────────────────────────────────────────────
+
     [HttpGet]
     public async Task<IActionResult> GetDocks([FromQuery] DockListQuery query)
     {
@@ -64,6 +66,29 @@ public class DocksController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         await _dockService.DeleteAsync(id);
+        return Ok(ApiResponse<object>.Ok(new { deleted = true }));
+    }
+
+    // ── Schedules ─────────────────────────────────────────────
+
+    [HttpGet("{dockId:guid}/schedules")]
+    public async Task<IActionResult> GetSchedules(Guid dockId)
+    {
+        var result = await _dockService.GetSchedulesAsync(dockId);
+        return Ok(ApiResponse<List<DockScheduleResponse>>.Ok(result));
+    }
+
+    [HttpPost("{dockId:guid}/schedules")]
+    public async Task<IActionResult> AddSchedule(Guid dockId, [FromBody] CreateDockScheduleRequest request)
+    {
+        var result = await _dockService.AddScheduleAsync(dockId, request);
+        return Ok(ApiResponse<DockScheduleResponse>.Ok(result));
+    }
+
+    [HttpDelete("{dockId:guid}/schedules/{scheduleId:guid}")]
+    public async Task<IActionResult> DeleteSchedule(Guid dockId, Guid scheduleId)
+    {
+        await _dockService.DeleteScheduleAsync(dockId, scheduleId);
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 }

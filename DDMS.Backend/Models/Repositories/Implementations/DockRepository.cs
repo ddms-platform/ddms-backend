@@ -56,22 +56,13 @@ public class DockRepository : IDockRepository
 
     public async Task<DockStatsResponse> GetStatsAsync()
     {
-        var stats = await _dbContext.docks
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                total = g.Count(),
-                totalMaxBoats = g.Sum(d => d.max_boats),
-            })
-            .FirstOrDefaultAsync();
-
-        if (stats is null)
-            return new DockStatsResponse();
+        var total = await _dbContext.docks.CountAsync();
+        var totalMaxBoats = total == 0 ? 0 : await _dbContext.docks.SumAsync(d => d.max_boats);
 
         return new DockStatsResponse
         {
-            total = stats.total,
-            totalMaxBoats = stats.totalMaxBoats,
+            total = total,
+            totalMaxBoats = totalMaxBoats,
         };
     }
 
@@ -92,5 +83,54 @@ public class DockRepository : IDockRepository
     {
         _dbContext.docks.Remove(entity);
         await _dbContext.SaveChangesAsync();
+    }
+
+    // ── Schedules ─────────────────────────────────────────────
+
+    public Task<List<dock_schedule>> GetSchedulesAsync(Guid dockId)
+    {
+        return _dbContext.dock_schedules
+            .Include(s => s.boat)
+            .Where(s => s.dock_id == dockId)
+            .OrderBy(s => s.start_time)
+            .ToListAsync();
+    }
+
+    public Task<dock_schedule?> GetScheduleAsync(Guid dockId, Guid scheduleId)
+    {
+        return _dbContext.dock_schedules
+            .Include(s => s.boat)
+            .FirstOrDefaultAsync(s => s.dock_id == dockId && s.id == scheduleId);
+    }
+
+    public async Task<dock_schedule> AddScheduleAsync(dock_schedule entity)
+    {
+        _dbContext.dock_schedules.Add(entity);
+        await _dbContext.SaveChangesAsync();
+        return entity;
+    }
+
+    public async Task DeleteScheduleAsync(dock_schedule entity)
+    {
+        _dbContext.dock_schedules.Remove(entity);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public Task<bool> HasConflictAsync(Guid dockId, Guid boatId, DateTime startTime, DateTime endTime, Guid? excludeId = null)
+    {
+        return _dbContext.dock_schedules.AnyAsync(s =>
+            s.dock_id == dockId &&
+            s.boat_id == boatId &&
+            (excludeId == null || s.id != excludeId) &&
+            s.start_time < endTime &&
+            s.end_time > startTime);
+    }
+
+    public Task<int> CountActiveSchedulesAsync(Guid dockId, DateTime at)
+    {
+        return _dbContext.dock_schedules.CountAsync(s =>
+            s.dock_id == dockId &&
+            s.start_time <= at &&
+            s.end_time > at);
     }
 }

@@ -9,7 +9,7 @@ namespace DDMS.Backend.Models.Services.Implementations;
 
 public class BoatService : IBoatService
 {
-    private static readonly HashSet<string> AllowedStatuses = ["active", "maintenance", "idle"];
+    private static readonly HashSet<string> AllowedStatuses = ["idle", "running"];
     private static readonly HashSet<string> AllowedTypes = ["cruise", "luxury", "standard", "party", "speedboat"];
 
     private readonly IBoatRepository _boatRepository;
@@ -117,7 +117,7 @@ public class BoatService : IBoatService
             errors["maxPassengers"] = ["Sức chứa phải lớn hơn 0"];
 
         if (!AllowedStatuses.Contains(status?.Trim().ToLowerInvariant() ?? ""))
-            errors["status"] = ["Trạng thái không hợp lệ (active, maintenance, idle)"];
+            errors["status"] = ["Trạng thái không hợp lệ (idle, running)"];
 
         if (!string.IsNullOrWhiteSpace(type) && !AllowedTypes.Contains(type.Trim().ToLowerInvariant()))
             errors["type"] = ["Loại thuyền không hợp lệ (cruise, luxury, standard, party, speedboat)"];
@@ -181,6 +181,15 @@ public class BoatService : IBoatService
             caption = i.caption,
             sortOrder = i.sort_order,
             createdAt = i.created_at,
+        }).ToList() ?? [],
+        maintenances = b.boat_maintenances?.Select(m => new BoatMaintenanceResponse
+        {
+            id = m.id,
+            boatId = m.boat_id,
+            startTime = m.start_time,
+            endTime = m.end_time,
+            reason = m.reason,
+            createdAt = m.created_at,
         }).ToList() ?? [],
     };
 }
