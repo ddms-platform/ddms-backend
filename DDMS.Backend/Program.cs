@@ -24,15 +24,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new()
-    {
-        Title = "BoatTour API",
-        Version = "v1",
-        Description = "API for BoatTour Backend — authorize with header Authorization: Bearer {token}"
-    });
-});
+builder.Services.AddDdmsLocalization();
+builder.Services.AddDdmsSwagger();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
@@ -155,6 +148,7 @@ builder.Services.AddScoped<IDockScheduleService, DockScheduleService>();
 
 var app = builder.Build();
 
+app.UseRequestLocalization();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="DockScheduleBoatNotFound" xml:space="preserve"><value>Boat not found</value></data>
+  <data name="DockScheduleBoatOverlap" xml:space="preserve"><value>Boat already has an overlapping dock schedule</value></data>
+  <data name="DockScheduleDockCapacityExceeded" xml:space="preserve"><value>Dock capacity exceeded for the selected time slot</value></data>
+  <data name="DockScheduleDockNotFound" xml:space="preserve"><value>Dock not found</value></data>
+  <data name="DockScheduleTimeInvalid" xml:space="preserve"><value>Dock schedule end time must be greater than start time</value></data>
+  <data name="FaqAnswerRequired" xml:space="preserve"><value>FAQ answer is required</value></data>
+  <data name="FaqQuestionRequired" xml:space="preserve"><value>FAQ question is required</value></data>
+  <data name="FaqSortOrderInvalid" xml:space="preserve"><value>FAQ sort order must be greater than or equal to 0</value></data>
+  <data name="FaqTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>
+  <data name="RouteEndPointRequired" xml:space="preserve"><value>Route end point is required</value></data>
+  <data name="RouteSortOrderInvalid" xml:space="preserve"><value>Route sort order must be greater than or equal to 0</value></data>
+  <data name="RouteStartPointRequired" xml:space="preserve"><value>Route start point is required</value></data>
+  <data name="RouteTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>
+  <data name="ScheduleBoatNotFound" xml:space="preserve"><value>Boat not found</value></data>
+  <data name="ScheduleDockNotFound" xml:space="preserve"><value>Dock not found</value></data>
+  <data name="ScheduleStatusInvalid" xml:space="preserve"><value>Schedule status must be scheduled, ongoing, completed, or cancelled</value></data>
+  <data name="ScheduleTimeInvalid" xml:space="preserve"><value>Schedule end time must be greater than start time</value></data>
+  <data name="ScheduleTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>
+  <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Cancel hours is required and must be &gt;= 0 when policy is partial or no_refund</value></data>
+  <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Cancel policy must be free, partial, or no_refund</value></data>
+  <data name="TourDurationInvalid" xml:space="preserve"><value>Tour duration minutes must be greater than 0</value></data>
+  <data name="TourImageFileRequired" xml:space="preserve"><value>Image file is required</value></data>
+  <data name="TourImageSortOrderInvalid" xml:space="preserve"><value>Image sort order must be greater than or equal to 0</value></data>
+  <data name="TourImageTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>
+  <data name="TourImageUploadFailed" xml:space="preserve"><value>Failed to upload image to Cloudinary</value></data>
+  <data name="TourNameRequired" xml:space="preserve"><value>Tour name is required</value></data>
+  <data name="TourPriceInvalid" xml:space="preserve"><value>Tour price must be greater than or equal to 0</value></data>
+  <data name="TourSearchDurationRangeInvalid" xml:space="preserve"><value>Minimum duration must be less than or equal to maximum duration</value></data>
+  <data name="TourSearchPriceRangeInvalid" xml:space="preserve"><value>Minimum price must be less than or equal to maximum price</value></data>
+  <data name="TourSearchSortInvalid" xml:space="preserve"><value>Sort by must be price or rating</value></data>
+  <data name="TourSearchSortOrderInvalid" xml:space="preserve"><value>Sort order must be asc or desc</value></data>
+  <data name="TourStatusInvalid" xml:space="preserve"><value>Tour status must be active or inactive</value></data>
+  <data name="TourValidationFailed" xml:space="preserve"><value>Validation failed</value></data>
+</root>
