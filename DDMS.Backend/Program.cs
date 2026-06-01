@@ -38,6 +38,7 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
+builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
 if (string.IsNullOrWhiteSpace(jwtOptions.secretKey))
@@ -136,6 +137,21 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<ITourRepository, TourRepository>();
+builder.Services.AddScoped<ITourService, TourService>();
+builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IRouteRepository, RouteRepository>();
+builder.Services.AddScoped<IRouteService, RouteService>();
+builder.Services.AddScoped<ITourSearchRepository, TourSearchRepository>();
+builder.Services.AddScoped<ITourSearchService, TourSearchService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<ITourImageRepository, TourImageRepository>();
+builder.Services.AddScoped<ITourImageService, TourImageService>();
+builder.Services.AddScoped<IFaqRepository, FaqRepository>();
+builder.Services.AddScoped<IFaqService, FaqService>();
+builder.Services.AddScoped<IDockScheduleRepository, DockScheduleRepository>();
+builder.Services.AddScoped<IDockScheduleService, DockScheduleService>();
 
 var app = builder.Build();
 
