@@ -13,4 +13,9 @@ public interface IBoatRepository
     Task<boat> CreateAsync(boat entity);
     Task UpdateAsync(boat entity);
     Task DeleteAsync(boat entity);
+
+    // Owner-specific
+    Task<(List<boat> items, int total)> GetPagedByOwnerAsync(Guid ownerId, OwnerBoatListQuery query);
+    Task<boat?> GetByIdAndOwnerAsync(Guid id, Guid ownerId);
+    Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId);
 }

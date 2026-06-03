@@ -114,4 +114,64 @@ public class BoatRepository : IBoatRepository
         _dbContext.boats.Remove(entity);
         await _dbContext.SaveChangesAsync();
     }
+
+    // ── Owner-specific ────────────────────────────────────────
+
+    public async Task<(List<boat> items, int total)> GetPagedByOwnerAsync(Guid ownerId, OwnerBoatListQuery query)
+    {
+        var page = query.page < 1 ? 1 : query.page;
+        var pageSize = query.pageSize is < 1 or > 100 ? 10 : query.pageSize;
+
+        var q = _dbContext.boats
+            .Include(b => b.boat_cabins)
+            .Include(b => b.boat_services)
+            .Include(b => b.boat_images)
+            .Where(b => b.owner_id == ownerId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.search))
+        {
+            var kw = query.search.Trim().ToLower();
+            q = q.Where(b => b.name.ToLower().Contains(kw));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.status))
+            q = q.Where(b => b.status == query.status.Trim().ToLower());
+
+        if (!string.IsNullOrWhiteSpace(query.type))
+            q = q.Where(b => b.type != null && b.type.ToLower() == query.type.Trim().ToLower());
+
+        var total = await q.CountAsync();
+        var items = await q
+            .OrderByDescending(b => b.created_at)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, total);
+    }
+
+    public Task<boat?> GetByIdAndOwnerAsync(Guid id, Guid ownerId)
+    {
+        return _dbContext.boats
+            .Include(b => b.boat_cabins)
+            .Include(b => b.boat_services)
+            .Include(b => b.boat_images.OrderBy(i => i.sort_order))
+            .Include(b => b.boat_maintenances)
+            .FirstOrDefaultAsync(b => b.id == id && b.owner_id == ownerId);
+    }
+
+    public async Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId)
+    {
+        var total = await _dbContext.boats.CountAsync(b => b.owner_id == ownerId);
+        var idle = await _dbContext.boats.CountAsync(b => b.owner_id == ownerId && b.status == "idle");
+        var running = await _dbContext.boats.CountAsync(b => b.owner_id == ownerId && b.status == "running");
+
+        return new BoatStatsResponse
+        {
+            total = total,
+            idle = idle,
+            running = running,
+        };
+    }
 }

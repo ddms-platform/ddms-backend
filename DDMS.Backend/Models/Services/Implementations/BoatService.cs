@@ -104,6 +104,84 @@ public class BoatService : IBoatService
         await _boatRepository.DeleteAsync(boat);
     }
 
+    // ── Owner-specific ────────────────────────────────────────
+
+    public async Task<PagedResponse<BoatListItemResponse>> GetBoatsByOwnerAsync(Guid ownerId, OwnerBoatListQuery query)
+    {
+        var page = query.page < 1 ? 1 : query.page;
+        var pageSize = query.pageSize is < 1 or > 100 ? 10 : query.pageSize;
+
+        var (items, total) = await _boatRepository.GetPagedByOwnerAsync(ownerId, query);
+
+        return new PagedResponse<BoatListItemResponse>
+        {
+            items = items.Select(MapToListItem).ToList(),
+            page = page,
+            pageSize = pageSize,
+            totalItems = total,
+            totalPages = (int)Math.Ceiling(total / (double)pageSize),
+        };
+    }
+
+    public async Task<BoatDetailResponse> GetByIdByOwnerAsync(Guid id, Guid ownerId)
+    {
+        var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
+            ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền truy cập");
+        return MapToDetail(boat);
+    }
+
+    public Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId)
+    {
+        return _boatRepository.GetStatsByOwnerAsync(ownerId);
+    }
+
+    public async Task<BoatDetailResponse> CreateByOwnerAsync(CreateBoatRequest request, Guid ownerId)
+    {
+        ValidateBoatRequest(request.name, request.maxPassengers, request.status, request.type);
+
+        var boat = new boat
+        {
+            id = Guid.NewGuid(),
+            owner_id = ownerId,
+            name = request.name.Trim(),
+            type = string.IsNullOrWhiteSpace(request.type) ? null : request.type.Trim().ToLowerInvariant(),
+            max_passengers = request.maxPassengers,
+            status = request.status.Trim().ToLowerInvariant(),
+            created_at = DateTime.UtcNow,
+            updated_at = DateTime.UtcNow,
+        };
+
+        await _boatRepository.CreateAsync(boat);
+        var created = await _boatRepository.GetByIdWithDetailsAsync(boat.id)!;
+        return MapToDetail(created!);
+    }
+
+    public async Task<BoatDetailResponse> UpdateByOwnerAsync(Guid id, UpdateBoatRequest request, Guid ownerId)
+    {
+        var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
+            ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền chỉnh sửa");
+
+        ValidateBoatRequest(request.name, request.maxPassengers, request.status, request.type);
+
+        boat.name = request.name.Trim();
+        boat.type = string.IsNullOrWhiteSpace(request.type) ? null : request.type.Trim().ToLowerInvariant();
+        boat.max_passengers = request.maxPassengers;
+        boat.status = request.status.Trim().ToLowerInvariant();
+        boat.updated_at = DateTime.UtcNow;
+
+        await _boatRepository.UpdateAsync(boat);
+        var updated = await _boatRepository.GetByIdWithDetailsAsync(id)!;
+        return MapToDetail(updated!);
+    }
+
+    public async Task DeleteByOwnerAsync(Guid id, Guid ownerId)
+    {
+        var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
+            ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền xóa");
+
+        await _boatRepository.DeleteAsync(boat);
+    }
+
     // ── Helpers ──────────────────────────────────────────────
 
     private static void ValidateBoatRequest(string name, int maxPassengers, string status, string? type)
@@ -129,6 +207,7 @@ public class BoatService : IBoatService
     private static BoatListItemResponse MapToListItem(boat b) => new()
     {
         id = b.id,
+        ownerId = b.owner_id,
         name = b.name,
         type = b.type,
         maxPassengers = b.max_passengers,

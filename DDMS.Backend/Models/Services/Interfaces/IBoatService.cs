@@ -12,4 +12,12 @@ public interface IBoatService
     Task<BoatDetailResponse> CreateAsync(CreateBoatRequest request);
     Task<BoatDetailResponse> UpdateAsync(Guid id, UpdateBoatRequest request);
     Task DeleteAsync(Guid id);
+
+    // Owner-specific
+    Task<PagedResponse<BoatListItemResponse>> GetBoatsByOwnerAsync(Guid ownerId, OwnerBoatListQuery query);
+    Task<BoatDetailResponse> GetByIdByOwnerAsync(Guid id, Guid ownerId);
+    Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId);
+    Task<BoatDetailResponse> CreateByOwnerAsync(CreateBoatRequest request, Guid ownerId);
+    Task<BoatDetailResponse> UpdateByOwnerAsync(Guid id, UpdateBoatRequest request, Guid ownerId);
+    Task DeleteByOwnerAsync(Guid id, Guid ownerId);
 }
