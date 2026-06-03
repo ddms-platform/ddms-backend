@@ -1,5 +1,6 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Configurations;
 using DDMS.Backend.Models.Services.Interfaces;
 using Microsoft.Extensions.Options;
@@ -14,47 +15,53 @@ public class CloudinaryService : ICloudinaryService
     public CloudinaryService(IOptions<CloudinaryOptions> options)
     {
         _options = options.Value;
-        var account = new Account(_options.CloudName, _options.ApiKey, _options.ApiSecret);
-        _cloudinary = new Cloudinary(account) { Api = { Secure = true } };
+        var account = new Account(_options.cloudName, _options.apiKey, _options.apiSecret);
+        _cloudinary = new Cloudinary(account);
     }
 
-    public async Task<(string imageUrl, string publicId)> UploadAsync(string fileBase64, string? folder = null)
+    public async Task<CloudinaryUploadResult> UploadImageAsync(Stream stream, string fileName)
     {
-        var uploadFolder = folder ?? _options.Folder;
-
-        // Strip data URL prefix nếu có
-        var base64Data = fileBase64.Contains(",")
-            ? fileBase64.Split(',')[1]
-            : fileBase64;
-
-        var bytes = Convert.FromBase64String(base64Data);
-        using var stream = new MemoryStream(bytes);
+        EnsureConfigured();
 
         var uploadParams = new ImageUploadParams
         {
-            File = new FileDescription("upload", stream),
-            Folder = uploadFolder,
-            UseFilename = false,
+            File = new FileDescription(fileName, stream),
+            Folder = _options.folder,
+            UseFilename = true,
             UniqueFilename = true,
-            Overwrite = false,
-            Transformation = new Transformation()
-                .Quality("auto")
-                .FetchFormat("auto")
+            Overwrite = false
         };
 
         var result = await _cloudinary.UploadAsync(uploadParams);
-
-        if (result.Error != null)
+        if (result.Error is not null || string.IsNullOrWhiteSpace(result.SecureUrl?.ToString()))
         {
-            throw new InvalidOperationException($"Cloudinary upload failed: {result.Error.Message}");
+            throw new AppException(
+                ErrorCode.TourImageUploadFailed,
+                result.Error?.Message ?? ErrorCode.Messages.TourImageUploadFailed);
         }
 
-        return (result.SecureUrl.ToString(), result.PublicId);
+        return new CloudinaryUploadResult(result.SecureUrl.ToString()!, result.PublicId);
     }
 
-    public async Task DeleteAsync(string publicId)
+    public async Task DeleteImageAsync(string publicId)
     {
-        var deleteParams = new DeletionParams(publicId);
-        await _cloudinary.DestroyAsync(deleteParams);
+        EnsureConfigured();
+
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            return;
+        }
+
+        await _cloudinary.DestroyAsync(new DeletionParams(publicId));
+    }
+
+    private void EnsureConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_options.cloudName) ||
+            string.IsNullOrWhiteSpace(_options.apiKey) ||
+            string.IsNullOrWhiteSpace(_options.apiSecret))
+        {
+            throw new AppException(ErrorCode.TourImageUploadFailed, ErrorCode.Messages.TourImageUploadFailed);
+        }
     }
 }

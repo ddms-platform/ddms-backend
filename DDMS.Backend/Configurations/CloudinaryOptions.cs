@@ -4,9 +4,8 @@ public class CloudinaryOptions
 {
     public const string SectionName = "Cloudinary";
 
-    public string CloudName { get; set; } = string.Empty;
-    public string ApiKey { get; set; } = string.Empty;
-    public string ApiSecret { get; set; } = string.Empty;
-    public string UploadPreset { get; set; } = "boat_images";
-    public string Folder { get; set; } = "ddms/boats";
+    public string cloudName { get; set; } = string.Empty;
+    public string apiKey { get; set; } = string.Empty;
+    public string apiSecret { get; set; } = string.Empty;
+    public string folder { get; set; } = "ddms/tours";
 }

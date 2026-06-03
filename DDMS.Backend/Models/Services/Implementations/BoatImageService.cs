@@ -47,8 +47,15 @@ public class BoatImageService : IBoatImageService
             ? existingImages.Max(i => i.sort_order) + 1
             : 0;
 
+        // Strip data URL prefix nếu có và convert sang stream
+        var base64Data = fileBase64.Contains(",") ? fileBase64.Split(',')[1] : fileBase64;
+        var bytes = Convert.FromBase64String(base64Data);
+        using var stream = new MemoryStream(bytes);
+
         // Upload to Cloudinary
-        var (imageUrl, publicId) = await _cloudinaryService.UploadAsync(fileBase64, $"ddms/boats/{boatId}");
+        var uploadResult = await _cloudinaryService.UploadImageAsync(stream, $"boat_{boatId}_{Guid.NewGuid():N}.jpg");
+        var imageUrl = uploadResult.ImageUrl;
+        var publicId = uploadResult.PublicId;
 
         var image = new boat_image
         {
@@ -78,7 +85,7 @@ public class BoatImageService : IBoatImageService
         // Delete from Cloudinary if publicId exists
         if (!string.IsNullOrWhiteSpace(image.public_id))
         {
-            await _cloudinaryService.DeleteAsync(image.public_id);
+            await _cloudinaryService.DeleteImageAsync(image.public_id);
         }
 
         await _imageRepository.DeleteAsync(image);
