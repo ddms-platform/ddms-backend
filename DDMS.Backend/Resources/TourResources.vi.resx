@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="DockScheduleBoatNotFound" xml:space="preserve"><value>Không tìm thấy tàu</value></data>
+  <data name="DockScheduleBoatOverlap" xml:space="preserve"><value>Tàu đã có lịch bến trùng thời gian</value></data>
+  <data name="DockScheduleDockCapacityExceeded" xml:space="preserve"><value>Vượt quá sức chứa bến trong khung giờ đã chọn</value></data>
+  <data name="DockScheduleDockNotFound" xml:space="preserve"><value>Không tìm thấy bến</value></data>
+  <data name="DockScheduleTimeInvalid" xml:space="preserve"><value>Thời gian kết thúc lịch bến phải sau thời gian bắt đầu</value></data>
+  <data name="FaqAnswerRequired" xml:space="preserve"><value>Câu trả lời FAQ là bắt buộc</value></data>
+  <data name="FaqQuestionRequired" xml:space="preserve"><value>Câu hỏi FAQ là bắt buộc</value></data>
+  <data name="FaqSortOrderInvalid" xml:space="preserve"><value>Thứ tự FAQ phải lớn hơn hoặc bằng 0</value></data>
+  <data name="FaqTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
+  <data name="RouteEndPointRequired" xml:space="preserve"><value>Điểm kết thúc tuyến là bắt buộc</value></data>
+  <data name="RouteSortOrderInvalid" xml:space="preserve"><value>Thứ tự tuyến phải lớn hơn hoặc bằng 0</value></data>
+  <data name="RouteStartPointRequired" xml:space="preserve"><value>Điểm bắt đầu tuyến là bắt buộc</value></data>
+  <data name="RouteTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
+  <data name="ScheduleBoatNotFound" xml:space="preserve"><value>Không tìm thấy tàu</value></data>
+  <data name="ScheduleDockNotFound" xml:space="preserve"><value>Không tìm thấy bến</value></data>
+  <data name="ScheduleStatusInvalid" xml:space="preserve"><value>Trạng thái lịch phải là scheduled, ongoing, completed hoặc cancelled</value></data>
+  <data name="ScheduleTimeInvalid" xml:space="preserve"><value>Thời gian kết thúc lịch phải sau thời gian bắt đầu</value></data>
+  <data name="ScheduleTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
+  <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Số giờ hủy là bắt buộc và phải &gt;= 0 khi chính sách là partial hoặc no_refund</value></data>
+  <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Chính sách hủy phải là free, partial hoặc no_refund</value></data>
+  <data name="TourDurationInvalid" xml:space="preserve"><value>Thời lượng tour (phút) phải lớn hơn 0</value></data>
+  <data name="TourImageFileRequired" xml:space="preserve"><value>File ảnh là bắt buộc</value></data>
+  <data name="TourImageSortOrderInvalid" xml:space="preserve"><value>Thứ tự ảnh phải lớn hơn hoặc bằng 0</value></data>
+  <data name="TourImageTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
+  <data name="TourImageUploadFailed" xml:space="preserve"><value>Tải ảnh lên Cloudinary thất bại</value></data>
+  <data name="TourNameRequired" xml:space="preserve"><value>Tên tour là bắt buộc</value></data>
+  <data name="TourPriceInvalid" xml:space="preserve"><value>Giá tour phải lớn hơn hoặc bằng 0</value></data>
+  <data name="TourSearchDurationRangeInvalid" xml:space="preserve"><value>Thời lượng tối thiểu phải nhỏ hơn hoặc bằng thời lượng tối đa</value></data>
+  <data name="TourSearchPriceRangeInvalid" xml:space="preserve"><value>Giá tối thiểu phải nhỏ hơn hoặc bằng giá tối đa</value></data>
+  <data name="TourSearchSortInvalid" xml:space="preserve"><value>Sắp xếp theo phải là price hoặc rating</value></data>
+  <data name="TourSearchSortOrderInvalid" xml:space="preserve"><value>Thứ tự sắp xếp phải là asc hoặc desc</value></data>
+  <data name="TourStatusInvalid" xml:space="preserve"><value>Trạng thái tour phải là active hoặc inactive</value></data>
+  <data name="TourValidationFailed" xml:space="preserve"><value>Xác thực thất bại</value></data>
+</root>
