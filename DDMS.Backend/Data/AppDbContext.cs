@@ -165,6 +165,8 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");
 
+            entity.HasIndex(e => e.owner_id, "idx_boats_owner");
+
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
@@ -177,6 +179,11 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(6)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(d => d.owner).WithMany()
+                .HasForeignKey(d => d.owner_id)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_boats_owner");
         });
 
         modelBuilder.Entity<boat_cabin>(entity =>
