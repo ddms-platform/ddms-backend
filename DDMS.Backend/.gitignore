@@ -51,7 +51,7 @@ artifacts/
 *.db
 *.db-shm
 *.db-wal
-migrations/
+
 
 # Application
 appsettings.*.json

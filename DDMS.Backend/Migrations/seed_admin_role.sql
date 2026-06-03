@@ -1,0 +1,7 @@
+﻿-- Gán role admin (bỏ comment và đổi email)
+-- INSERT INTO user_roles (user_id, role_id, assigned_at)
+-- SELECT u.id, r.id, NOW(6)
+-- FROM users u
+-- CROSS JOIN roles r
+-- WHERE u.email = 'admin@ddms.com' AND r.name = 'admin'
+-- ON DUPLICATE KEY UPDATE assigned_at = VALUES(assigned_at);
