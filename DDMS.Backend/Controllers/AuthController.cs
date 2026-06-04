@@ -60,6 +60,14 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<ResetPasswordResponse>.Ok(result));
     }
 
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var result = await _authService.ChangePasswordAsync(GetCurrentUserId(), request);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
