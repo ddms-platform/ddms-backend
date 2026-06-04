@@ -1,67 +1,25 @@
 using DDMS.Backend.Common.Responses;
-
-using DDMS.Backend.Models.DTOs.TourSearch;
-
-using DDMS.Backend.Services.Interfaces;
-
+using DDMS.Backend.Models.DTOs.Tours;
+using DDMS.Backend.Models.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-
-using Swashbuckle.AspNetCore.Annotations;
-
-
 
 namespace DDMS.Backend.Controllers;
 
-
-
 [ApiController]
-
-[Route("api/tour-search")]
-
-[Produces("application/json")]
-
-[SwaggerTag("Search & Filter — location, price, date, duration, sort, remaining capacity")]
-
+[Route("api/tours/search")]
 public class TourSearchController : ControllerBase
-
 {
+    private readonly ITourSearchService _tourSearchService;
 
-    private readonly ITourSearchService _service;
-
-
-
-    public TourSearchController(ITourSearchService service)
-
+    public TourSearchController(ITourSearchService tourSearchService)
     {
-
-        _service = service;
-
+        _tourSearchService = tourSearchService;
     }
-
-
 
     [HttpGet]
-
-    [SwaggerOperation(
-
-        Summary = "Search available tour schedules",
-
-        Description = "Filter by location, price range, date, status, duration. Sort by price or rating. Returns remaining_capacity per slot.")]
-
-    [ProducesResponseType(typeof(ApiResponse<List<TourSearchResponse>>), StatusCodes.Status200OK)]
-
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-
-    public async Task<IActionResult> Search([FromQuery] TourSearchRequest request, CancellationToken cancellationToken)
-
+    public async Task<IActionResult> Search([FromQuery] TourSearchQuery query)
     {
-
-        var data = await _service.SearchAsync(request, cancellationToken);
-
-        return Ok(ApiResponse<List<TourSearchResponse>>.Ok(data));
-
+        var result = await _tourSearchService.SearchAsync(query);
+        return Ok(ApiResponse<PagedResponse<TourSearchItemResponse>>.Ok(result));
     }
-
 }
-
-

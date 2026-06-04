@@ -7,6 +7,8 @@ public partial class boat
 {
     public Guid id { get; set; }
 
+    public Guid? owner_id { get; set; }
+
     public string name { get; set; } = null!;
 
     public string? type { get; set; }
@@ -18,6 +20,8 @@ public partial class boat
     public DateTime created_at { get; set; }
 
     public DateTime updated_at { get; set; }
+
+    public virtual user? owner { get; set; }
 
     public virtual ICollection<boat_cabin> boat_cabins { get; set; } = new List<boat_cabin>();
 

@@ -1,0 +1,1 @@
+﻿-- Deprecated (OTP). Use 20260528_auth_email_setup.sql or 20260528_email_verification_link.sql
