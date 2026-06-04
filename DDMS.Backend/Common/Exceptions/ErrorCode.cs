@@ -63,6 +63,7 @@ public static class ErrorCode
         public const string EmailRequired = "Email is required";
         public const string PasswordRequired = "Password is required";
         public const string PasswordMinLength = "Password must be at least 8 characters";
+        public const string PasswordPolicy = "Password must be at least 8 characters and include lowercase, uppercase, number and a special character";
         public const string ConfirmPasswordMismatch = "Confirm password does not match";
 
         public const string EmailAlreadyExists = "Email already exists";
@@ -87,6 +88,12 @@ public static class ErrorCode
         public const string PasswordResetLinkSent = "If an account exists for this email, a password reset link has been sent";
         public const string PasswordResetSuccess = "Password reset successfully";
         public const string PasswordResetSocialAccount = "This account uses Google sign-in and has no password to reset";
+
+        public const string CurrentPasswordRequired = "Current password is required";
+        public const string CurrentPasswordIncorrect = "Current password is incorrect";
+        public const string NewPasswordSameAsOld = "New password must be different from the current password";
+        public const string ChangePasswordSuccess = "Password changed successfully";
+        public const string ChangePasswordSocialAccount = "This account uses Google sign-in and has no password to change";
 
         public const string InvalidToken = "Invalid token";
         public const string TokenExpired = "Token expired";
