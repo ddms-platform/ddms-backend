@@ -1,4 +1,4 @@
-﻿namespace DDMS.Backend.Common.Exceptions;
+namespace DDMS.Backend.Common.Exceptions;
 
 public static class ErrorCode
 {

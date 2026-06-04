@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Localization;
+using DDMS.Backend.Common.Localization;
 using DDMS.Backend.Common.Responses;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,10 +7,12 @@ namespace DDMS.Backend.Common.Exceptions;
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
 
-    public GlobalExceptionMiddleware(RequestDelegate next)
+    public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -21,6 +23,7 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unhandled exception occurred");
             await HandleExceptionAsync(context, ex);
         }
     }
