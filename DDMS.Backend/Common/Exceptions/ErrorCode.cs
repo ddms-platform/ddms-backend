@@ -26,6 +26,18 @@ public static class ErrorCode
     public const int Forbidden = 1403;
     public const int ResourceNotFound = 1404;
 
+    /// <summary>Legacy tour module (KIỆT) — used by Services/Implementations and public tour controllers.</summary>
+    public const int TourNotFound = 1500;
+    public const int TourInvalidStatus = 1501;
+    public const int TourNotExists = 1502;
+    public const int ScheduleNotFound = 1503;
+    public const int RouteNotFound = 1504;
+    public const int BoatNotExists = 1505;
+    public const int DockNotExists = 1506;
+    public const int TourImageNotFound = 1507;
+    public const int FaqNotFound = 1508;
+    public const int DockScheduleNotFound = 1509;
+
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
     public const int TourCancelPolicyInvalid = 2102;
@@ -36,6 +48,8 @@ public static class ErrorCode
     public const int ScheduleTourNotFound = 2203;
     public const int ScheduleBoatNotFound = 2204;
     public const int ScheduleDockNotFound = 2205;
+    public const int ScheduleBoatOverlap = 2206;
+    public const int ScheduleDockOverlap = 2207;
     public const int RouteValidationFailed = 2300;
     public const int RouteTourNotFound = 2301;
     public const int TourSearchValidationFailed = 2400;
@@ -109,6 +123,18 @@ public static class ErrorCode
         public const string Forbidden = "Forbidden";
         public const string ResourceNotFound = "Resource not found";
 
+        public const string TourNotFound = "Tour not found";
+        public const string TourInvalidStatus = "Invalid tour status";
+        public const string TourNotExists = "Tour does not exist";
+        public const string ScheduleNotFound = "Schedule not found";
+        public const string RouteNotFound = "Route not found";
+        public const string BoatNotExists = "Boat does not exist";
+        public const string DockNotExists = "Dock does not exist";
+        public const string TourImageNotFound = "Tour image not found";
+        public const string FaqNotFound = "FAQ not found";
+        public const string DockScheduleNotFound = "Dock schedule not found";
+        public const string DockScheduleOverlap = "Dock schedule overlap";
+
         public const string CannotModifySelf = "Cannot modify your own account";
         public const string InvalidRole = "Invalid role";
 
@@ -125,6 +151,8 @@ public static class ErrorCode
         public const string ScheduleTourNotFound = nameof(ScheduleTourNotFound);
         public const string ScheduleBoatNotFound = nameof(ScheduleBoatNotFound);
         public const string ScheduleDockNotFound = nameof(ScheduleDockNotFound);
+        public const string ScheduleBoatOverlap = nameof(ScheduleBoatOverlap);
+        public const string ScheduleDockOverlap = nameof(ScheduleDockOverlap);
         public const string RouteTourNotFound = nameof(RouteTourNotFound);
         public const string RouteStartPointRequired = nameof(RouteStartPointRequired);
         public const string RouteEndPointRequired = nameof(RouteEndPointRequired);

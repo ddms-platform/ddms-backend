@@ -27,6 +27,8 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDdmsLocalization();
 builder.Services.AddDdmsSwagger();
+builder.Services.AddRequestValidation();
+builder.Services.AddProjectDependencies();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
@@ -134,12 +136,13 @@ builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<ITourRepository, TourRepository>();
 builder.Services.AddScoped<ITourService, TourService>();
-builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
-builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<ITourSearchRepository, TourSearchRepository>();
 builder.Services.AddScoped<ITourSearchService, TourSearchService>();
+builder.Services.AddScoped<IPublicTourCatalogService, PublicTourCatalogService>();
+builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ITourImageRepository, TourImageRepository>();
 builder.Services.AddScoped<ITourImageService, TourImageService>();
@@ -177,7 +180,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// In Development, FE often calls http://localhost:5015; redirect breaks axios POST (Network Error).
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors(CorsOptions.PolicyName);
 app.UseRateLimiter();
 app.UseAuthentication();

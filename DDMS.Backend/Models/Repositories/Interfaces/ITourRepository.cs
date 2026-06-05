@@ -7,6 +7,7 @@ public interface ITourRepository
 {
     Task<(List<tour> items, int total)> GetPagedAsync(Guid userId, TourListQuery query);
     Task<tour?> GetByIdAsync(Guid id, Guid userId);
+    Task<tour?> GetActiveByIdAsync(Guid id);
     Task AddAsync(tour entity);
     Task UpdateAsync(tour entity);
 }

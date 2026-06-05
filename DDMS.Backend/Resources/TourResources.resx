@@ -22,6 +22,8 @@
   <data name="ScheduleStatusInvalid" xml:space="preserve"><value>Schedule status must be scheduled, ongoing, completed, or cancelled</value></data>
   <data name="ScheduleTimeInvalid" xml:space="preserve"><value>Schedule end time must be greater than start time</value></data>
   <data name="ScheduleTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>
+  <data name="ScheduleBoatOverlap" xml:space="preserve"><value>Boat already has an overlapping tour schedule</value></data>
+  <data name="ScheduleDockOverlap" xml:space="preserve"><value>Dock already has an overlapping tour schedule</value></data>
   <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Cancel hours is required and must be &gt;= 0 when policy is partial or no_refund</value></data>
   <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Cancel policy must be free, partial, or no_refund</value></data>
   <data name="TourDurationInvalid" xml:space="preserve"><value>Tour duration minutes must be greater than 0</value></data>

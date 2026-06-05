@@ -85,3 +85,6 @@ tmp/
 *.tmp
 *.bak
 *.orig
+
+# Local documentation (not pushed)
+docs/

@@ -9,6 +9,8 @@ public interface IScheduleRepository
     Task<tour_schedule?> GetByIdAsync(Guid id, Guid userId);
     Task<bool> BoatExistsAsync(Guid boatId);
     Task<bool> DockExistsAsync(Guid dockId);
+    Task<bool> HasBoatTimeOverlapAsync(Guid boatId, DateTime startTime, DateTime endTime, Guid? excludeScheduleId = null);
+    Task<bool> HasDockTimeOverlapAsync(Guid dockId, DateTime startTime, DateTime endTime, Guid? excludeScheduleId = null);
     Task AddAsync(tour_schedule entity);
     Task UpdateAsync(tour_schedule entity);
 }

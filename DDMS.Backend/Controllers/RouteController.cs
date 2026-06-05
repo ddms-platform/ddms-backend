@@ -16,7 +16,7 @@ namespace DDMS.Backend.Controllers;
 
 [ApiController]
 
-[Route("api/routes")]
+[Route("api/legacy/routes")]
 
 [Produces("application/json")]
 
