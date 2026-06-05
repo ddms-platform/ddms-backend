@@ -33,6 +33,12 @@ public class TourRepository : ITourRepository
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(query.location))
+        {
+            var location = query.location.Trim();
+            toursQuery = toursQuery.Where(x => x.location != null && x.location.Contains(location));
+        }
+
         var total = await toursQuery.CountAsync();
         var items = await toursQuery
             .OrderByDescending(x => x.created_at)
@@ -47,6 +53,12 @@ public class TourRepository : ITourRepository
     {
         return _dbContext.tours
             .FirstOrDefaultAsync(x => x.id == id && x.created_by == userId);
+    }
+
+    public Task<tour?> GetActiveByIdAsync(Guid id)
+    {
+        return _dbContext.tours
+            .FirstOrDefaultAsync(x => x.id == id && x.status == TourConstants.Statuses.Active);
     }
 
     public async Task AddAsync(tour entity)

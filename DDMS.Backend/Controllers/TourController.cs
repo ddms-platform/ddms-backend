@@ -6,7 +6,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace DDMS.Backend.Controllers;
 
 [ApiController]
-[Route("api/tours")]
+[Route("api/legacy/tours")]
 [Produces("application/json")]
 [SwaggerTag("Tour Management — CRUD tours, filter by status/location, cancel policy config")]
 public class TourController : ControllerBase

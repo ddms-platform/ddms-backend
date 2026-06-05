@@ -1,4 +1,4 @@
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace DDMS.Backend.Configurations;
 
@@ -9,6 +9,8 @@ public static class SwaggerConfiguration
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.CustomSchemaIds(type => type.FullName?.Replace('+', '.'));
+
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "DDMS Backend API",

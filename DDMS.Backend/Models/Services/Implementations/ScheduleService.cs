@@ -69,6 +69,7 @@ public class ScheduleService : IScheduleService
         }
 
         await ValidateBoatDockReferences(request.boatId, request.dockId);
+        await ValidateNoTimeOverlapAsync(request.boatId, request.dockId, request.startTime, request.endTime, null);
 
         var entity = new tour_schedule
         {
@@ -108,6 +109,7 @@ public class ScheduleService : IScheduleService
         }
 
         await ValidateBoatDockReferences(request.boatId, request.dockId);
+        await ValidateNoTimeOverlapAsync(request.boatId, request.dockId, request.startTime, request.endTime, id);
 
         var entity = await _scheduleRepository.GetByIdAsync(id, userId);
         if (entity is null)
@@ -149,6 +151,26 @@ public class ScheduleService : IScheduleService
         if (dockId.HasValue && !await _scheduleRepository.DockExistsAsync(dockId.Value))
         {
             throw new AppException(ErrorCode.ScheduleDockNotFound, ErrorCode.Messages.ScheduleDockNotFound);
+        }
+    }
+
+    private async Task ValidateNoTimeOverlapAsync(
+        Guid? boatId,
+        Guid? dockId,
+        DateTime startTime,
+        DateTime endTime,
+        Guid? excludeScheduleId)
+    {
+        if (boatId.HasValue &&
+            await _scheduleRepository.HasBoatTimeOverlapAsync(boatId.Value, startTime, endTime, excludeScheduleId))
+        {
+            throw new AppException(ErrorCode.ScheduleBoatOverlap, ErrorCode.Messages.ScheduleBoatOverlap);
+        }
+
+        if (dockId.HasValue &&
+            await _scheduleRepository.HasDockTimeOverlapAsync(dockId.Value, startTime, endTime, excludeScheduleId))
+        {
+            throw new AppException(ErrorCode.ScheduleDockOverlap, ErrorCode.Messages.ScheduleDockOverlap);
         }
     }
 

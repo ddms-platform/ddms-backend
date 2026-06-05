@@ -10,6 +10,9 @@ public static class SwaggerExtensions
     {
         services.AddSwaggerGen(options =>
         {
+            // Avoid schemaId collisions when DTOs share the same class name in different namespaces.
+            options.CustomSchemaIds(type => type.FullName?.Replace('+', '.'));
+
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "BoatTour API",
@@ -32,6 +35,8 @@ public static class SwaggerExtensions
             {
                 [new OpenApiSecuritySchemeReference(BearerSchemeId, document)] = []
             });
+
+            options.EnableAnnotations();
         });
 
         return services;
