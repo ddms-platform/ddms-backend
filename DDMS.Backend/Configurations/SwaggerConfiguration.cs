@@ -1,7 +1,7 @@
+using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.OpenApi;
 
 namespace DDMS.Backend.Configurations;
-
 public static class SwaggerConfiguration
 {
     public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
@@ -15,12 +15,10 @@ public static class SwaggerConfiguration
             {
                 Title = "DDMS Backend API",
                 Version = "v1",
-                Description = "Boat Tour Management System — REST API for tours, schedules, routes, search and content."
+                Description = "Boat Tour Management System"
             });
-
             options.EnableAnnotations();
         });
-
         return services;
     }
 }
