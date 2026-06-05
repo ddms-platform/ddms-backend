@@ -71,6 +71,51 @@ public class ScheduleRepository : IScheduleRepository
         return _dbContext.docks.AnyAsync(x => x.id == dockId);
     }
 
+    public Task<bool> HasBoatTimeOverlapAsync(Guid boatId, DateTime startTime, DateTime endTime, Guid? excludeScheduleId = null)
+    {
+        return HasResourceTimeOverlapAsync(boatId, null, startTime, endTime, excludeScheduleId);
+    }
+
+    public Task<bool> HasDockTimeOverlapAsync(Guid dockId, DateTime startTime, DateTime endTime, Guid? excludeScheduleId = null)
+    {
+        return HasResourceTimeOverlapAsync(null, dockId, startTime, endTime, excludeScheduleId);
+    }
+
+    private Task<bool> HasResourceTimeOverlapAsync(
+        Guid? boatId,
+        Guid? dockId,
+        DateTime startTime,
+        DateTime endTime,
+        Guid? excludeScheduleId)
+    {
+        var activeStatuses = new[]
+        {
+            TourConstants.ScheduleStatuses.Scheduled,
+            TourConstants.ScheduleStatuses.Ongoing
+        };
+
+        var query = _dbContext.tour_schedules
+            .Where(s => activeStatuses.Contains(s.status))
+            .Where(s => s.start_time < endTime && s.end_time > startTime);
+
+        if (excludeScheduleId.HasValue)
+        {
+            query = query.Where(s => s.id != excludeScheduleId.Value);
+        }
+
+        if (boatId.HasValue)
+        {
+            query = query.Where(s => s.boat_id == boatId.Value);
+        }
+
+        if (dockId.HasValue)
+        {
+            query = query.Where(s => s.dock_id == dockId.Value);
+        }
+
+        return query.AnyAsync();
+    }
+
     public async Task AddAsync(tour_schedule entity)
     {
         _dbContext.tour_schedules.Add(entity);

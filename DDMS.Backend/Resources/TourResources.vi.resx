@@ -22,6 +22,8 @@
   <data name="ScheduleStatusInvalid" xml:space="preserve"><value>Trạng thái lịch phải là scheduled, ongoing, completed hoặc cancelled</value></data>
   <data name="ScheduleTimeInvalid" xml:space="preserve"><value>Thời gian kết thúc lịch phải sau thời gian bắt đầu</value></data>
   <data name="ScheduleTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
+  <data name="ScheduleBoatOverlap" xml:space="preserve"><value>Tàu đã có lịch tour trùng thời gian</value></data>
+  <data name="ScheduleDockOverlap" xml:space="preserve"><value>Bến đã có lịch tour trùng thời gian</value></data>
   <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Số giờ hủy là bắt buộc và phải &gt;= 0 khi chính sách là partial hoặc no_refund</value></data>
   <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Chính sách hủy phải là free, partial hoặc no_refund</value></data>
   <data name="TourDurationInvalid" xml:space="preserve"><value>Thời lượng tour (phút) phải lớn hơn 0</value></data>
