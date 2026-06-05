@@ -86,6 +86,7 @@ public class AuthService : IAuthService
             throw new AppException(ErrorCode.AuthInvalidCredentials, ErrorCode.Messages.InvalidCredentials);
         }
 
+
         _authSessionService.EnsureAccountActive(user);
         _authSessionService.EnsureEmailVerified(user);
 
@@ -176,6 +177,71 @@ public class AuthService : IAuthService
         {
             message = ErrorCode.Messages.PasswordResetSuccess
         };
+    }
+
+    public async Task<MessageResponse> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    {
+        var fieldErrors = new Dictionary<string, List<string>>();
+
+        if (string.IsNullOrWhiteSpace(request.currentPassword))
+        {
+            fieldErrors["currentPassword"] = [ErrorCode.Messages.CurrentPasswordRequired];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.newPassword))
+        {
+            fieldErrors["newPassword"] = [ErrorCode.Messages.PasswordRequired];
+        }
+        else if (!IsPasswordPolicyValid(request.newPassword))
+        {
+            fieldErrors["newPassword"] = [ErrorCode.Messages.PasswordPolicy];
+        }
+
+        if (request.newPassword != request.confirmPassword)
+        {
+            fieldErrors["confirmPassword"] = [ErrorCode.Messages.ConfirmPasswordMismatch];
+        }
+
+        if (fieldErrors.Count > 0)
+        {
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, fieldErrors);
+        }
+
+        var user = await _userRepository.GetByIdWithRolesAsync(userId);
+
+        if (user is null)
+        {
+            throw new UnauthorizedException();
+        }
+
+        _authSessionService.EnsureAccountActive(user);
+
+        if (string.IsNullOrWhiteSpace(user.password_hash))
+        {
+            throw new AppException(ErrorCode.AuthValidationFailed, ErrorCode.Messages.ChangePasswordSocialAccount);
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.currentPassword, user.password_hash))
+        {
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            {
+                ["currentPassword"] = [ErrorCode.Messages.CurrentPasswordIncorrect]
+            });
+        }
+
+        if (BCrypt.Net.BCrypt.Verify(request.newPassword, user.password_hash))
+        {
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            {
+                ["newPassword"] = [ErrorCode.Messages.NewPasswordSameAsOld]
+            });
+        }
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.newPassword);
+        await _userRepository.UpdatePasswordHashAsync(user.id, passwordHash);
+        await _refreshTokenRepository.RevokeAllActiveForUserAsync(user.id);
+
+        return new MessageResponse { message = ErrorCode.Messages.ChangePasswordSuccess };
     }
 
     public async Task<AuthTokensResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, string? userAgent)
@@ -274,9 +340,9 @@ public class AuthService : IAuthService
         {
             fieldErrors["password"] = [ErrorCode.Messages.PasswordRequired];
         }
-        else if (request.password.Length < 8)
+        else if (!IsPasswordPolicyValid(request.password))
         {
-            fieldErrors["password"] = [ErrorCode.Messages.PasswordMinLength];
+            fieldErrors["password"] = [ErrorCode.Messages.PasswordPolicy];
         }
 
         if (request.password != request.confirmPassword)
@@ -288,6 +354,16 @@ public class AuthService : IAuthService
         {
             throw new ValidationException(ErrorCode.Messages.ValidationFailed, fieldErrors);
         }
+    }
+
+    // Case-sensitive policy; the raw password is validated as-is (no trim/lowercase).
+    internal static bool IsPasswordPolicyValid(string password)
+    {
+        return password.Length >= 8
+            && password.Any(c => c >= 'a' && c <= 'z')
+            && password.Any(c => c >= 'A' && c <= 'Z')
+            && password.Any(c => c >= '0' && c <= '9')
+            && password.Any(c => !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')));
     }
 
     private static void ValidateLoginRequest(LoginRequest request)

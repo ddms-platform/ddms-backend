@@ -43,4 +43,9 @@ public class NotFoundException : AppException
         : base(ErrorCode.ResourceNotFound, message)
     {
     }
+
+    public NotFoundException(int code, string message)
+        : base(code, message)
+    {
+    }
 }

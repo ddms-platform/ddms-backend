@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers()
@@ -32,7 +33,7 @@ builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(C
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
-builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
+
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
 if (string.IsNullOrWhiteSpace(jwtOptions.secretKey))
@@ -147,10 +148,7 @@ builder.Services.AddScoped<IFaqService, FaqService>();
 builder.Services.AddScoped<IDockScheduleRepository, DockScheduleRepository>();
 builder.Services.AddScoped<IDockScheduleService, DockScheduleService>();
 
-// ── Cloudinary ───────────────────────────────────────────────
-builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
-// ── Boat ─────────────────────────────────────────────────────
 builder.Services.AddScoped<IBoatRepository, BoatRepository>();
 builder.Services.AddScoped<IBoatCabinRepository, BoatCabinRepository>();
 builder.Services.AddScoped<IBoatAddonRepository, BoatAddonRepository>();
@@ -160,7 +158,7 @@ builder.Services.AddScoped<IBoatCabinService, BoatCabinService>();
 builder.Services.AddScoped<IBoatAddonService, BoatAddonService>();
 builder.Services.AddScoped<IBoatImageService, BoatImageService>();
 
-// ── Dock ─────────────────────────────────────────────────────
+
 builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
 

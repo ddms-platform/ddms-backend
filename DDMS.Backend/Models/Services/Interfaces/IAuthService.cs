@@ -10,6 +10,7 @@ public interface IAuthService
     Task<MessageResponse> ResendVerificationEmailAsync(ResendVerificationEmailRequest request);
     Task<MessageResponse> ForgotPasswordAsync(ForgotPasswordRequest request);
     Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request);
+    Task<MessageResponse> ChangePasswordAsync(Guid userId, ChangePasswordRequest request);
     Task<AuthTokensResponse> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress, string? userAgent);
     Task LogoutAsync(LogoutRequest request);
     Task LogoutAllAsync(Guid userId);

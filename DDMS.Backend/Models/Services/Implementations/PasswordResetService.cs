@@ -149,9 +149,9 @@ public class PasswordResetService : IPasswordResetService
         {
             fieldErrors["password"] = [ErrorCode.Messages.PasswordRequired];
         }
-        else if (password.Length < 8)
+        else if (!AuthService.IsPasswordPolicyValid(password))
         {
-            fieldErrors["password"] = [ErrorCode.Messages.PasswordMinLength];
+            fieldErrors["password"] = [ErrorCode.Messages.PasswordPolicy];
         }
 
         if (password != confirmPassword)
