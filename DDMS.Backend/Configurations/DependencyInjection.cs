@@ -20,6 +20,32 @@ public static class DependencyInjection
         services.AddScoped<IRouteService, RouteService>();
         services.AddScoped<ITourSearchService, TourSearchService>();
         services.AddScoped<ITourContentService, TourContentService>();
+
+        services.AddScoped<IBillingRepository, BillingRepository>();
+        services.AddScoped<IBillingService, BillingService>();
+
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IBookingService, BookingService>();
+
+        services.AddScoped<IWalletRepository, WalletRepository>();
+
+        services.AddScoped<IOwnerToursDashboardRepository, OwnerToursDashboardRepository>();
+        services.AddScoped<IOwnerToursDashboardService, OwnerToursDashboardService>();
+
+        services.AddScoped<IOwnerServicesRegistrationRepository, OwnerServicesRegistrationRepository>();
+        services.AddScoped<IOwnerServicesRegistrationService, OwnerServicesRegistrationService>();
+
+        services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+
+        services.AddScoped<IAdminOwnersRepository, AdminOwnersRepository>();
+        services.AddScoped<IAdminOwnersService, AdminOwnersService>();
+
+        services.AddScoped<IBoatMaintenanceRepository, BoatMaintenanceRepository>();
+        services.AddScoped<IBoatMaintenanceService, BoatMaintenanceService>();
+
+        services.AddScoped<ISystemRepository, SystemRepository>();
+        services.AddScoped<ISystemService, SystemService>();
         return services;
     }
 }

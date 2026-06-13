@@ -1,9 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Boat;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Models.DTOs.OwnerBoats;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,61 +13,90 @@ namespace DDMS.Backend.Controllers;
 [Route("api/owner/boats")]
 public class OwnerBoatsController : ControllerBase
 {
-    private readonly IBoatService _boatService;
+    private readonly IBoatService _boats;
+    private readonly IBoatImageService _images;
+    private readonly IBoatMaintenanceService _maintenances;
+    private readonly ICurrentUser _user;
 
-    public OwnerBoatsController(IBoatService boatService)
+    public OwnerBoatsController(
+        IBoatService boats,
+        IBoatImageService images,
+        IBoatMaintenanceService maintenances,
+        ICurrentUser user)
     {
-        _boatService = boatService;
+        _boats = boats;
+        _images = images;
+        _maintenances = maintenances;
+        _user = user;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetBoats([FromQuery] OwnerBoatListQuery query)
-    {
-        var result = await _boatService.GetBoatsByOwnerAsync(GetCurrentUserId(), query);
-        return Ok(ApiResponse<PagedResponse<BoatListItemResponse>>.Ok(result));
-    }
+    public async Task<IActionResult> GetBoats([FromQuery] OwnerBoatListQuery query) =>
+        Ok(ApiResponse<PagedResponse<BoatListItemResponse>>.Ok(await _boats.GetBoatsByOwnerAsync(_user.Id, query)));
 
     [HttpGet("stats")]
-    public async Task<IActionResult> GetStats()
-    {
-        var result = await _boatService.GetStatsByOwnerAsync(GetCurrentUserId());
-        return Ok(ApiResponse<BoatStatsResponse>.Ok(result));
-    }
+    public async Task<IActionResult> GetStats() =>
+        Ok(ApiResponse<BoatStatsResponse>.Ok(await _boats.GetStatsByOwnerAsync(_user.Id)));
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-        var result = await _boatService.GetByIdByOwnerAsync(id, GetCurrentUserId());
-        return Ok(ApiResponse<BoatDetailResponse>.Ok(result));
-    }
+    public async Task<IActionResult> GetById(Guid id) =>
+        Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.GetByIdByOwnerAsync(id, _user.Id)));
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateBoatRequest request)
-    {
-        var result = await _boatService.CreateByOwnerAsync(request, GetCurrentUserId());
-        return Ok(ApiResponse<BoatDetailResponse>.Ok(result));
-    }
+    public async Task<IActionResult> Create([FromBody] CreateBoatRequest request) =>
+        Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.CreateByOwnerAsync(request, _user.Id)));
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBoatRequest request)
-    {
-        var result = await _boatService.UpdateByOwnerAsync(id, request, GetCurrentUserId());
-        return Ok(ApiResponse<BoatDetailResponse>.Ok(result));
-    }
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBoatRequest request) =>
+        Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.UpdateByOwnerAsync(id, request, _user.Id)));
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _boatService.DeleteByOwnerAsync(id, GetCurrentUserId());
+        await _boats.DeleteByOwnerAsync(id, _user.Id);
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 
-    private Guid GetCurrentUserId()
+    [HttpGet("{id:guid}/images")]
+    public async Task<IActionResult> GetImages(Guid id)
     {
-        var userIdClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            throw new UnauthorizedException();
-        return userId;
+        await EnsureOwnedAsync(id);
+        return Ok(ApiResponse<List<BoatImageResponse>>.Ok(await _images.GetByBoatIdAsync(id)));
+    }
+
+    [HttpPost("{id:guid}/images")]
+    public async Task<IActionResult> UploadImage(Guid id, [FromBody] UploadBoatImageRequest request)
+    {
+        await EnsureOwnedAsync(id);
+        return Ok(ApiResponse<BoatImageResponse>.Ok(await _images.UploadAsync(id, request.fileBase64, request.caption)));
+    }
+
+    [HttpDelete("{id:guid}/images/{imageId:guid}")]
+    public async Task<IActionResult> DeleteImage(Guid id, Guid imageId)
+    {
+        await EnsureOwnedAsync(id);
+        await _images.DeleteAsync(id, imageId);
+        return Ok(ApiResponse<object>.Ok(new { deleted = true }));
+    }
+
+    [HttpPost("{id:guid}/maintenances/register")]
+    public async Task<IActionResult> RegisterMaintenances(Guid id,
+        [FromBody] List<MaintenanceRegistrationRequest> registrations, CancellationToken ct)
+    {
+        var count = await _maintenances.RegisterAsync(id, _user.Id, registrations, ct);
+        return Ok(ApiResponse<object>.Ok(new { success = true, registeredCount = count }));
+    }
+
+    [HttpDelete("{id:guid}/maintenances/{maintenanceId:guid}")]
+    public async Task<IActionResult> DeleteMaintenance(Guid id, Guid maintenanceId, CancellationToken ct)
+    {
+        await _maintenances.DeleteAsync(id, maintenanceId, _user.Id, ct);
+        return Ok(ApiResponse<object>.Ok(new { deleted = true }));
+    }
+
+    private async Task EnsureOwnedAsync(Guid boatId)
+    {
+        var boat = await _boats.GetByIdByOwnerAsync(boatId, _user.Id);
+        if (boat == null) throw new Common.Exceptions.NotFoundException();
     }
 }

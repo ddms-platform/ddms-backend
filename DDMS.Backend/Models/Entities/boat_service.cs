@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -14,6 +14,8 @@ public partial class boat_service
     public decimal price { get; set; }
 
     public string? description { get; set; }
+
+    public string? image_url { get; set; }
 
     public bool? is_active { get; set; }
 

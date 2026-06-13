@@ -1,20 +1,23 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Configurations;
 using DDMS.Backend.Data;
 using DDMS.Backend.Extensions;
-using DDMS.Backend.Models.Repositories.Implementations;
-using DDMS.Backend.Models.Repositories.Interfaces;
-using DDMS.Backend.Models.Services.Implementations;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Repositories.Implementations;
+using DDMS.Backend.Repositories.Interfaces;
+using DDMS.Backend.Services.Implementations;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using DDMS.Backend.Hubs;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,13 @@ builder.Services.AddDdmsLocalization();
 builder.Services.AddDdmsSwagger();
 builder.Services.AddRequestValidation();
 builder.Services.AddProjectDependencies();
+builder.Services.AddSignalR();
+var payOsSection = builder.Configuration.GetSection("PayOS");
+builder.Services.AddSingleton(new PayOSClient(
+    payOsSection["ClientId"] ?? "",
+    payOsSection["ApiKey"] ?? "",
+    payOsSection["ChecksumKey"] ?? ""
+));
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
@@ -47,7 +57,7 @@ if (string.IsNullOrWhiteSpace(jwtOptions.secretKey))
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -70,6 +80,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
 var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
 var isDevelopment = builder.Environment.IsDevelopment();
 builder.Services.AddCors(options =>
@@ -80,13 +93,15 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(corsOptions.AllowedOrigins)
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
         else if (isDevelopment)
         {
             policy.SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
     });
 });
@@ -131,15 +146,16 @@ builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>(
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IOwnerRegistrationService, OwnerRegistrationService>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-builder.Services.AddScoped<ITourRepository, TourRepository>();
-builder.Services.AddScoped<ITourService, TourService>();
-builder.Services.AddScoped<IRouteRepository, RouteRepository>();
-builder.Services.AddScoped<IRouteService, RouteService>();
-builder.Services.AddScoped<ITourSearchRepository, TourSearchRepository>();
-builder.Services.AddScoped<ITourSearchService, TourSearchService>();
+builder.Services.AddScoped<IOwnerToursRepository, OwnerToursRepository>();
+builder.Services.AddScoped<IOwnerToursService, OwnerToursService>();
+builder.Services.AddScoped<IOwnerRoutesRepository, OwnerRoutesRepository>();
+builder.Services.AddScoped<IOwnerRoutesService, OwnerRoutesService>();
+builder.Services.AddScoped<IPublicTourSearchRepository, PublicTourSearchRepository>();
+builder.Services.AddScoped<IPublicTourSearchService, PublicTourSearchService>();
 builder.Services.AddScoped<IPublicTourCatalogService, PublicTourCatalogService>();
 builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
@@ -167,6 +183,118 @@ builder.Services.AddScoped<IDockService, DockService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        dbContext.Database.Migrate();
+
+
+
+        // Clean up duplicate docks named "Bến Du Thuyền Sông Hàn"
+        var hanDocks = await dbContext.docks.Where(d => d.name == "Bến Du Thuyền Sông Hàn").ToListAsync();
+        if (hanDocks.Count > 1)
+        {
+            var dockToKeep = hanDocks[0];
+            var docksToDelete = hanDocks.Skip(1).ToList();
+
+            var deleteDockIds = docksToDelete.Select(d => d.id).ToList();
+            var schedulesToDelete = await dbContext.dock_schedules
+                .Where(s => deleteDockIds.Contains(s.dock_id))
+                .ToListAsync();
+            dbContext.dock_schedules.RemoveRange(schedulesToDelete);
+            
+            dbContext.docks.RemoveRange(docksToDelete);
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine($"[Seeding] Cleaned up {docksToDelete.Count} duplicate docks.");
+        }
+
+        // Automatically seed active dock schedules for all boats at the Han River dock
+        var firstDock = await dbContext.docks.FirstOrDefaultAsync(d => d.name == "Bến Du Thuyền Sông Hàn")
+                        ?? await dbContext.docks.FirstOrDefaultAsync();
+        if (firstDock != null)
+        {
+            var now = DateTime.UtcNow;
+            var allBoats = await dbContext.boats.ToListAsync();
+            
+            // Clean up old schedules to reset for this view
+            var oldSchedules = await dbContext.dock_schedules.ToListAsync();
+            dbContext.dock_schedules.RemoveRange(oldSchedules);
+            await dbContext.SaveChangesAsync();
+
+            foreach (var boat in allBoats)
+            {
+                dbContext.dock_schedules.Add(new DDMS.Backend.Models.Entities.dock_schedule
+                {
+                    id = Guid.NewGuid(),
+                    dock_id = firstDock.id,
+                    boat_id = boat.id,
+                    start_time = now.AddDays(-1),
+                    end_time = now.AddDays(5),
+                    created_at = now
+                });
+            }
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine($"[Seeding] Successfully seeded active dock schedules for {allBoats.Count} boats at dock: {firstDock.name}");
+
+            // Automatically make sure roles and admin role exist
+            var adminRole = await dbContext.roles.FirstOrDefaultAsync(r => r.name == "admin");
+            if (adminRole == null)
+            {
+                adminRole = new DDMS.Backend.Models.Entities.role { name = "admin", description = "Administrator" };
+                dbContext.roles.Add(adminRole);
+                await dbContext.SaveChangesAsync();
+            }
+
+            // Seed a default admin user: admin@ddms.com / Admin@123
+            var adminUser = await dbContext.users.FirstOrDefaultAsync(u => u.email == "admin@ddms.com");
+            if (adminUser == null)
+            {
+                adminUser = new DDMS.Backend.Models.Entities.user
+                {
+                    id = Guid.NewGuid(),
+                    full_name = "System Administrator",
+                    email = "admin@ddms.com",
+                    password_hash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    is_active = true,
+                    email_verified_at = DateTime.UtcNow,
+                    created_at = DateTime.UtcNow,
+                    updated_at = DateTime.UtcNow
+                };
+                dbContext.users.Add(adminUser);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine("[Seeding] Created admin@ddms.com user.");
+            }
+
+            var hasAdminRole = await dbContext.user_roles.AnyAsync(ur => ur.user_id == adminUser.id && ur.role_id == adminRole.id);
+            if (!hasAdminRole)
+            {
+                dbContext.user_roles.Add(new DDMS.Backend.Models.Entities.user_role { user_id = adminUser.id, role_id = adminRole.id });
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine("[Seeding] Assigned admin role to admin@ddms.com.");
+            }
+
+            // Add admin role to all users in development for easy testing
+            var allUsers = await dbContext.users.ToListAsync();
+            foreach (var u in allUsers)
+            {
+                var hasAdmin = await dbContext.user_roles.AnyAsync(ur => ur.user_id == u.id && ur.role_id == adminRole.id);
+                if (!hasAdmin)
+                {
+                    dbContext.user_roles.Add(new DDMS.Backend.Models.Entities.user_role { user_id = u.id, role_id = adminRole.id });
+                }
+            }
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine("[Seeding] Assured admin role for all users in development.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Migration or seeding failed: {ex.Message}");
+    }
+}
+
 app.UseRequestLocalization();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
@@ -189,5 +317,6 @@ app.UseCors(CorsOptions.PolicyName);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<BillingHub>("/hub/billing");
 app.MapControllers();
 app.Run();

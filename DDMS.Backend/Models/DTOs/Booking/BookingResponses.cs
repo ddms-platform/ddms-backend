@@ -1,0 +1,36 @@
+namespace DDMS.Backend.Models.DTOs.Booking;
+
+public class BookingResponse
+{
+    public Guid Id { get; set; }
+    public Guid ScheduleId { get; set; }
+    public int NumPeople { get; set; }
+    public decimal TotalPrice { get; set; }
+    public string Status { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+}
+
+public class UserBookingListItemResponse
+{
+    public string Id { get; set; } = null!;
+    public string TourId { get; set; } = null!;
+    public string TourTitle_vn { get; set; } = null!;
+    public string TourTitle_en { get; set; } = null!;
+    public string Location_vn { get; set; } = null!;
+    public string Location_en { get; set; } = null!;
+    public string Image { get; set; } = null!;
+    public string Date { get; set; } = null!;
+    public string Time { get; set; } = null!;
+    public int Guests { get; set; }
+    public double TotalPrice { get; set; }
+    public string Status { get; set; } = null!;
+    public string CreatedAt { get; set; } = null!;
+}
+
+public class CancelBookingResult
+{
+    public bool Success { get; set; } = true;
+    public string Status { get; set; } = null!;
+    public bool Refunded { get; set; }
+    public decimal AmountRefunded { get; set; }
+}

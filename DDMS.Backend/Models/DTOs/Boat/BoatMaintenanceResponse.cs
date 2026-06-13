@@ -1,3 +1,5 @@
+using System;
+
 namespace DDMS.Backend.Models.DTOs.Boat;
 
 public class BoatMaintenanceResponse
@@ -8,4 +10,7 @@ public class BoatMaintenanceResponse
     public DateTime endTime { get; init; }
     public string? reason { get; init; }
     public DateTime createdAt { get; init; }
+    public Guid? portMaintenanceServiceId { get; init; }
+    public string status { get; init; } = "pending";
+    public string? portMaintenanceServiceName { get; init; }
 }

@@ -1,6 +1,6 @@
-using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;

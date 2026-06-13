@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -14,6 +14,8 @@ public partial class user
     public string? password_hash { get; set; }
 
     public string? phone { get; set; }
+
+    public string? address { get; set; }
 
     public string? avatar_url { get; set; }
 

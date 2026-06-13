@@ -1,13 +1,14 @@
-using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Dock;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;
 
-[Authorize(Roles = "admin")]
+[Authorize(Roles = "admin,owner")]
 [ApiController]
+[Route("api/docks")]
 [Route("api/admin/docks")]
 public class DocksController : ControllerBase
 {
@@ -48,6 +49,7 @@ public class DocksController : ControllerBase
         return Ok(ApiResponse<DockListItemResponse>.Ok(result));
     }
 
+    [Authorize(Roles = "admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDockRequest request)
     {
@@ -55,6 +57,7 @@ public class DocksController : ControllerBase
         return Ok(ApiResponse<DockListItemResponse>.Ok(result));
     }
 
+    [Authorize(Roles = "admin")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDockRequest request)
     {
@@ -62,6 +65,7 @@ public class DocksController : ControllerBase
         return Ok(ApiResponse<DockListItemResponse>.Ok(result));
     }
 
+    [Authorize(Roles = "admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

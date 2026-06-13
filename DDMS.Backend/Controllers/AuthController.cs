@@ -1,10 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Auth;
 using DDMS.Backend.Common.Constants;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -111,6 +111,30 @@ public class AuthController : ControllerBase
     {
         var result = await _authService.GetMeAsync(GetCurrentUserId());
         return Ok(ApiResponse<CurrentUserResponse>.Ok(result));
+    }
+
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var result = await _authService.UpdateProfileAsync(GetCurrentUserId(), request);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
+    }
+
+    [Authorize]
+    [HttpPost("me/avatar")]
+    public async Task<IActionResult> UpdateAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            {
+                ["file"] = ["No file uploaded."]
+            });
+        }
+
+        var result = await _authService.UpdateAvatarAsync(GetCurrentUserId(), file);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
     }
 
     private Guid GetCurrentUserId()

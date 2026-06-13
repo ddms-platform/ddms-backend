@@ -13,6 +13,11 @@ public class TourItemResponse
     public int? cancelHours { get; set; }
     public decimal avgRating { get; set; }
     public int totalReviews { get; set; }
+    public string? mapUrl { get; set; }
+    public List<TourRouteResponse> routes { get; set; } = new();
+    public List<TourFaqResponse> faqs { get; set; } = new();
+    public List<TourClassResponse> classes { get; set; } = new();
+    public List<TourServiceResponse> services { get; set; } = new();
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
 }

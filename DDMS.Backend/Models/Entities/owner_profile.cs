@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -22,6 +22,8 @@ public partial class owner_profile
     public string? address { get; set; }
 
     public bool is_verified { get; set; }
+
+    public string? status { get; set; }
 
     public DateTime? verified_at { get; set; }
 

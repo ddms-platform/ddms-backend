@@ -175,6 +175,7 @@ public static class ErrorCode
         public const string DockScheduleBoatNotFound = nameof(DockScheduleBoatNotFound);
         public const string DockScheduleDockNotFound = nameof(DockScheduleDockNotFound);
 
+
         public const string UncategorizedError = "Uncategorized error";
     }
 
