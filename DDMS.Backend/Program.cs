@@ -298,15 +298,13 @@ using (var scope = app.Services.CreateScope())
 app.UseRequestLocalization();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "BoatTour API v1");
-        options.RoutePrefix = "";
+       
     });
-}
 
 // In Development, FE often calls http://localhost:5015; redirect breaks axios POST (Network Error).
 if (!app.Environment.IsDevelopment())
