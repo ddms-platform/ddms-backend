@@ -45,7 +45,10 @@ builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(C
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
-builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.SectionName));
+builder.Services.AddOptions<BillingOptions>()
+    .Bind(builder.Configuration.GetSection(BillingOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
