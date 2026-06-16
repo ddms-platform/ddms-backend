@@ -1,10 +1,6 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using DDMS.Backend.Models.DTOs.MaintenanceServices;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using DDMS.Backend.Data;
-using DDMS.Backend.Models.Entities;
 
 namespace DDMS.Backend.Controllers;
 
@@ -12,44 +8,13 @@ namespace DDMS.Backend.Controllers;
 [Route("api/owner/maintenance-services")]
 public class MaintenanceServicesController : ControllerBase
 {
-    private readonly AppDbContext _context;
-
-    public MaintenanceServicesController(AppDbContext context)
-    {
-        _context = context;
-    }
+    private readonly IMaintenanceServicesService _svc;
+    public MaintenanceServicesController(IMaintenanceServicesService svc) => _svc = svc;
 
     [HttpGet]
-    public async Task<IActionResult> GetMaintenanceServices()
+    public async Task<IActionResult> GetMaintenanceServices(CancellationToken ct)
     {
-        try
-        {
-            var services = await _context.port_maintenance_services
-                .OrderBy(s => s.price ?? decimal.MaxValue) // Order by price asc, null at end
-                .Select(s => new
-                {
-                    id = s.id,
-                    name = s.name,
-                    iconCode = s.icon_code,
-                    price = s.price,
-                    description = s.description
-                })
-                .ToListAsync();
-
-            return Ok(new
-            {
-                IsSuccess = true,
-                Result = services
-            });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new
-            {
-                IsSuccess = false,
-                Message = "Lỗi khi lấy danh sách dịch vụ bảo trì",
-                Error = ex.Message
-            });
-        }
+        var result = await _svc.GetAllAsync(ct);
+        return Ok(new { IsSuccess = true, Result = result });
     }
 }

@@ -49,6 +49,16 @@ public static class DependencyInjection
 
         services.AddScoped<IAdminMaintenancesRepository, AdminMaintenancesRepository>();
         services.AddScoped<IAdminMaintenancesService, AdminMaintenancesService>();
+
+        services.AddScoped<IMaintenanceServicesRepository, MaintenanceServicesRepository>();
+        services.AddScoped<IMaintenanceServicesService, MaintenanceServicesService>();
+
+        services.AddScoped<IPromotionsRepository, PromotionsRepository>();
+        services.AddScoped<IOwnerPromotionsService, OwnerPromotionsService>();
+        services.AddScoped<IAdminPromotionsService, AdminPromotionsService>();
+
+        services.AddScoped<IAdminWithdrawalsRepository, AdminWithdrawalsRepository>();
+        services.AddScoped<IAdminWithdrawalsService, AdminWithdrawalsService>();
         return services;
     }
 }
