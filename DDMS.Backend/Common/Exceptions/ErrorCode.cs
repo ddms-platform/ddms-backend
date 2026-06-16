@@ -37,6 +37,7 @@ public static class ErrorCode
     public const int TourImageNotFound = 1507;
     public const int FaqNotFound = 1508;
     public const int DockScheduleNotFound = 1509;
+    public const int MaintenanceNotFound = 1510;
 
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
@@ -133,6 +134,7 @@ public static class ErrorCode
         public const string TourImageNotFound = "Tour image not found";
         public const string FaqNotFound = "FAQ not found";
         public const string DockScheduleNotFound = "Dock schedule not found";
+        public const string MaintenanceNotFound = "Không tìm thấy yêu cầu bảo trì.";
         public const string DockScheduleOverlap = "Dock schedule overlap";
 
         public const string CannotModifySelf = "Cannot modify your own account";

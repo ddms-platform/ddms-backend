@@ -46,6 +46,9 @@ public static class DependencyInjection
 
         services.AddScoped<ISystemRepository, SystemRepository>();
         services.AddScoped<ISystemService, SystemService>();
+
+        services.AddScoped<IAdminMaintenancesRepository, AdminMaintenancesRepository>();
+        services.AddScoped<IAdminMaintenancesService, AdminMaintenancesService>();
         return services;
     }
 }
