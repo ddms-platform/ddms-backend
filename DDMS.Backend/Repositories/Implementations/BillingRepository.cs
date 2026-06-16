@@ -1,25 +1,33 @@
-using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Configurations;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace DDMS.Backend.Repositories.Implementations;
 
 public class BillingRepository : IBillingRepository
 {
     private readonly AppDbContext _db;
+    private readonly BillingOptions _billing;
 
-    public BillingRepository(AppDbContext db) => _db = db;
+    public BillingRepository(AppDbContext db, IOptions<BillingOptions> billing)
+    {
+        _db = db;
+        _billing = billing.Value;
+    }
 
-    public Task<List<booking>> GetOwnerRevenueBookingsAsync(Guid ownerId, CancellationToken ct) =>
-        _db.bookings
+    public Task<List<booking>> GetOwnerRevenueBookingsAsync(Guid ownerId, CancellationToken ct)
+    {
+        var statuses = _billing.RevenueRelevantBookingStatuses;
+        return _db.bookings
             .Include(b => b.schedule).ThenInclude(s => s.tour)
             .Include(b => b.user)
-            .Where(b => b.schedule.tour.created_by == ownerId
-                     && BillingRates.RevenueRelevantBookingStatuses.Contains(b.status))
+            .Where(b => b.schedule.tour.created_by == ownerId && statuses.Contains(b.status))
             .OrderByDescending(b => b.created_at)
             .ToListAsync(ct);
+    }
 
     public Task<List<boat_maintenance>> GetOwnerApprovedMaintenancesAsync(Guid ownerId, CancellationToken ct) =>
         _db.boat_maintenances

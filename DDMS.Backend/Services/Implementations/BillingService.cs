@@ -1,11 +1,12 @@
-using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Configurations;
 using DDMS.Backend.Hubs;
 using DDMS.Backend.Models.DTOs.Billing;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using PayOS;
 using PayOS.Models.V2.PaymentRequests;
 using PayOS.Models.Webhooks;
@@ -17,12 +18,14 @@ public class BillingService : IBillingService
     private readonly IBillingRepository _repo;
     private readonly PayOSClient _payOS;
     private readonly IHubContext<BillingHub> _hub;
+    private readonly BillingOptions _billing;
 
-    public BillingService(IBillingRepository repo, PayOSClient payOS, IHubContext<BillingHub> hub)
+    public BillingService(IBillingRepository repo, PayOSClient payOS, IHubContext<BillingHub> hub, IOptions<BillingOptions> billing)
     {
         _repo = repo;
         _payOS = payOS;
         _hub = hub;
+        _billing = billing.Value;
     }
 
     public async Task<FinancialSummaryResponse> GetFinancialSummaryAsync(Guid ownerId, CancellationToken ct)
@@ -61,7 +64,7 @@ public class BillingService : IBillingService
         if (remaining <= 0)
             throw new AppException(ErrorCode.UncategorizedError, "Bạn không có dư nợ cần thanh toán.");
 
-        var orderCode = (long)(DateTime.UtcNow - BillingRates.OrderCodeEpoch).TotalMilliseconds;
+        var orderCode = (long)(DateTime.UtcNow - _billing.OrderCodeEpoch).TotalMilliseconds;
 
         try
         {
@@ -70,8 +73,8 @@ public class BillingService : IBillingService
                 OrderCode = orderCode,
                 Amount = (int)Math.Round(remaining),
                 Description = $"Dư nợ chủ tàu {orderCode}",
-                ReturnUrl = BillingRates.PayOSReturnUrl,
-                CancelUrl = BillingRates.PayOSCancelUrl
+                ReturnUrl = _billing.PayOSReturnUrl,
+                CancelUrl = _billing.PayOSCancelUrl
             });
 
             await _repo.AddPaymentAsync(new owner_payment
@@ -158,7 +161,7 @@ public class BillingService : IBillingService
         return new ChargesSnapshot
         {
             TotalBookingRevenue = bookings.Sum(b => b.total_price),
-            CommissionOwed = bookings.Sum(b => b.total_price * BillingRates.Commission),
+            CommissionOwed = bookings.Sum(b => b.total_price * _billing.Commission),
             MaintenanceOwed = maintenances.Sum(m => m.port_maintenance_service?.price ?? 0m),
             DockRentalOwed = dockRentals.Sum(d => d.Amount),
             Bookings = bookings.Select(MapBooking).ToList(),
@@ -167,7 +170,7 @@ public class BillingService : IBillingService
         };
     }
 
-    private static List<DockRentalItem> BuildDockRentals(List<boat> boats, List<dock_schedule> schedules)
+    private List<DockRentalItem> BuildDockRentals(List<boat> boats, List<dock_schedule> schedules)
     {
         var items = new List<DockRentalItem>();
         foreach (var boat in boats)
@@ -192,14 +195,14 @@ public class BillingService : IBillingService
                     RegistrationNumber = boat.registration_number ?? "",
                     Year = year,
                     Month = month,
-                    Amount = BillingRates.MonthlyDockRental
+                    Amount = _billing.MonthlyDockRental
                 });
             }
         }
         return items;
     }
 
-    private static BookingRevenueItem MapBooking(booking b) => new()
+    private BookingRevenueItem MapBooking(booking b) => new()
     {
         BookingId = b.id,
         TourName = b.schedule.tour.name,
@@ -207,7 +210,7 @@ public class BillingService : IBillingService
         BookingDate = b.created_at,
         TotalPrice = b.total_price,
         Status = b.status,
-        Commission = b.total_price * BillingRates.Commission
+        Commission = b.total_price * _billing.Commission
     };
 
     private static MaintenanceFeeItem MapMaintenance(boat_maintenance m) => new()

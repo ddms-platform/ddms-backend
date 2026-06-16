@@ -1,34 +1,45 @@
 using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Configurations;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.OwnerToursDashboard;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace DDMS.Backend.Repositories.Implementations;
 
 public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
 {
     private readonly AppDbContext _db;
-    public OwnerToursDashboardRepository(AppDbContext db) => _db = db;
+    private readonly BillingOptions _billing;
 
-    public Task<List<TourStatsItem>> GetTourStatsAsync(Guid ownerId, CancellationToken ct) =>
-        _db.tours
+    public OwnerToursDashboardRepository(AppDbContext db, IOptions<BillingOptions> billing)
+    {
+        _db = db;
+        _billing = billing.Value;
+    }
+
+    public Task<List<TourStatsItem>> GetTourStatsAsync(Guid ownerId, CancellationToken ct)
+    {
+        var statuses = _billing.RevenueRelevantBookingStatuses;
+        return _db.tours
             .Select(t => new TourStatsItem
             {
                 TourName = t.name,
                 BookingsCount = t.tour_schedules
                     .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId)
                     .SelectMany(ts => ts.bookings)
-                    .Count(b => BillingRates.RevenueRelevantBookingStatuses.Contains(b.status.ToLower())),
+                    .Count(b => statuses.Contains(b.status.ToLower())),
                 TotalRevenue = t.tour_schedules
                     .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId)
                     .SelectMany(ts => ts.bookings)
-                    .Where(b => BillingRates.RevenueRelevantBookingStatuses.Contains(b.status.ToLower()))
+                    .Where(b => statuses.Contains(b.status.ToLower()))
                     .Sum(b => (decimal?)b.total_price) ?? 0m
             })
             .Where(x => x.BookingsCount > 0)
             .ToListAsync(ct);
+    }
 
     public Task<List<ScheduleListItem>> GetSchedulesAsync(Guid ownerId, int month, int year, CancellationToken ct) =>
         _db.tour_schedules
