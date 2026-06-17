@@ -45,6 +45,9 @@ public static class ErrorCode
 
     public const int WithdrawalNotFound = 1700;
     public const int WithdrawalAlreadyProcessed = 1701;
+    public const int WithdrawAmountInvalid = 1702;
+    public const int WithdrawBankInfoRequired = 1703;
+    public const int WithdrawInsufficientBalance = 1704;
 
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
@@ -149,6 +152,9 @@ public static class ErrorCode
 
         public const string WithdrawalNotFound = "Không tìm thấy yêu cầu rút tiền.";
         public const string WithdrawalAlreadyProcessed = "Yêu cầu rút tiền này đã được xử lý trước đó.";
+        public const string WithdrawAmountInvalid = "Số tiền rút phải lớn hơn 0.";
+        public const string WithdrawBankInfoRequired = "Vui lòng nhập đầy đủ thông tin ngân hàng.";
+        public const string WithdrawInsufficientBalance = "Số dư ví không đủ để thực hiện giao dịch.";
         public const string DockScheduleOverlap = "Dock schedule overlap";
 
         public const string CannotModifySelf = "Cannot modify your own account";

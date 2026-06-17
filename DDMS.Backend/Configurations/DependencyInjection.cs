@@ -59,6 +59,9 @@ public static class DependencyInjection
 
         services.AddScoped<IAdminWithdrawalsRepository, AdminWithdrawalsRepository>();
         services.AddScoped<IAdminWithdrawalsService, AdminWithdrawalsService>();
+
+        services.AddScoped<IWithdrawalsRepository, WithdrawalsRepository>();
+        services.AddScoped<IWalletService, WalletService>();
         return services;
     }
 }
