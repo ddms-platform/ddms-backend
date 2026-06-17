@@ -174,24 +174,28 @@ internal static class PromotionMapper
         CreatedAt = p.created_at
     };
 
-    public static AdminPromotionItem MapAdminItem(promotion p)
+    public static AdminPromotionItem MapAdminItem(promotion p) => new()
     {
-        var item = new AdminPromotionItem
-        {
-            Id = p.id, Code = p.code, Description = p.description,
-            DiscountType = DiscountTypes.ToApi(p.discount_type),
-            DiscountValue = p.discount_value, MinOrderValue = p.min_order_value,
-            MaxDiscount = p.max_discount, UsageLimit = p.usage_limit,
-            UsedCount = p.used_count, ValidFrom = p.valid_from,
-            ValidUntil = p.valid_until, IsActive = p.is_active ?? true,
-            Status = p.status, CreatedAt = p.created_at,
-            CreatedBy = p.created_by,
-            CreatorName = p.created_byNavigation?.full_name ?? "Hệ thống",
-            CreatorEmail = p.created_byNavigation?.email ?? ""
-        };
-        if (p.created_byNavigation != null
-            && p.created_byNavigation.user_roles.Any(ur => ur.role.name == "admin"))
-            item.CreatorRole = "admin";
-        return item;
+        Id = p.id, Code = p.code, Description = p.description,
+        DiscountType = DiscountTypes.ToApi(p.discount_type),
+        DiscountValue = p.discount_value, MinOrderValue = p.min_order_value,
+        MaxDiscount = p.max_discount, UsageLimit = p.usage_limit,
+        UsedCount = p.used_count, ValidFrom = p.valid_from,
+        ValidUntil = p.valid_until, IsActive = p.is_active ?? true,
+        Status = p.status, CreatedAt = p.created_at,
+        CreatedBy = p.created_by,
+        // Khi navigation null: trả null để FE hiển thị fallback theo locale,
+        // không hardcode "Hệ thống" / "owner" tiếng Việt ở BE.
+        CreatorName = p.created_byNavigation?.full_name,
+        CreatorEmail = p.created_byNavigation?.email,
+        CreatorRole = ResolveCreatorRole(p.created_byNavigation)
+    };
+
+    private static string? ResolveCreatorRole(user? creator)
+    {
+        if (creator == null) return null;
+        return creator.user_roles.Any(ur => ur.role.name == RoleNames.Admin)
+            ? RoleNames.Admin
+            : RoleNames.Owner;
     }
 }
