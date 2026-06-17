@@ -21,6 +21,8 @@ public static class SwaggerExtensions
                     "Use **Authorize** with the JWT from POST /api/auth/login (paste access token only)."
             });
 
+            options.CustomSchemaIds(type => type.FullName?.Replace("+", ".").Replace("DDMS.Backend.Models.DTOs.", "") ?? type.Name);
+
             options.AddSecurityDefinition(BearerSchemeId, new OpenApiSecurityScheme
             {
                 Name = "Authorization",

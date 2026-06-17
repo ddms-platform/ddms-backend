@@ -20,6 +20,48 @@ public static class DependencyInjection
         services.AddScoped<IRouteService, RouteService>();
         services.AddScoped<ITourSearchService, TourSearchService>();
         services.AddScoped<ITourContentService, TourContentService>();
+
+        services.AddScoped<IBillingRepository, BillingRepository>();
+        services.AddScoped<IBillingService, BillingService>();
+
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IBookingService, BookingService>();
+
+        services.AddScoped<IWalletRepository, WalletRepository>();
+
+        services.AddScoped<IOwnerToursDashboardRepository, OwnerToursDashboardRepository>();
+        services.AddScoped<IOwnerToursDashboardService, OwnerToursDashboardService>();
+
+        services.AddScoped<IOwnerServicesRegistrationRepository, OwnerServicesRegistrationRepository>();
+        services.AddScoped<IOwnerServicesRegistrationService, OwnerServicesRegistrationService>();
+
+        services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+
+        services.AddScoped<IAdminOwnersRepository, AdminOwnersRepository>();
+        services.AddScoped<IAdminOwnersService, AdminOwnersService>();
+
+        services.AddScoped<IBoatMaintenanceRepository, BoatMaintenanceRepository>();
+        services.AddScoped<IBoatMaintenanceService, BoatMaintenanceService>();
+
+        services.AddScoped<ISystemRepository, SystemRepository>();
+        services.AddScoped<ISystemService, SystemService>();
+
+        services.AddScoped<IAdminMaintenancesRepository, AdminMaintenancesRepository>();
+        services.AddScoped<IAdminMaintenancesService, AdminMaintenancesService>();
+
+        services.AddScoped<IMaintenanceServicesRepository, MaintenanceServicesRepository>();
+        services.AddScoped<IMaintenanceServicesService, MaintenanceServicesService>();
+
+        services.AddScoped<IPromotionsRepository, PromotionsRepository>();
+        services.AddScoped<IOwnerPromotionsService, OwnerPromotionsService>();
+        services.AddScoped<IAdminPromotionsService, AdminPromotionsService>();
+
+        services.AddScoped<IAdminWithdrawalsRepository, AdminWithdrawalsRepository>();
+        services.AddScoped<IAdminWithdrawalsService, AdminWithdrawalsService>();
+
+        services.AddScoped<IWithdrawalsRepository, WithdrawalsRepository>();
+        services.AddScoped<IWalletService, WalletService>();
         return services;
     }
 }

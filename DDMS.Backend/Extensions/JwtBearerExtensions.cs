@@ -33,6 +33,16 @@ public static class JwtBearerExtensions
                 };
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(error));
+            },
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
             }
         };
 

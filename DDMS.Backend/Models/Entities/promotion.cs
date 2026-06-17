@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -28,6 +28,8 @@ public partial class promotion
     public DateTime? valid_until { get; set; }
 
     public bool? is_active { get; set; }
+
+    public string status { get; set; } = "approved";
 
     public Guid? created_by { get; set; }
 

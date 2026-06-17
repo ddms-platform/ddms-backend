@@ -13,5 +13,6 @@ public class TourSearchItemResponse
     public int totalReviews { get; set; }
     public string cancelPolicy { get; set; } = string.Empty;
     public int? cancelHours { get; set; }
+    public string? imageUrl { get; set; }
     public List<AvailableSlotResponse> availableSlots { get; set; } = [];
 }

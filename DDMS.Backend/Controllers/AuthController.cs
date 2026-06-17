@@ -1,10 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Auth;
-using DDMS.Backend.Common.Constants;
-using DDMS.Backend.Models.Services.Interfaces;
+using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,11 +17,13 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IGoogleAuthService _googleAuthService;
+    private readonly ICurrentUser _user;
 
-    public AuthController(IAuthService authService, IGoogleAuthService googleAuthService)
+    public AuthController(IAuthService authService, IGoogleAuthService googleAuthService, ICurrentUser user)
     {
         _authService = authService;
         _googleAuthService = googleAuthService;
+        _user = user;
     }
 
     [HttpPost("register")]
@@ -64,7 +65,7 @@ public class AuthController : ControllerBase
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        var result = await _authService.ChangePasswordAsync(GetCurrentUserId(), request);
+        var result = await _authService.ChangePasswordAsync(_user.Id, request);
         return Ok(ApiResponse<MessageResponse>.Ok(result));
     }
 
@@ -100,8 +101,7 @@ public class AuthController : ControllerBase
     [HttpPost("logout-all")]
     public async Task<IActionResult> LogoutAll()
     {
-        var userId = GetCurrentUserId();
-        await _authService.LogoutAllAsync(userId);
+        await _authService.LogoutAllAsync(_user.Id);
         return Ok(ApiResponse<object>.Ok(new { loggedOut = true }));
     }
 
@@ -109,29 +109,34 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        var result = await _authService.GetMeAsync(GetCurrentUserId());
+        var result = await _authService.GetMeAsync(_user.Id);
         return Ok(ApiResponse<CurrentUserResponse>.Ok(result));
     }
 
-    private Guid GetCurrentUserId()
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
-        var userIdClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _authService.UpdateProfileAsync(_user.Id, request);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
+    }
 
-        if (!Guid.TryParse(userIdClaim, out var userId))
+    [Authorize]
+    [HttpPost("me/avatar")]
+    public async Task<IActionResult> UpdateAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
         {
-            throw new UnauthorizedException();
+            throw new ValidationException(ErrorCode.Messages.ValidationFailed, new Dictionary<string, List<string>>
+            {
+                ["file"] = ["No file uploaded."]
+            });
         }
 
-        return userId;
+        var result = await _authService.UpdateAvatarAsync(_user.Id, file);
+        return Ok(ApiResponse<MessageResponse>.Ok(result));
     }
 
-    private string? GetIpAddress()
-    {
-        return HttpContext.Connection.RemoteIpAddress?.ToString();
-    }
-
-    private string? GetUserAgent()
-    {
-        return HttpContext.Request.Headers.UserAgent.ToString();
-    }
+    private string? GetIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString();
+    private string? GetUserAgent() => HttpContext.Request.Headers.UserAgent.ToString();
 }

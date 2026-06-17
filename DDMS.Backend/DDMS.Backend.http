@@ -1,4 +1,4 @@
-@DDMS.Backend_HostAddress = http://localhost:5015
+@DDMS.Backend_HostAddress = https://localhost:7161
 
 GET {{DDMS.Backend_HostAddress}}/weatherforecast/
 Accept: application/json

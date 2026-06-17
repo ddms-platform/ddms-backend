@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -16,6 +16,8 @@ public partial class tour
     public int duration_minutes { get; set; }
 
     public string? location { get; set; }
+    
+    public string? map_url { get; set; }
 
     public decimal avg_rating { get; set; }
 

@@ -37,6 +37,17 @@ public static class ErrorCode
     public const int TourImageNotFound = 1507;
     public const int FaqNotFound = 1508;
     public const int DockScheduleNotFound = 1509;
+    public const int MaintenanceNotFound = 1510;
+
+    public const int PromotionCodeRequired = 1600;
+    public const int PromotionCodeExists = 1601;
+    public const int PromotionNotFound = 1602;
+
+    public const int WithdrawalNotFound = 1700;
+    public const int WithdrawalAlreadyProcessed = 1701;
+    public const int WithdrawAmountInvalid = 1702;
+    public const int WithdrawBankInfoRequired = 1703;
+    public const int WithdrawInsufficientBalance = 1704;
 
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
@@ -133,6 +144,17 @@ public static class ErrorCode
         public const string TourImageNotFound = "Tour image not found";
         public const string FaqNotFound = "FAQ not found";
         public const string DockScheduleNotFound = "Dock schedule not found";
+        public const string MaintenanceNotFound = "Không tìm thấy yêu cầu bảo trì.";
+
+        public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
+        public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";
+        public const string PromotionNotFound = "Không tìm thấy mã giảm giá.";
+
+        public const string WithdrawalNotFound = "Không tìm thấy yêu cầu rút tiền.";
+        public const string WithdrawalAlreadyProcessed = "Yêu cầu rút tiền này đã được xử lý trước đó.";
+        public const string WithdrawAmountInvalid = "Số tiền rút phải lớn hơn 0.";
+        public const string WithdrawBankInfoRequired = "Vui lòng nhập đầy đủ thông tin ngân hàng.";
+        public const string WithdrawInsufficientBalance = "Số dư ví không đủ để thực hiện giao dịch.";
         public const string DockScheduleOverlap = "Dock schedule overlap";
 
         public const string CannotModifySelf = "Cannot modify your own account";
@@ -174,6 +196,7 @@ public static class ErrorCode
         public const string DockScheduleDockCapacityExceeded = nameof(DockScheduleDockCapacityExceeded);
         public const string DockScheduleBoatNotFound = nameof(DockScheduleBoatNotFound);
         public const string DockScheduleDockNotFound = nameof(DockScheduleDockNotFound);
+
 
         public const string UncategorizedError = "Uncategorized error";
     }

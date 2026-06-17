@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -16,6 +16,20 @@ public partial class boat
     public int max_passengers { get; set; }
 
     public string status { get; set; } = null!;
+
+    public decimal? length { get; set; }
+
+    public decimal? beam { get; set; }
+
+    public string? registration_number { get; set; }
+
+    public string? mooring_type { get; set; }
+
+    public DateTime? expected_docking_date { get; set; }
+
+    public string? required_services { get; set; }
+
+    public string? document_url { get; set; }
 
     public DateTime created_at { get; set; }
 
@@ -36,4 +50,6 @@ public partial class boat
     public virtual ICollection<tour_schedule> tour_schedules { get; set; } = new List<tour_schedule>();
 
     public virtual ICollection<wishlist> wishlists { get; set; } = new List<wishlist>();
+
+    public bool is_deleted { get; set; } = false;
 }
