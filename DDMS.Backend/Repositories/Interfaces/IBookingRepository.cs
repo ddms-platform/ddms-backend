@@ -11,5 +11,6 @@ public interface IBookingRepository
     Task<List<booking>> GetUserBookingsAsync(Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithScheduleAsync(Guid id, Guid userId, CancellationToken ct);
+    Task<booking?> FindUserBookingWithDetailsAsync(Guid id, Guid userId, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
