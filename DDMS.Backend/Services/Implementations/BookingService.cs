@@ -11,11 +11,13 @@ public class BookingService : IBookingService
 {
     private readonly IBookingRepository _repo;
     private readonly IWalletRepository _wallets;
+    private readonly IEmailSender _emailSender;
 
-    public BookingService(IBookingRepository repo, IWalletRepository wallets)
+    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender)
     {
         _repo = repo;
         _wallets = wallets;
+        _emailSender = emailSender;
     }
 
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
@@ -90,7 +92,7 @@ public class BookingService : IBookingService
 
     public async Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct)
     {
-        var booking = await _repo.FindUserBookingAsync(bookingId, userId, ct)
+        var booking = await _repo.FindUserBookingWithDetailsAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
         if (booking.status != BookingStatuses.Pending) return;
@@ -98,6 +100,25 @@ public class BookingService : IBookingService
         booking.status = BookingStatuses.Confirmed;
         booking.updated_at = DateTime.UtcNow;
         await _repo.SaveChangesAsync(ct);
+
+        try
+        {
+            await _emailSender.SendBookingStatusEmailAsync(
+                booking.user.email,
+                booking.user.full_name ?? "Khách hàng",
+                booking.id.ToString().Substring(0, 8).ToUpper(),
+                booking.schedule.tour.name,
+                booking.schedule.boat?.name ?? "N/A",
+                booking.schedule.start_time,
+                booking.total_price,
+                "confirmed",
+                null
+            );
+        }
+        catch
+        {
+            
+        }
     }
 
     public async Task<CancelBookingResult> CancelAsync(Guid bookingId, Guid userId, CancellationToken ct)

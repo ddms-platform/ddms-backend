@@ -31,5 +31,12 @@ public class BookingRepository : IBookingRepository
     public Task<booking?> FindUserBookingWithScheduleAsync(Guid id, Guid userId, CancellationToken ct) =>
         _db.bookings.Include(b => b.schedule).FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
 
+    public Task<booking?> FindUserBookingWithDetailsAsync(Guid id, Guid userId, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.user)
+            .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Include(b => b.schedule).ThenInclude(s => s.boat)
+            .FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
+
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }
