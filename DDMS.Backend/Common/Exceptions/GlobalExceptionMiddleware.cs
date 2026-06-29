@@ -41,7 +41,7 @@ public class GlobalExceptionMiddleware
         var error = new ApiErrorResponse
         {
             code = ErrorCode.UncategorizedError,
-            message = ErrorCode.Messages.UncategorizedError
+            message = $"{ErrorCode.Messages.UncategorizedError}: {exception.Message} ({exception.InnerException?.Message}) \n {exception.StackTrace}"
         };
 
         switch (exception)

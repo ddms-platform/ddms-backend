@@ -1111,20 +1111,20 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");
 
-            entity.HasIndex(e => e.boat_id, "fk_wishlists_boat");
+            entity.HasIndex(e => e.tour_id, "fk_wishlists_tour");
 
             entity.HasIndex(e => e.user_id, "idx_wishlists_user");
 
-            entity.HasIndex(e => new { e.user_id, e.boat_id }, "uq_wishlist").IsUnique();
+            entity.HasIndex(e => new { e.user_id, e.tour_id }, "uq_wishlist").IsUnique();
 
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
-            entity.HasOne(d => d.boat).WithMany(p => p.wishlists)
-                .HasForeignKey(d => d.boat_id)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_wishlists_boat");
+            entity.HasOne(d => d.tour).WithMany(p => p.wishlists)
+                .HasForeignKey(d => d.tour_id)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_wishlists_tour");
 
             entity.HasOne(d => d.user).WithMany(p => p.wishlists)
                 .HasForeignKey(d => d.user_id)

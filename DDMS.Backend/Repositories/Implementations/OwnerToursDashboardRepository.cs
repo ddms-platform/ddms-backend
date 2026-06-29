@@ -20,81 +20,108 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
         _billing = billing.Value;
     }
 
-    public Task<List<TourStatsItem>> GetTourStatsAsync(Guid ownerId, CancellationToken ct)
+    public async Task<List<TourStatsItem>> GetTourStatsAsync(Guid ownerId, CancellationToken ct)
     {
-        var statuses = _billing.RevenueRelevantBookingStatuses;
-        return _db.tours
-            .Select(t => new TourStatsItem
-            {
-                TourName = t.name,
-                BookingsCount = t.tour_schedules
-                    .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId)
-                    .SelectMany(ts => ts.bookings)
-                    .Count(b => statuses.Contains(b.status.ToLower())),
-                TotalRevenue = t.tour_schedules
-                    .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId)
-                    .SelectMany(ts => ts.bookings)
-                    .Where(b => statuses.Contains(b.status.ToLower()))
-                    .Sum(b => (decimal?)b.total_price) ?? 0m
-            })
-            .Where(x => x.BookingsCount > 0)
+        var statuses = _billing.RevenueRelevantBookingStatuses.ToList();
+        
+        var bookings = await _db.bookings
+            .Where(b => b.schedule.boat != null && b.schedule.boat.owner_id == ownerId && statuses.Contains(b.status))
+            .Select(b => new { TourName = b.schedule.tour.name, b.total_price })
             .ToListAsync(ct);
+            
+        return bookings.GroupBy(b => b.TourName)
+            .Select(g => new TourStatsItem
+            {
+                TourName = g.Key,
+                BookingsCount = g.Count(),
+                TotalRevenue = g.Sum(x => x.total_price)
+            })
+            .ToList();
     }
 
-    public Task<List<ScheduleListItem>> GetSchedulesAsync(Guid ownerId, int month, int year, CancellationToken ct) =>
-        _db.tour_schedules
-            .Include(ts => ts.tour)
-            .Include(ts => ts.boat)
+    public async Task<List<ScheduleListItem>> GetSchedulesAsync(Guid ownerId, int month, int year, CancellationToken ct)
+    {
+        var schedules = await _db.tour_schedules
             .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId
                       && ts.start_time.Year == year && ts.start_time.Month == month)
-            .Select(ts => new ScheduleListItem
+            .Select(ts => new 
             {
-                Id = ts.id,
+                ts.id,
                 TourName = ts.tour.name,
-                BoatName = ts.boat != null ? ts.boat.name : "N/A",
-                BoatId = ts.boat_id ?? Guid.Empty,
-                StartTime = ts.start_time,
-                EndTime = ts.end_time,
-                Status = ts.status
+                BoatName = ts.boat!.name,
+                ts.boat_id,
+                ts.start_time,
+                ts.end_time,
+                ts.status
             })
             .ToListAsync(ct);
 
-    public Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, int take, CancellationToken ct) =>
-        _db.bookings
-            .Include(b => b.user)
-            .Include(b => b.schedule).ThenInclude(s => s.tour)
-            .Include(b => b.schedule).ThenInclude(s => s.boat)
+        return schedules.Select(ts => new ScheduleListItem
+        {
+            Id = ts.id,
+            TourName = ts.TourName,
+            BoatName = ts.BoatName ?? "N/A",
+            BoatId = ts.boat_id ?? Guid.Empty,
+            StartTime = ts.start_time,
+            EndTime = ts.end_time,
+            Status = ts.status
+        }).ToList();
+    }
+
+    public async Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, int take, CancellationToken ct)
+    {
+        var bookings = await _db.bookings
             .Where(b => b.schedule.boat != null && b.schedule.boat.owner_id == ownerId)
             .OrderByDescending(b => b.created_at)
             .Take(take)
-            .Select(b => new RecentBookingItem
+            .Select(b => new 
             {
                 Id = b.id,
-                BookingId = b.id.ToString().Substring(0, 8).ToUpper(),
                 CustomerName = b.user.full_name,
                 ServiceName = b.schedule.tour.name,
-                BoatName = b.schedule.boat != null ? b.schedule.boat.name : "N/A",
+                BoatName = b.schedule.boat!.name,
                 Time = b.schedule.start_time,
                 Value = b.total_price,
                 Status = b.status
             })
             .ToListAsync(ct);
 
-    public Task<List<OwnerBoatResource>> GetOwnerResourcesAsync(Guid ownerId, CancellationToken ct) =>
-        _db.boats
-            .Include(b => b.tour_schedules).ThenInclude(ts => ts.tour)
+        return bookings.Select(b => new RecentBookingItem
+        {
+            Id = b.Id,
+            BookingId = b.Id.ToString().Substring(0, 8).ToUpper(),
+            CustomerName = b.CustomerName,
+            ServiceName = b.ServiceName,
+            BoatName = b.BoatName ?? "N/A",
+            Time = b.Time,
+            Value = b.Value,
+            Status = b.Status
+        }).ToList();
+    }
+
+    public async Task<List<OwnerBoatResource>> GetOwnerResourcesAsync(Guid ownerId, CancellationToken ct)
+    {
+        var boats = await _db.boats
             .Where(b => b.owner_id == ownerId)
-            .Select(b => new OwnerBoatResource
+            .Select(b => new 
             {
-                Id = b.id,
-                Name = b.name,
+                b.id,
+                b.name,
                 Tours = b.tour_schedules
                     .Where(ts => ts.tour.status == TourStatuses.Active)
-                    .Select(ts => new OwnerTourResource { Id = ts.tour_id, Name = ts.tour.name })
-                    .Distinct()
-                    .ToList()
+                    .Select(ts => new { Id = ts.tour_id, Name = ts.tour.name })
             })
             .ToListAsync(ct);
+
+        return boats.Select(b => new OwnerBoatResource
+        {
+            Id = b.id,
+            Name = b.name,
+            Tours = b.Tours.Select(t => new OwnerTourResource { Id = t.Id, Name = t.Name })
+                           .DistinctBy(t => t.Id)
+                           .ToList()
+        }).ToList();
+    }
 
     public Task<boat?> FindOwnerBoatAsync(Guid boatId, Guid ownerId, CancellationToken ct) =>
         _db.boats.FirstOrDefaultAsync(b => b.id == boatId && b.owner_id == ownerId, ct);

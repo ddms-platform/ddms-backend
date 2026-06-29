@@ -20,11 +20,12 @@ public class BillingRepository : IBillingRepository
 
     public Task<List<booking>> GetOwnerRevenueBookingsAsync(Guid ownerId, CancellationToken ct)
     {
-        var statuses = _billing.RevenueRelevantBookingStatuses;
+        var statuses = _billing.RevenueRelevantBookingStatuses.ToList();
         return _db.bookings
             .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Include(b => b.schedule).ThenInclude(s => s.boat)
             .Include(b => b.user)
-            .Where(b => b.schedule.tour.created_by == ownerId && statuses.Contains(b.status))
+            .Where(b => b.schedule.boat != null && b.schedule.boat.owner_id == ownerId && statuses.Contains(b.status))
             .OrderByDescending(b => b.created_at)
             .ToListAsync(ct);
     }
@@ -40,10 +41,12 @@ public class BillingRepository : IBillingRepository
     public Task<List<boat>> GetOwnerBoatsAsync(Guid ownerId, CancellationToken ct) =>
         _db.boats.Where(b => b.owner_id == ownerId && !b.is_deleted).ToListAsync(ct);
 
-    public Task<List<dock_schedule>> GetSchedulesForBoatsAsync(IReadOnlyCollection<Guid> boatIds, CancellationToken ct) =>
-        boatIds.Count == 0
-            ? Task.FromResult(new List<dock_schedule>())
-            : _db.dock_schedules.Where(ds => boatIds.Contains(ds.boat_id)).ToListAsync(ct);
+    public Task<List<dock_schedule>> GetSchedulesForBoatsAsync(IReadOnlyCollection<Guid> boatIds, CancellationToken ct) 
+    {
+        if (boatIds.Count == 0) return Task.FromResult(new List<dock_schedule>());
+        var ids = boatIds.ToList();
+        return _db.dock_schedules.Where(ds => ids.Contains(ds.boat_id)).ToListAsync(ct);
+    }
 
     public Task<List<owner_payment>> GetOwnerPaymentsAsync(Guid ownerId, CancellationToken ct) =>
         _db.owner_payments

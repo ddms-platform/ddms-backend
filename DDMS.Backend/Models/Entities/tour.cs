@@ -46,4 +46,6 @@ public partial class tour
     public virtual ICollection<tour_image> tour_images { get; set; } = new List<tour_image>();
 
     public virtual ICollection<tour_schedule> tour_schedules { get; set; } = new List<tour_schedule>();
+
+    public virtual ICollection<wishlist> wishlists { get; set; } = new List<wishlist>();
 }
