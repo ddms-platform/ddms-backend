@@ -164,6 +164,8 @@ builder.Services.AddScoped<IPublicTourCatalogService, PublicTourCatalogService>(
 builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ITourImageRepository, TourImageRepository>();
 builder.Services.AddScoped<ITourImageService, TourImageService>();
 builder.Services.AddScoped<IFaqRepository, FaqRepository>();

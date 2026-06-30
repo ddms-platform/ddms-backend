@@ -18,6 +18,7 @@ public class TourItemResponse
     public List<TourFaqResponse> faqs { get; set; } = new();
     public List<TourClassResponse> classes { get; set; } = new();
     public List<TourServiceResponse> services { get; set; } = new();
+    public Guid? createdBy { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
 }

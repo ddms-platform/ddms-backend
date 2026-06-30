@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
@@ -119,6 +119,7 @@ public class PublicTourCatalogService : IPublicTourCatalogService
                 description = s.description,
                 imageUrl = s.image_url
             }).ToList(),
+            createdBy = entity.created_by,
             createdAt = entity.created_at,
             updatedAt = entity.updated_at
         };

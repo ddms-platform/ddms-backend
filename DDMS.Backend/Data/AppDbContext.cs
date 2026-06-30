@@ -825,6 +825,8 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.user_id, "idx_reviews_user");
 
             entity.Property(e => e.comment).HasColumnType("text");
+            entity.Property(e => e.image_urls).HasColumnType("json");
+            entity.Property(e => e.video_urls).HasColumnType("json");
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
