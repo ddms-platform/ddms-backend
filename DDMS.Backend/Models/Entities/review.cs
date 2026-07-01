@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -16,6 +16,10 @@ public partial class review
     public sbyte rating { get; set; }
 
     public string? comment { get; set; }
+
+    public string? image_urls { get; set; }
+
+    public string? video_urls { get; set; }
 
     public DateTime created_at { get; set; }
 

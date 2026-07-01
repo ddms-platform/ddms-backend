@@ -1,4 +1,4 @@
-﻿using CloudinaryDotNet;
+using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Configurations;
@@ -53,6 +53,43 @@ public class CloudinaryService : ICloudinaryService
         }
 
         await _cloudinary.DestroyAsync(new DeletionParams(publicId));
+    }
+
+    public async Task<CloudinaryUploadResult> UploadVideoAsync(Stream stream, string fileName)
+    {
+        EnsureConfigured();
+
+        var uploadParams = new VideoUploadParams
+        {
+            File = new FileDescription(fileName, stream),
+            Folder = _options.folder + "/videos",
+            UseFilename = true,
+            UniqueFilename = true,
+            Overwrite = false
+        };
+
+        var result = await _cloudinary.UploadAsync(uploadParams);
+        if (result.Error is not null || string.IsNullOrWhiteSpace(result.SecureUrl?.ToString()))
+        {
+            throw new AppException(
+                ErrorCode.TourImageUploadFailed,
+                result.Error?.Message ?? "Video upload failed");
+        }
+
+        return new CloudinaryUploadResult(result.SecureUrl.ToString()!, result.PublicId);
+    }
+
+    public async Task DeleteVideoAsync(string publicId)
+    {
+        EnsureConfigured();
+
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            return;
+        }
+
+        var deletionParams = new DeletionParams(publicId) { ResourceType = ResourceType.Video };
+        await _cloudinary.DestroyAsync(deletionParams);
     }
 
     private void EnsureConfigured()
