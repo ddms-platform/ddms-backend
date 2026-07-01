@@ -49,7 +49,5 @@ public partial class boat
 
     public virtual ICollection<tour_schedule> tour_schedules { get; set; } = new List<tour_schedule>();
 
-    public virtual ICollection<wishlist> wishlists { get; set; } = new List<wishlist>();
-
     public bool is_deleted { get; set; } = false;
 }

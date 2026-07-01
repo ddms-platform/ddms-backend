@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using DDMS.Backend.Common.Constants;
@@ -175,10 +175,12 @@ builder.Services.AddScoped<IDockScheduleService, DockScheduleService>();
 builder.Services.AddScoped<IBoatRepository, BoatRepository>();
 builder.Services.AddScoped<IBoatCabinRepository, BoatCabinRepository>();
 builder.Services.AddScoped<IBoatAddonRepository, BoatAddonRepository>();
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IBoatImageRepository, BoatImageRepository>();
 builder.Services.AddScoped<IBoatService, BoatService>();
 builder.Services.AddScoped<IBoatCabinService, BoatCabinService>();
 builder.Services.AddScoped<IBoatAddonService, BoatAddonService>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<IBoatImageService, BoatImageService>();
 
 
