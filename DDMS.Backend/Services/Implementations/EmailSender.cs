@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mail;
 using DDMS.Backend.Configurations;
 using DDMS.Backend.Services.Interfaces;
@@ -740,5 +740,79 @@ public class EmailSender : IEmailSender
 </html>";
 
         await SendHtmlEmailAsync(toEmail, subject, body, "Withdrawal Approval Status Notice", "");
+    }
+
+    public async Task SendNewChatMessageEmailAsync(
+        string toEmail,
+        string recipientName,
+        string senderName,
+        string messageBody,
+        string viewChatLink)
+    {
+        var subject = $"DDMS - Tin nhắn mới từ {senderName}";
+        var body = BuildNewChatMessageEmailHtml(recipientName, senderName, messageBody, viewChatLink);
+        await SendHtmlEmailAsync(toEmail, subject, body, "New Chat Message Notice", viewChatLink);
+    }
+
+    private static string BuildNewChatMessageEmailHtml(
+        string recipientName,
+        string senderName,
+        string messageBody,
+        string viewChatLink)
+    {
+        var safeLink = WebUtility.HtmlEncode(viewChatLink);
+        var safeMessage = WebUtility.HtmlEncode(messageBody);
+
+        return $@"<!DOCTYPE html>
+<html lang=""vi"">
+<head>
+  <meta charset=""utf-8"" />
+  <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+</head>
+<body style=""margin:0;padding:0;background-color:#f4f6fb;font-family:Segoe UI,Roboto,Arial,sans-serif;"">
+  <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f6fb;padding:32px 0;"">
+    <tr>
+      <td align=""center"">
+        <table role=""presentation"" width=""560"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,25,47,0.08);"">
+          <tr>
+            <td style=""background:linear-gradient(135deg,#0A192F 0%,#112240 60%,#0d2847 100%);padding:32px;text-align:center;"">
+              <h1 style=""margin:0;color:#ffffff;font-size:22px;letter-spacing:-0.3px;"">DDMS Chat</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style=""padding:36px 40px 8px;"">
+              <p style=""margin:0 0 16px;color:#0A192F;font-size:16px;font-weight:bold;"">Chào {recipientName},</p>
+              <p style=""margin:0 0 16px;color:#3c4858;font-size:15px;line-height:1.6;"">
+                Bạn có tin nhắn mới từ <strong>{senderName}</strong>:
+              </p>
+              <div style=""background-color:#f8fafc;border-left:4px solid #ff385c;padding:16px;border-radius:4px;margin-bottom:24px;font-style:italic;color:#4a5568;text-align:left;"">
+                ""{safeMessage}""
+              </div>
+              <p style=""margin:0 0 24px;color:#3c4858;font-size:15px;line-height:1.6;"">
+                Nhấn vào nút bên dưới để xem chi tiết cuộc trò chuyện và trả lời:
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align=""center"" style=""padding:0 40px 28px;"">
+              <a href=""{safeLink}""
+                 style=""display:inline-block;background-color:#ff385c;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:10px;box-shadow:0 4px 12px rgba(255,56,92,0.24);"">
+                Xem cuộc trò chuyện
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style=""background-color:#f8fafc;padding:24px 40px;text-align:center;"">
+              <p style=""margin:0;color:#8a94a6;font-size:13px;line-height:1.6;"">
+                Trân trọng,<br />Đội ngũ phát triển hệ thống DDMS
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>";
     }
 }
