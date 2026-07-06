@@ -189,6 +189,9 @@ builder.Services.AddScoped<IBoatImageService, BoatImageService>();
 builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
 
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -324,5 +327,6 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<BillingHub>("/hub/billing");
+app.MapHub<ChatHub>("/hub/chat");
 app.MapControllers();
 app.Run();

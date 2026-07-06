@@ -135,28 +135,32 @@ public partial class AppDbContext : DbContext
                     id = Guid.Parse("11111111-1111-1111-1111-111111111111"), 
                     name = "Bảo trì định kỳ", 
                     icon_code = "Settings", 
-                    price = 1200000 
+                    price = 1200000,
+                    created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(1318)
                 },
                 new port_maintenance_service 
                 { 
                     id = Guid.Parse("22222222-2222-2222-2222-222222222222"), 
                     name = "Sửa chữa khẩn cấp", 
                     icon_code = "AlertTriangle", 
-                    price = null 
+                    price = null,
+                    created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2434)
                 },
                 new port_maintenance_service 
                 { 
                     id = Guid.Parse("33333333-3333-3333-3333-333333333333"), 
                     name = "Vệ sinh thân tàu", 
                     icon_code = "User", // Wait, screenshot uses a Person icon, let's stick to User
-                    price = 500000 
+                    price = 500000,
+                    created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2438)
                 },
                 new port_maintenance_service 
                 { 
                     id = Guid.Parse("44444444-4444-4444-4444-444444444444"), 
                     name = "Kiểm tra hệ thống điện", 
                     icon_code = "Zap", 
-                    price = 300000 
+                    price = 300000,
+                    created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2440)
                 }
             );
         });

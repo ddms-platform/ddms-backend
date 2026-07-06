@@ -1,4 +1,4 @@
-﻿namespace DDMS.Backend.Services.Interfaces;
+namespace DDMS.Backend.Services.Interfaces;
 
 public interface IEmailSender
 {
@@ -44,4 +44,10 @@ public interface IEmailSender
         string bankName, 
         string accountNumber, 
         string status);
+    Task SendNewChatMessageEmailAsync(
+        string toEmail,
+        string recipientName,
+        string senderName,
+        string messageBody,
+        string viewChatLink);
 }
