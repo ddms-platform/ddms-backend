@@ -20,6 +20,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<boat> boats { get; set; }
 
+    public virtual DbSet<boat_certificate> boat_certificates { get; set; }
+
     public virtual DbSet<boat_cabin> boat_cabins { get; set; }
 
     public virtual DbSet<boat_image> boat_images { get; set; }
@@ -239,6 +241,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'idle'");
+            entity.Property(e => e.compliance_status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'valid'");
             entity.Property(e => e.type).HasMaxLength(100);
             entity.Property(e => e.length).HasPrecision(10, 2);
             entity.Property(e => e.beam).HasPrecision(10, 2);
@@ -258,6 +263,37 @@ public partial class AppDbContext : DbContext
             entity.HasQueryFilter(b => !b.is_deleted);
             entity.Property(e => e.is_deleted)
                 .HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<boat_certificate>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            entity.HasIndex(e => new { e.boat_id, e.expiry_date }, "idx_boat_certificates_boat_expiry");
+
+            entity.Property(e => e.certificate_type).HasMaxLength(50);
+            entity.Property(e => e.document_url).HasColumnType("text");
+            entity.Property(e => e.public_id).HasMaxLength(255);
+            entity.Property(e => e.status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'pending'");
+            entity.Property(e => e.rejection_reason).HasColumnType("text");
+            entity.Property(e => e.created_at)
+                .HasMaxLength(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.Property(e => e.updated_at)
+                .HasMaxLength(6)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(d => d.boat).WithMany(p => p.boat_certificates)
+                .HasForeignKey(d => d.boat_id)
+                .HasConstraintName("fk_boat_certificates_boat");
+
+            entity.HasOne(d => d.verifier).WithMany()
+                .HasForeignKey(d => d.verified_by)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_boat_certificates_verifier");
         });
 
         modelBuilder.Entity<boat_cabin>(entity =>

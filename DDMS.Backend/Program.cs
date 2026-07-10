@@ -49,6 +49,10 @@ builder.Services.AddOptions<BillingOptions>()
     .Bind(builder.Configuration.GetSection(BillingOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<BoatComplianceOptions>()
+    .Bind(builder.Configuration.GetSection(BoatComplianceOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 

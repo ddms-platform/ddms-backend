@@ -38,6 +38,12 @@ public static class ErrorCode
     public const int FaqNotFound = 1508;
     public const int DockScheduleNotFound = 1509;
     public const int MaintenanceNotFound = 1510;
+    public const int CertificateNotFound = 1511;
+    public const int CertificateTypeRequired = 1512;
+    public const int CertificateExpiryInvalid = 1513;
+    public const int CertificateAlreadyExists = 1514;
+    public const int CertificateNotApproved = 1515;
+    public const int BoatBlockedCompliance = 1516;
 
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
@@ -145,6 +151,13 @@ public static class ErrorCode
         public const string FaqNotFound = "FAQ not found";
         public const string DockScheduleNotFound = "Dock schedule not found";
         public const string MaintenanceNotFound = "Không tìm thấy yêu cầu bảo trì.";
+
+        public const string CertificateNotFound = "Không tìm thấy giấy tờ.";
+        public const string CertificateTypeRequired = "Loại giấy tờ là bắt buộc.";
+        public const string CertificateExpiryInvalid = "Ngày hết hạn không hợp lệ.";
+        public const string CertificateAlreadyExists = "Giấy tờ loại này đã tồn tại cho tàu.";
+        public const string CertificateNotApproved = "Giấy tờ chưa được duyệt.";
+        public const string BoatBlockedCompliance = "Tàu bị khóa do vi phạm tuân thủ pháp lý.";
 
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";
