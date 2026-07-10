@@ -15,4 +15,8 @@ public interface IBoatCertificateRepository
     Task SetBoatComplianceStatusAsync(Guid boatId, string complianceStatus, CancellationToken ct = default);
     Task<int> DeactivateBoatServicesAsync(Guid boatId, CancellationToken ct = default);
     Task<boat?> GetBoatByIdAsync(Guid boatId, CancellationToken ct = default);
+    Task<List<boat>> GetBoatsWithCertificatesForComplianceAsync(CancellationToken ct = default);
+    Task<List<boat_certificate>> GetCertificatesNeedingReminderAsync(
+        DateOnly today, DateOnly warningThreshold, CancellationToken ct = default);
+    Task MarkReminderSentAsync(Guid certId, CancellationToken ct = default);
 }

@@ -90,4 +90,29 @@ public class BoatCertificateRepository : IBoatCertificateRepository
 
     public Task<boat?> GetBoatByIdAsync(Guid boatId, CancellationToken ct = default) =>
         _db.boats.FirstOrDefaultAsync(b => b.id == boatId && !b.is_deleted, ct);
+
+    public Task<List<boat>> GetBoatsWithCertificatesForComplianceAsync(CancellationToken ct = default) =>
+        _db.boats
+            .Include(b => b.boat_certificates)
+            .Include(b => b.owner)
+            .Where(b => !b.is_deleted && b.boat_certificates.Any())
+            .ToListAsync(ct);
+
+    public Task<List<boat_certificate>> GetCertificatesNeedingReminderAsync(
+        DateOnly today, DateOnly warningThreshold, CancellationToken ct = default) =>
+        _db.boat_certificates
+            .Include(c => c.boat)
+            .ThenInclude(b => b.owner)
+            .Where(c => c.status == BoatCertificateStatuses.Approved
+                        && c.expiry_date >= today
+                        && c.expiry_date <= warningThreshold
+                        && c.reminder_sent_at == null)
+            .ToListAsync(ct);
+
+    public Task MarkReminderSentAsync(Guid certId, CancellationToken ct = default) =>
+        _db.boat_certificates
+            .Where(c => c.id == certId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(c => c.reminder_sent_at, DateTime.UtcNow)
+                .SetProperty(c => c.updated_at, DateTime.UtcNow), ct);
 }

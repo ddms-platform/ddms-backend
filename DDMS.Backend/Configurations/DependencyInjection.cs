@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         services.AddScoped<IBoatCertificateRepository, BoatCertificateRepository>();
         services.AddScoped<IBoatCertificateService, BoatCertificateService>();
+        services.AddScoped<IBoatComplianceService, BoatComplianceService>();
         services.AddScoped<IBoatComplianceNotifier, NoOpBoatComplianceNotifier>();
 
         return services;
