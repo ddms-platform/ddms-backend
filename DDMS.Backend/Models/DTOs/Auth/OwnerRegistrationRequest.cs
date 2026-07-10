@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
 
 namespace DDMS.Backend.Models.DTOs.Auth;
 
@@ -50,4 +51,6 @@ public class VesselRegistrationItem
     public List<IFormFile> ImageFiles { get; set; } = new List<IFormFile>();
 
     public List<IFormFile> DocumentFiles { get; set; } = new List<IFormFile>();
+
+    public List<CertificateUploadDto> Certificates { get; set; } = new List<CertificateUploadDto>();
 }

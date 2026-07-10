@@ -1,3 +1,5 @@
+using DDMS.Backend.Models.DTOs.BoatCertificate;
+
 namespace DDMS.Backend.Models.DTOs.AdminOwners;
 
 public class VerificationItem
@@ -28,6 +30,7 @@ public class VesselItem
     public List<string> RequiredServices { get; set; } = new();
     public List<string> DocumentUrls { get; set; } = new();
     public List<string> ImageUrls { get; set; } = new();
+    public List<CertificateListItem> Certificates { get; set; } = new();
     public string Status { get; set; } = null!;
 }
 
