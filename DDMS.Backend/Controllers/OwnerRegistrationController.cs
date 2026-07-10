@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DDMS.Backend.Models.DTOs.Auth;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +98,29 @@ public class OwnerRegistrationController : ControllerBase
             if (docFiles != null && docFiles.Count > 0)
             {
                 vessel.DocumentFiles.AddRange(docFiles);
+            }
+
+            int certIndex = 0;
+            while (form.ContainsKey($"{prefix}.Certificates[{certIndex}].CertificateType"))
+            {
+                var certPrefix = $"{prefix}.Certificates[{certIndex}]";
+                var expiryStr = form[$"{certPrefix}.ExpiryDate"].ToString();
+                var certDto = new CertificateUploadDto
+                {
+                    CertificateType = form[$"{certPrefix}.CertificateType"].ToString(),
+                    ExpiryDate = string.IsNullOrEmpty(expiryStr)
+                        ? default
+                        : DateOnly.Parse(expiryStr)
+                };
+
+                var certFiles = form.Files.GetFiles($"{certPrefix}.File");
+                if (certFiles is { Count: > 0 })
+                {
+                    certDto.File = certFiles[0];
+                }
+
+                vessel.Certificates.Add(certDto);
+                certIndex++;
             }
 
             request.Vessels.Add(vessel);

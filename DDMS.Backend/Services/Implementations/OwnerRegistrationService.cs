@@ -9,6 +9,7 @@ using DDMS.Backend.Services.Interfaces;
 using DDMS.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DDMS.Backend.Services.Implementations;
 
@@ -98,11 +99,47 @@ public class OwnerRegistrationService : IOwnerRegistrationService
                     document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
                     max_passengers = 1, // Default value, will be updated by admin later
                     status = "Pending",
+                    compliance_status = BoatComplianceStatuses.Valid,
                     created_at = DateTime.UtcNow,
                     updated_at = DateTime.UtcNow
                 };
 
                 _dbContext.boats.Add(boat);
+
+                if (vessel.Certificates != null && vessel.Certificates.Count > 0)
+                {
+                    var certNow = DateTime.UtcNow;
+                    foreach (var cert in vessel.Certificates)
+                    {
+                        if (cert.File is null || cert.File.Length == 0
+                            || string.IsNullOrWhiteSpace(cert.CertificateType))
+                        {
+                            continue;
+                        }
+
+                        using var certStream = cert.File.OpenReadStream();
+                        var certUpload = await _cloudinaryService.UploadImageAsync(certStream, cert.File.FileName);
+                        documentUrls.Add(certUpload.ImageUrl);
+
+                        _dbContext.boat_certificates.Add(new boat_certificate
+                        {
+                            id = Guid.NewGuid(),
+                            boat_id = boatId,
+                            certificate_type = cert.CertificateType.Trim(),
+                            document_url = certUpload.ImageUrl,
+                            public_id = certUpload.PublicId,
+                            expiry_date = cert.ExpiryDate,
+                            status = BoatCertificateStatuses.Pending,
+                            created_at = certNow,
+                            updated_at = certNow
+                        });
+                    }
+
+                    if (documentUrls.Any())
+                    {
+                        boat.document_url = JsonSerializer.Serialize(documentUrls);
+                    }
+                }
 
                 if (imageUrls.Any())
                 {

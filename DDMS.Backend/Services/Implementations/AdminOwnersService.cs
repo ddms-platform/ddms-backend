@@ -2,6 +2,7 @@ using System.Text.Json;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.AdminOwners;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
@@ -142,6 +143,21 @@ public class AdminOwnersService : IAdminOwnersService
         RequiredServices = ParseJsonList(b.required_services),
         DocumentUrls = ParseJsonList(b.document_url),
         ImageUrls = b.boat_images.OrderBy(img => img.sort_order).Select(img => img.image_url).ToList(),
+        Certificates = b.boat_certificates
+            .OrderBy(c => c.certificate_type)
+            .Select(c => new CertificateListItem
+            {
+                id = c.id,
+                boatId = c.boat_id,
+                boatName = b.name,
+                certificateType = c.certificate_type,
+                documentUrl = c.document_url,
+                expiryDate = c.expiry_date,
+                status = c.status,
+                rejectionReason = c.rejection_reason,
+                createdAt = c.created_at,
+                updatedAt = c.updated_at
+            }).ToList(),
         Status = b.status
     };
 
