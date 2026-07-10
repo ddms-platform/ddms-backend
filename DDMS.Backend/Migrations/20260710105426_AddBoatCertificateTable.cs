@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -12,58 +11,59 @@ namespace DDMS.Backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "compliance_status",
-                table: "boats",
-                type: "varchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValueSql: "'valid'",
-                collation: "utf8mb4_unicode_ci")
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql("""
+                SET @col_exists := (
+                    SELECT COUNT(*)
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'boats'
+                      AND COLUMN_NAME = 'compliance_status'
+                );
+                SET @ddl := IF(
+                    @col_exists = 0,
+                    'ALTER TABLE `boats` ADD `compliance_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''valid''',
+                    'SELECT 1'
+                );
+                PREPARE stmt FROM @ddl;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.CreateTable(
-                name: "boat_certificates",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    boat_id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    certificate_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    document_url = table.Column<string>(type: "text", nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    public_id = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    expiry_date = table.Column<DateOnly>(type: "date", nullable: false),
-                    status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValueSql: "'pending'", collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    rejection_reason = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    verified_by = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci"),
-                    verified_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    reminder_sent_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", maxLength: 6, nullable: false, defaultValueSql: "CURRENT_TIMESTAMP(6)"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", maxLength: 6, nullable: false, defaultValueSql: "CURRENT_TIMESTAMP(6)")
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.ComputedColumn)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PRIMARY", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_boat_certificates_boat",
-                        column: x => x.boat_id,
-                        principalTable: "boats",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "fk_boat_certificates_verifier",
-                        column: x => x.verified_by,
-                        principalTable: "users",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.SetNull);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4")
-                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
+            migrationBuilder.Sql("""
+                SET @tbl_exists := (
+                    SELECT COUNT(*)
+                    FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'boat_certificates'
+                );
+                SET @ddl := IF(
+                    @tbl_exists = 0,
+                    'CREATE TABLE `boat_certificates` (
+                        `id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                        `boat_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                        `certificate_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                        `document_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                        `public_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                        `expiry_date` date NOT NULL,
+                        `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''pending'',
+                        `rejection_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                        `verified_by` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                        `verified_at` datetime(6) NULL,
+                        `reminder_sent_at` datetime(6) NULL,
+                        `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                        `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                        PRIMARY KEY (`id`),
+                        KEY `idx_boat_certificates_boat_expiry` (`boat_id`, `expiry_date`),
+                        KEY `IX_boat_certificates_verified_by` (`verified_by`),
+                        CONSTRAINT `fk_boat_certificates_boat` FOREIGN KEY (`boat_id`) REFERENCES `boats` (`id`) ON DELETE CASCADE,
+                        CONSTRAINT `fk_boat_certificates_verifier` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+                    'SELECT 1'
+                );
+                PREPARE stmt FROM @ddl;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
             migrationBuilder.UpdateData(
                 table: "port_maintenance_service",
@@ -92,16 +92,6 @@ namespace DDMS.Backend.Migrations
                 keyValue: new Guid("44444444-4444-4444-4444-444444444444"),
                 column: "created_at",
                 value: new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2440));
-
-            migrationBuilder.CreateIndex(
-                name: "idx_boat_certificates_boat_expiry",
-                table: "boat_certificates",
-                columns: new[] { "boat_id", "expiry_date" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_boat_certificates_verified_by",
-                table: "boat_certificates",
-                column: "verified_by");
         }
 
         /// <inheritdoc />
