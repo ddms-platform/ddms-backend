@@ -54,6 +54,8 @@ public class CertificateListItem
     public DateOnly expiryDate { get; set; }
     public string status { get; set; } = null!;
     public string? rejectionReason { get; set; }
+    public int? daysUntilExpiry { get; set; }
+    public bool isExpiringSoon { get; set; }
     public DateTime createdAt { get; set; }
     public DateTime updatedAt { get; set; }
 }

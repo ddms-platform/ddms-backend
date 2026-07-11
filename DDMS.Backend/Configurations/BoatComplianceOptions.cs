@@ -9,8 +9,8 @@ public class BoatComplianceOptions
     [Range(1, 168, ErrorMessage = "BoatCompliance:CheckIntervalHours phải nằm trong [1, 168].")]
     public int CheckIntervalHours { get; set; } = 6;
 
-    [Range(1, 90, ErrorMessage = "BoatCompliance:ReminderDaysBeforeExpiry phải nằm trong [1, 90].")]
-    public int ReminderDaysBeforeExpiry { get; set; } = 7;
+    [Range(1, 365, ErrorMessage = "BoatCompliance:ReminderDaysBeforeExpiry phải nằm trong [1, 365].")]
+    public int ReminderDaysBeforeExpiry { get; set; } = 180;
 
     [Range(0, 90, ErrorMessage = "BoatCompliance:GracePeriodDays phải nằm trong [0, 90].")]
     public int GracePeriodDays { get; set; } = 7;

@@ -11,7 +11,8 @@ public interface IBoatCertificateRepository
     Task<boat_certificate> AddAsync(boat_certificate entity, CancellationToken ct = default);
     Task UpdateAsync(boat_certificate entity, CancellationToken ct = default);
     Task<List<boat_certificate>> GetPendingForAdminAsync(CancellationToken ct = default);
-    Task<List<boat_certificate>> GetExpiringAsync(DateOnly expiryThreshold, CancellationToken ct = default);
+    Task<List<boat_certificate>> GetApprovedForAdminAsync(CancellationToken ct = default);
+    Task<List<boat_certificate>> GetExpiringAsync(DateOnly today, DateOnly expiryThreshold, CancellationToken ct = default);
     Task<int> MarkExpiredAsync(DateOnly today, CancellationToken ct = default);
     Task SetBoatComplianceStatusAsync(Guid boatId, string complianceStatus, CancellationToken ct = default);
     Task<int> DeactivateBoatServicesAsync(Guid boatId, CancellationToken ct = default);

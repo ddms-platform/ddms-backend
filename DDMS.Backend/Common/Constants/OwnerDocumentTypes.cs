@@ -20,6 +20,14 @@ public static class OwnerDocumentTypes
     public const string BusinessRegistration = "business_registration";
     public const string ResidenceProof = "residence_proof";
     public const string AuthorizationLetter = "authorization_letter";
+
+    public static IReadOnlyList<string> GetRequiredTypes(string entityType)
+    {
+        var required = new List<string> { NationalId, TransportLicense };
+        if (OwnerEntityTypes.RequiresBusinessRegistration(entityType))
+            required.Add(BusinessRegistration);
+        return required;
+    }
 }
 
 public static class CertificateScopes

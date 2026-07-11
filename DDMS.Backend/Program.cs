@@ -292,18 +292,16 @@ using (var scope = app.Services.CreateScope())
                 Console.WriteLine("[Seeding] Assigned admin role to admin@ddms.com.");
             }
 
-            // Add admin role to all users in development for easy testing
-            var allUsers = await dbContext.users.ToListAsync();
-            foreach (var u in allUsers)
+            // Cleanup: a previous seed mistakenly granted admin to every user on each startup.
+            var strayAdminRoles = await dbContext.user_roles
+                .Where(ur => ur.role_id == adminRole.id && ur.user_id != adminUser.id)
+                .ToListAsync();
+            if (strayAdminRoles.Count > 0)
             {
-                var hasAdmin = await dbContext.user_roles.AnyAsync(ur => ur.user_id == u.id && ur.role_id == adminRole.id);
-                if (!hasAdmin)
-                {
-                    dbContext.user_roles.Add(new DDMS.Backend.Models.Entities.user_role { user_id = u.id, role_id = adminRole.id });
-                }
+                dbContext.user_roles.RemoveRange(strayAdminRoles);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine($"[Seeding] Removed admin role from {strayAdminRoles.Count} non-admin users.");
             }
-            await dbContext.SaveChangesAsync();
-            Console.WriteLine("[Seeding] Assured admin role for all users in development.");
         }
     }
     catch (Exception ex)

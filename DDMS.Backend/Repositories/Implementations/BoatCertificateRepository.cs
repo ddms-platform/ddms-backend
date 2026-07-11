@@ -62,13 +62,21 @@ public class BoatCertificateRepository : IBoatCertificateRepository
             .OrderBy(c => c.created_at)
             .ToListAsync(ct);
 
-    public Task<List<boat_certificate>> GetExpiringAsync(DateOnly expiryThreshold, CancellationToken ct = default) =>
+    public Task<List<boat_certificate>> GetApprovedForAdminAsync(CancellationToken ct = default) =>
+        _db.boat_certificates
+            .Include(c => c.boat)
+            .ThenInclude(b => b.owner)
+            .Where(c => c.status == BoatCertificateStatuses.Approved)
+            .OrderByDescending(c => c.verified_at ?? c.updated_at)
+            .ToListAsync(ct);
+
+    public Task<List<boat_certificate>> GetExpiringAsync(DateOnly today, DateOnly expiryThreshold, CancellationToken ct = default) =>
         _db.boat_certificates
             .Include(c => c.boat)
             .ThenInclude(b => b.owner)
             .Where(c => c.status == BoatCertificateStatuses.Approved
                         && c.expiry_date <= expiryThreshold
-                        && c.expiry_date >= DateOnly.FromDateTime(DateTime.UtcNow))
+                        && c.expiry_date >= today)
             .OrderBy(c => c.expiry_date)
             .ToListAsync(ct);
 

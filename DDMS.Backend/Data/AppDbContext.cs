@@ -144,8 +144,8 @@ public partial class AppDbContext : DbContext
                 {
                     id = 1,
                     code = "registration",
-                    name_vi = "Đăng ký hàng hải",
-                    name_en = "Maritime registration",
+                    name_vi = "Giấy chứng nhận đăng ký phương tiện thủy nội địa",
+                    name_en = "Inland waterway vessel registration certificate",
                     sort_order = 1,
                     scope = "boat",
                     is_active = true
@@ -154,8 +154,8 @@ public partial class AppDbContext : DbContext
                 {
                     id = 2,
                     code = "insurance",
-                    name_vi = "Bảo hiểm",
-                    name_en = "Insurance",
+                    name_vi = "Bảo hiểm trách nhiệm dân sự",
+                    name_en = "Civil liability insurance",
                     sort_order = 2,
                     scope = "boat",
                     is_active = true
@@ -174,8 +174,8 @@ public partial class AppDbContext : DbContext
                 {
                     id = 4,
                     code = "safety_cert",
-                    name_vi = "Chứng nhận an toàn",
-                    name_en = "Safety certificate",
+                    name_vi = "Giấy chứng nhận an toàn kỹ thuật & bảo vệ môi trường (Đăng kiểm)",
+                    name_en = "Technical safety & environmental protection certificate",
                     sort_order = 4,
                     scope = "boat",
                     is_active = true
@@ -186,7 +186,7 @@ public partial class AppDbContext : DbContext
                     code = "other",
                     name_vi = "Khác",
                     name_en = "Other",
-                    sort_order = 5,
+                    sort_order = 8,
                     scope = "boat",
                     is_active = true
                 },
@@ -214,8 +214,8 @@ public partial class AppDbContext : DbContext
                 {
                     id = 8,
                     code = "transport_license",
-                    name_vi = "Giấy phép KD vận tải thủy nội địa",
-                    name_en = "Inland waterway transport license",
+                    name_vi = "Giấy phép hoạt động vận tải",
+                    name_en = "Transport operation license",
                     sort_order = 2,
                     scope = "owner",
                     is_active = true
@@ -248,6 +248,16 @@ public partial class AppDbContext : DbContext
                     name_en = "Authorization letter",
                     sort_order = 5,
                     scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 12,
+                    code = "fire_safety",
+                    name_vi = "Giấy chứng nhận PCCC",
+                    name_en = "Fire safety certificate",
+                    sort_order = 7,
+                    scope = "boat",
                     is_active = true
                 }
             );

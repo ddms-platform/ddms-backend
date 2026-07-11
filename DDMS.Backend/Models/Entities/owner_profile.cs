@@ -15,6 +15,10 @@ public partial class owner_profile
 
     public string? license_number { get; set; }
 
+    /// <summary>
+    /// Legacy column kept for older admin UI. Populated from owner <c>national_id</c> document URL.
+    /// Prefer <see cref="owner_documents"/> for new flows.
+    /// </summary>
     public string? license_image { get; set; }
 
     public string? phone_business { get; set; }

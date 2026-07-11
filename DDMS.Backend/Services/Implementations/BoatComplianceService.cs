@@ -91,7 +91,12 @@ public class BoatComplianceService : IBoatComplianceService
         DateOnly warningThreshold,
         int gracePeriodDays)
     {
-        var expiredCertificates = certificates
+        // Ignore deprecated boat types (e.g. business_license → owner transport_license).
+        var activeCerts = certificates
+            .Where(c => !BoatCertificateTypes.IsDeprecated(c.certificate_type))
+            .ToList();
+
+        var expiredCertificates = activeCerts
             .Where(c => c.status == BoatCertificateStatuses.Expired)
             .ToList();
 
@@ -106,7 +111,7 @@ public class BoatComplianceService : IBoatComplianceService
             return BoatComplianceStatuses.Hidden;
         }
 
-        var hasApproachingExpiry = certificates.Any(c =>
+        var hasApproachingExpiry = activeCerts.Any(c =>
             c.status == BoatCertificateStatuses.Approved
             && c.expiry_date >= today
             && c.expiry_date <= warningThreshold);

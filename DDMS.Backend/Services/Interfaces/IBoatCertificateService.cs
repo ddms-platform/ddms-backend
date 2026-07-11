@@ -9,6 +9,7 @@ public interface IBoatCertificateService
     Task<CertificateResponse> UploadAsync(Guid boatId, Guid ownerId, UploadCertificateRequest request, CancellationToken ct = default);
     Task<CertificateResponse> RenewAsync(Guid boatId, Guid certId, Guid ownerId, RenewCertificateRequest request, CancellationToken ct = default);
     Task<List<CertificateListItem>> GetPendingForAdminAsync(CancellationToken ct = default);
+    Task<List<CertificateListItem>> GetApprovedForAdminAsync(CancellationToken ct = default);
     Task<List<CertificateListItem>> GetExpiringForAdminAsync(CancellationToken ct = default);
     Task ApproveAsync(Guid certId, Guid adminId, CancellationToken ct = default);
     Task RejectAsync(Guid certId, Guid adminId, RejectCertificateRequest request, CancellationToken ct = default);

@@ -53,11 +53,19 @@ public class BoatCertificateService : IBoatCertificateService
         Guid boatId, Guid ownerId, UploadCertificateRequest request, CancellationToken ct = default)
     {
         await EnsureBoatOwnedAsync(boatId, ownerId, ct);
-        await _certificateTypes.EnsureActiveCodeAsync(request.certificateType, ct);
+
+        var certType = request.certificateType?.Trim() ?? string.Empty;
+        if (BoatCertificateTypes.IsDeprecated(certType))
+        {
+            throw new AppException(ErrorCode.CertificateTypeRequired,
+                "Giấy phép KD vận tải thủy thuộc hồ sơ chủ thuyền (transport_license), không upload trên tàu.");
+        }
+
+        await _certificateTypes.EnsureActiveCodeAsync(certType, CertificateScopes.Boat, ct);
         ValidateExpiryDate(request.expiryDate);
         ValidateFile(request.file);
 
-        var existing = await _repo.GetByBoatAndTypeAsync(boatId, request.certificateType.Trim(), ct);
+        var existing = await _repo.GetByBoatAndTypeAsync(boatId, certType, ct);
         if (existing is not null)
         {
             throw new AppException(ErrorCode.CertificateAlreadyExists, ErrorCode.Messages.CertificateAlreadyExists);
@@ -69,7 +77,7 @@ public class BoatCertificateService : IBoatCertificateService
         {
             id = Guid.NewGuid(),
             boat_id = boatId,
-            certificate_type = request.certificateType.Trim(),
+            certificate_type = certType,
             document_url = upload.ImageUrl,
             public_id = upload.PublicId,
             expiry_date = request.expiryDate,
@@ -122,12 +130,24 @@ public class BoatCertificateService : IBoatCertificateService
         return certs.Select(MapListItem).ToList();
     }
 
+    public async Task<List<CertificateListItem>> GetApprovedForAdminAsync(CancellationToken ct = default)
+    {
+        var certs = await _repo.GetApprovedForAdminAsync(ct);
+        return certs
+            .Where(c => !BoatCertificateTypes.IsDeprecated(c.certificate_type))
+            .Select(MapListItem)
+            .ToList();
+    }
+
     public async Task<List<CertificateListItem>> GetExpiringForAdminAsync(CancellationToken ct = default)
     {
         var today = GetTodayInConfiguredTimeZone();
         var threshold = today.AddDays(_options.ReminderDaysBeforeExpiry);
-        var certs = await _repo.GetExpiringAsync(threshold, ct);
-        return certs.Select(MapListItem).ToList();
+        var certs = await _repo.GetExpiringAsync(today, threshold, ct);
+        return certs
+            .Where(c => !BoatCertificateTypes.IsDeprecated(c.certificate_type))
+            .Select(MapListItem)
+            .ToList();
     }
 
     public async Task ApproveAsync(Guid certId, Guid adminId, CancellationToken ct = default)
@@ -274,18 +294,30 @@ public class BoatCertificateService : IBoatCertificateService
         updatedAt = c.updated_at
     };
 
-    private static CertificateListItem MapListItem(boat_certificate c) => new()
+    private CertificateListItem MapListItem(boat_certificate c)
     {
-        id = c.id,
-        boatId = c.boat_id,
-        boatName = c.boat?.name ?? "N/A",
-        ownerName = c.boat?.owner?.full_name,
-        certificateType = c.certificate_type,
-        documentUrl = c.document_url,
-        expiryDate = c.expiry_date,
-        status = c.status,
-        rejectionReason = c.rejection_reason,
-        createdAt = c.created_at,
-        updatedAt = c.updated_at
-    };
+        var today = GetTodayInConfiguredTimeZone();
+        var daysUntilExpiry = c.expiry_date.DayNumber - today.DayNumber;
+        var isExpiringSoon =
+            c.status == BoatCertificateStatuses.Approved
+            && daysUntilExpiry >= 0
+            && daysUntilExpiry <= _options.ReminderDaysBeforeExpiry;
+
+        return new CertificateListItem
+        {
+            id = c.id,
+            boatId = c.boat_id,
+            boatName = c.boat?.name ?? "N/A",
+            ownerName = c.boat?.owner?.full_name,
+            certificateType = c.certificate_type,
+            documentUrl = c.document_url,
+            expiryDate = c.expiry_date,
+            status = c.status,
+            rejectionReason = c.rejection_reason,
+            daysUntilExpiry = daysUntilExpiry,
+            isExpiringSoon = isExpiringSoon,
+            createdAt = c.created_at,
+            updatedAt = c.updated_at
+        };
+    }
 }

@@ -23,6 +23,6 @@ public class SystemController : ControllerBase
         Ok(await _system.GetBoatTypesAsync(ct));
 
     [HttpGet("certificate-types")]
-    public async Task<IActionResult> GetCertificateTypes(CancellationToken ct) =>
-        Ok(ApiResponse<List<CertificateTypeItem>>.Ok(await _certificateTypes.GetActiveAsync(ct)));
+    public async Task<IActionResult> GetCertificateTypes([FromQuery] string? scope, CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateTypeItem>>.Ok(await _certificateTypes.GetActiveAsync(scope, ct)));
 }
