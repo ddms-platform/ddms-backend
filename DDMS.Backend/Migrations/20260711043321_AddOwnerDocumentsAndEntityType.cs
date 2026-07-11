@@ -1,10 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
-
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
 namespace DDMS.Backend.Migrations
 {
@@ -14,115 +10,130 @@ namespace DDMS.Backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "entity_type",
-                table: "owner_profiles",
-                type: "varchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "individual",
-                collation: "utf8mb4_unicode_ci")
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // Idempotent: DB may already have entity_type/scope from a partial apply.
+            migrationBuilder.Sql("""
+                SET @col_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'owner_profiles'
+                      AND COLUMN_NAME = 'entity_type'
+                );
+                SET @sql := IF(@col_exists = 0,
+                    'ALTER TABLE `owner_profiles` ADD `entity_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''individual''',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.AddColumn<string>(
-                name: "scope",
-                table: "certificate_types",
-                type: "varchar(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "boat",
-                collation: "utf8mb4_unicode_ci")
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql("""
+                SET @col_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'certificate_types'
+                      AND COLUMN_NAME = 'scope'
+                );
+                SET @sql := IF(@col_exists = 0,
+                    'ALTER TABLE `certificate_types` ADD `scope` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''boat''',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.CreateTable(
-                name: "owner_documents",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    owner_profile_id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    document_type = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    document_url = table.Column<string>(type: "text", nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    public_id = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    expiry_date = table.Column<DateOnly>(type: "date", nullable: true),
-                    admin_note = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    created_at = table.Column<DateTime>(type: "datetime(6)", maxLength: 6, nullable: false, defaultValueSql: "CURRENT_TIMESTAMP(6)"),
-                    updated_at = table.Column<DateTime>(type: "datetime(6)", maxLength: 6, nullable: false, defaultValueSql: "CURRENT_TIMESTAMP(6)")
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.ComputedColumn)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PRIMARY", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_owner_documents_owner_profile",
-                        column: x => x.owner_profile_id,
-                        principalTable: "owner_profiles",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4")
-                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
+            // Match owner_profiles.id charset/collation so the FK is accepted on existing DBs.
+            migrationBuilder.Sql("""
+                SET @tbl_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'owner_documents'
+                );
+                SET @id_charset := (
+                    SELECT CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'owner_profiles'
+                      AND COLUMN_NAME = 'id'
+                    LIMIT 1
+                );
+                SET @id_collation := (
+                    SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'owner_profiles'
+                      AND COLUMN_NAME = 'id'
+                    LIMIT 1
+                );
+                SET @sql := IF(@tbl_exists > 0, 'SELECT 1', CONCAT(
+                    'CREATE TABLE `owner_documents` (',
+                    '`id` char(36) CHARACTER SET ', @id_charset, ' COLLATE ', @id_collation, ' NOT NULL,',
+                    '`owner_profile_id` char(36) CHARACTER SET ', @id_charset, ' COLLATE ', @id_collation, ' NOT NULL,',
+                    '`document_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,',
+                    '`document_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,',
+                    '`public_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,',
+                    '`expiry_date` date NULL,',
+                    '`admin_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,',
+                    '`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),',
+                    '`updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),',
+                    'PRIMARY KEY (`id`),',
+                    'CONSTRAINT `fk_owner_documents_owner_profile` ',
+                    'FOREIGN KEY (`owner_profile_id`) REFERENCES `owner_profiles` (`id`) ON DELETE CASCADE',
+                    ') CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+                ));
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 1,
-                column: "scope",
-                value: "boat");
+            migrationBuilder.Sql("""
+                UPDATE `certificate_types` SET `scope` = 'boat' WHERE `id` IN (1, 2, 4, 5);
+                UPDATE `certificate_types` SET `scope` = 'boat', `is_active` = 0 WHERE `id` = 3;
+                """);
 
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 2,
-                column: "scope",
-                value: "boat");
+            migrationBuilder.Sql("""
+                INSERT INTO `certificate_types` (`id`, `code`, `is_active`, `name_en`, `name_vi`, `scope`, `sort_order`)
+                VALUES
+                    (6, 'crew_certificate', 1, 'Crew certificate / Skipper certificate', 'Danh bạ thuyền viên / Chứng chỉ người lái', 'boat', 6),
+                    (7, 'national_id', 1, 'National ID / Passport', 'CCCD / Hộ chiếu', 'owner', 1),
+                    (8, 'transport_license', 1, 'Inland waterway transport license', 'Giấy phép KD vận tải thủy nội địa', 'owner', 2),
+                    (9, 'business_registration', 1, 'Business registration certificate', 'Giấy chứng nhận đăng ký doanh nghiệp', 'owner', 3),
+                    (10, 'residence_proof', 1, 'Residence proof', 'Giấy tờ cư trú', 'owner', 4),
+                    (11, 'authorization_letter', 1, 'Authorization letter', 'Giấy ủy quyền', 'owner', 5)
+                ON DUPLICATE KEY UPDATE
+                    `code` = VALUES(`code`),
+                    `is_active` = VALUES(`is_active`),
+                    `name_en` = VALUES(`name_en`),
+                    `name_vi` = VALUES(`name_vi`),
+                    `scope` = VALUES(`scope`),
+                    `sort_order` = VALUES(`sort_order`);
+                """);
 
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 3,
-                columns: new[] { "scope", "is_active" },
-                values: new object[] { "boat", false });
+            migrationBuilder.Sql("""
+                SET @idx_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'certificate_types'
+                      AND INDEX_NAME = 'idx_certificate_types_scope'
+                );
+                SET @sql := IF(@idx_exists = 0,
+                    'CREATE INDEX `idx_certificate_types_scope` ON `certificate_types` (`scope`)',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 4,
-                column: "scope",
-                value: "boat");
-
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 5,
-                column: "scope",
-                value: "boat");
-
-            migrationBuilder.InsertData(
-                table: "certificate_types",
-                columns: new[] { "id", "code", "is_active", "name_en", "name_vi", "scope", "sort_order" },
-                values: new object[,]
-                {
-                    { 6, "crew_certificate", true, "Crew certificate / Skipper certificate", "Danh bạ thuyền viên / Chứng chỉ người lái", "boat", 6 },
-                    { 7, "national_id", true, "National ID / Passport", "CCCD / Hộ chiếu", "owner", 1 },
-                    { 8, "transport_license", true, "Inland waterway transport license", "Giấy phép KD vận tải thủy nội địa", "owner", 2 },
-                    { 9, "business_registration", true, "Business registration certificate", "Giấy chứng nhận đăng ký doanh nghiệp", "owner", 3 },
-                    { 10, "residence_proof", true, "Residence proof", "Giấy tờ cư trú", "owner", 4 },
-                    { 11, "authorization_letter", true, "Authorization letter", "Giấy ủy quyền", "owner", 5 }
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "idx_certificate_types_scope",
-                table: "certificate_types",
-                column: "scope");
-
-            migrationBuilder.CreateIndex(
-                name: "idx_owner_documents_profile_type",
-                table: "owner_documents",
-                columns: new[] { "owner_profile_id", "document_type" });
+            migrationBuilder.Sql("""
+                SET @idx_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'owner_documents'
+                      AND INDEX_NAME = 'idx_owner_documents_profile_type'
+                );
+                SET @sql := IF(@idx_exists = 0,
+                    'CREATE INDEX `idx_owner_documents_profile_type` ON `owner_documents` (`owner_profile_id`, `document_type`)',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
             // Best-effort: copy boat business_license certs → owner transport_license docs (one per owner).
             migrationBuilder.Sql("""
@@ -177,57 +188,57 @@ namespace DDMS.Backend.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "owner_documents");
+            migrationBuilder.Sql("DROP TABLE IF EXISTS `owner_documents`;");
 
-            migrationBuilder.DropIndex(
-                name: "idx_certificate_types_scope",
-                table: "certificate_types");
+            migrationBuilder.Sql("""
+                SET @idx_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'certificate_types'
+                      AND INDEX_NAME = 'idx_certificate_types_scope'
+                );
+                SET @sql := IF(@idx_exists > 0,
+                    'DROP INDEX `idx_certificate_types_scope` ON `certificate_types`',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 6);
+            migrationBuilder.Sql("""
+                DELETE FROM `certificate_types` WHERE `id` IN (6, 7, 8, 9, 10, 11);
+                UPDATE `certificate_types` SET `is_active` = 1 WHERE `id` = 3;
+                """);
 
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 7);
+            migrationBuilder.Sql("""
+                SET @col_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'owner_profiles'
+                      AND COLUMN_NAME = 'entity_type'
+                );
+                SET @sql := IF(@col_exists > 0,
+                    'ALTER TABLE `owner_profiles` DROP COLUMN `entity_type`',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
 
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 8);
-
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 9);
-
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 10);
-
-            migrationBuilder.DeleteData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 11);
-
-            migrationBuilder.UpdateData(
-                table: "certificate_types",
-                keyColumn: "id",
-                keyValue: 3,
-                column: "is_active",
-                value: true);
-
-            migrationBuilder.DropColumn(
-                name: "entity_type",
-                table: "owner_profiles");
-
-            migrationBuilder.DropColumn(
-                name: "scope",
-                table: "certificate_types");
+            migrationBuilder.Sql("""
+                SET @col_exists := (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'certificate_types'
+                      AND COLUMN_NAME = 'scope'
+                );
+                SET @sql := IF(@col_exists > 0,
+                    'ALTER TABLE `certificate_types` DROP COLUMN `scope`',
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+                """);
         }
     }
 }
