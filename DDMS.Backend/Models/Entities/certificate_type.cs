@@ -21,5 +21,10 @@ public partial class certificate_type
 
     public int sort_order { get; set; }
 
+    /// <summary>Applies to boat certificates or owner documents: boat | owner.</summary>
+    [Required]
+    [StringLength(20)]
+    public string scope { get; set; } = "boat";
+
     public bool is_active { get; set; } = true;
 }

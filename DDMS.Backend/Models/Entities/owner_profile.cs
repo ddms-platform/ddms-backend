@@ -21,6 +21,9 @@ public partial class owner_profile
 
     public string? address { get; set; }
 
+    /// <summary>Owner subject type: individual | business | cooperative.</summary>
+    public string entity_type { get; set; } = "individual";
+
     public bool is_verified { get; set; }
 
     public string? status { get; set; }
@@ -32,4 +35,6 @@ public partial class owner_profile
     public DateTime updated_at { get; set; }
 
     public virtual user user { get; set; } = null!;
+
+    public virtual ICollection<owner_document> owner_documents { get; set; } = new List<owner_document>();
 }

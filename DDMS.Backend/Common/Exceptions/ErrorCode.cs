@@ -47,6 +47,10 @@ public static class ErrorCode
     public const int CertificateTypeNotFound = 1517;
     public const int CertificateTypeCodeExists = 1518;
 
+    public const int OwnerDocumentTypeRequired = 1520;
+    public const int OwnerDocumentRequired = 1521;
+    public const int InvalidOwnerEntityType = 1522;
+
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
     public const int PromotionNotFound = 1602;
@@ -162,6 +166,10 @@ public static class ErrorCode
         public const string BoatBlockedCompliance = "Tàu bị khóa do vi phạm tuân thủ pháp lý.";
         public const string CertificateTypeNotFound = "Không tìm thấy loại giấy tờ.";
         public const string CertificateTypeCodeExists = "Mã loại giấy tờ đã tồn tại.";
+
+        public const string OwnerDocumentTypeRequired = "Loại giấy tờ chủ thuyền là bắt buộc.";
+        public const string OwnerDocumentRequired = "Thiếu giấy tờ bắt buộc của chủ thuyền.";
+        public const string InvalidOwnerEntityType = "Loại chủ thể không hợp lệ.";
 
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";

@@ -12,8 +12,10 @@ public static class BoatCertificateTypes
 {
     public const string Registration = "registration";
     public const string Insurance = "insurance";
+    /// <summary>Deprecated: migrated to owner <c>transport_license</c>. Soft-disabled in certificate_types.</summary>
     public const string BusinessLicense = "business_license";
     public const string SafetyCert = "safety_cert";
+    public const string CrewCertificate = "crew_certificate";
     public const string Other = "other";
 }
 
