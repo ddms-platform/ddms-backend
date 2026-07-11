@@ -776,8 +776,8 @@ namespace DDMS.Backend.Migrations
                             id = 1,
                             code = "registration",
                             is_active = true,
-                            name_en = "Maritime registration",
-                            name_vi = "Đăng ký hàng hải",
+                            name_en = "Inland waterway vessel registration certificate",
+                            name_vi = "Giấy chứng nhận đăng ký phương tiện thủy nội địa",
                             scope = "boat",
                             sort_order = 1
                         },
@@ -786,8 +786,8 @@ namespace DDMS.Backend.Migrations
                             id = 2,
                             code = "insurance",
                             is_active = true,
-                            name_en = "Insurance",
-                            name_vi = "Bảo hiểm",
+                            name_en = "Civil liability insurance",
+                            name_vi = "Bảo hiểm trách nhiệm dân sự",
                             scope = "boat",
                             sort_order = 2
                         },
@@ -806,8 +806,8 @@ namespace DDMS.Backend.Migrations
                             id = 4,
                             code = "safety_cert",
                             is_active = true,
-                            name_en = "Safety certificate",
-                            name_vi = "Chứng nhận an toàn",
+                            name_en = "Technical safety & environmental protection certificate",
+                            name_vi = "Giấy chứng nhận an toàn kỹ thuật & bảo vệ môi trường (Đăng kiểm)",
                             scope = "boat",
                             sort_order = 4
                         },
@@ -819,7 +819,7 @@ namespace DDMS.Backend.Migrations
                             name_en = "Other",
                             name_vi = "Khác",
                             scope = "boat",
-                            sort_order = 5
+                            sort_order = 8
                         },
                         new
                         {
@@ -846,8 +846,8 @@ namespace DDMS.Backend.Migrations
                             id = 8,
                             code = "transport_license",
                             is_active = true,
-                            name_en = "Inland waterway transport license",
-                            name_vi = "Giấy phép KD vận tải thủy nội địa",
+                            name_en = "Transport operation license",
+                            name_vi = "Giấy phép hoạt động vận tải",
                             scope = "owner",
                             sort_order = 2
                         },
@@ -880,6 +880,16 @@ namespace DDMS.Backend.Migrations
                             name_vi = "Giấy ủy quyền",
                             scope = "owner",
                             sort_order = 5
+                        },
+                        new
+                        {
+                            id = 12,
+                            code = "fire_safety",
+                            is_active = true,
+                            name_en = "Fire safety certificate",
+                            name_vi = "Giấy chứng nhận PCCC",
+                            scope = "boat",
+                            sort_order = 7
                         });
                 });
 

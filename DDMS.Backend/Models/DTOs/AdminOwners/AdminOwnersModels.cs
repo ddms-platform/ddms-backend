@@ -1,4 +1,5 @@
 using DDMS.Backend.Models.DTOs.BoatCertificate;
+using DDMS.Backend.Models.DTOs.OwnerDocument;
 
 namespace DDMS.Backend.Models.DTOs.AdminOwners;
 
@@ -11,9 +12,11 @@ public class VerificationItem
     public string Phone { get; set; } = null!;
     public string Address { get; set; } = null!;
     public string License { get; set; } = null!;
+    public string EntityType { get; set; } = "individual";
     public string Submitted { get; set; } = null!;
     public string Status { get; set; } = null!;
     public int Boats { get; set; }
+    public List<OwnerDocumentListItem> Documents { get; set; } = new();
     public List<VesselItem> Vessels { get; set; } = new();
 }
 
@@ -33,4 +36,3 @@ public class VesselItem
     public List<CertificateListItem> Certificates { get; set; } = new();
     public string Status { get; set; } = null!;
 }
-

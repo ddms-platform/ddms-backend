@@ -3,6 +3,7 @@ using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.AdminOwners;
 using DDMS.Backend.Models.DTOs.BoatCertificate;
+using DDMS.Backend.Models.DTOs.OwnerDocument;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
@@ -124,9 +125,22 @@ public class AdminOwnersService : IAdminOwnersService
         Phone = op.phone_business ?? op.user?.phone ?? "N/A",
         Address = op.address ?? "N/A",
         License = op.license_number ?? "N/A",
+        EntityType = op.entity_type ?? OwnerEntityTypes.Individual,
         Submitted = op.created_at.ToString("dd/MM/yyyy"),
         Status = (op.status ?? OwnerProfileStatuses.Pending).ToLower(),
         Boats = boatCount,
+        Documents = op.owner_documents
+            .OrderBy(d => d.document_type)
+            .Select(d => new OwnerDocumentListItem
+            {
+                id = d.id,
+                documentType = d.document_type,
+                documentUrl = d.document_url,
+                expiryDate = d.expiry_date,
+                adminNote = d.admin_note,
+                createdAt = d.created_at,
+                updatedAt = d.updated_at
+            }).ToList(),
         Vessels = boats.Select(MapVessel).ToList()
     };
 

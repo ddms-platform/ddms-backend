@@ -16,8 +16,8 @@ public class AdminCertificateTypesController : ControllerBase
     public AdminCertificateTypesController(ICertificateTypeService types) => _types = types;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct) =>
-        Ok(ApiResponse<List<CertificateTypeItem>>.Ok(await _types.GetAllForAdminAsync(ct)));
+    public async Task<IActionResult> GetAll([FromQuery] string? scope, CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateTypeItem>>.Ok(await _types.GetAllForAdminAsync(scope, ct)));
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCertificateTypeRequest request, CancellationToken ct) =>

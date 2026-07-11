@@ -12,7 +12,11 @@ public class AdminOwnersRepository : IAdminOwnersRepository
     public AdminOwnersRepository(AppDbContext db) => _db = db;
 
     public Task<List<owner_profile>> GetAllProfilesWithUserAsync(CancellationToken ct) =>
-        _db.owner_profiles.Include(op => op.user).OrderByDescending(op => op.created_at).ToListAsync(ct);
+        _db.owner_profiles
+            .Include(op => op.user)
+            .Include(op => op.owner_documents)
+            .OrderByDescending(op => op.created_at)
+            .ToListAsync(ct);
 
     public Task<int> CountActiveBoatsForOwnerAsync(Guid ownerId, CancellationToken ct) =>
         _db.boats.CountAsync(b => b.owner_id == ownerId && !b.is_deleted, ct);

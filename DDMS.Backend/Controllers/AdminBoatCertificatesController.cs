@@ -25,6 +25,10 @@ public class AdminBoatCertificatesController : ControllerBase
     public async Task<IActionResult> GetPending(CancellationToken ct) =>
         Ok(ApiResponse<List<CertificateListItem>>.Ok(await _certificates.GetPendingForAdminAsync(ct)));
 
+    [HttpGet("certificates/approved")]
+    public async Task<IActionResult> GetApproved(CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateListItem>>.Ok(await _certificates.GetApprovedForAdminAsync(ct)));
+
     [HttpGet("certificates/expiring")]
     public async Task<IActionResult> GetExpiring(CancellationToken ct) =>
         Ok(ApiResponse<List<CertificateListItem>>.Ok(await _certificates.GetExpiringForAdminAsync(ct)));
