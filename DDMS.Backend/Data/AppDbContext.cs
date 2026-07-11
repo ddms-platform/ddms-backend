@@ -21,6 +21,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<boat> boats { get; set; }
 
     public virtual DbSet<boat_certificate> boat_certificates { get; set; }
+    public virtual DbSet<certificate_type> certificate_types { get; set; }
 
     public virtual DbSet<boat_cabin> boat_cabins { get; set; }
 
@@ -121,6 +122,63 @@ public partial class AppDbContext : DbContext
                 new boat_type { id = 3, code = "speedboat", name_vi = "Cano", name_en = "Speedboat" },
                 new boat_type { id = 4, code = "cruiser", name_vi = "Tàu du lịch cỡ vừa", name_en = "Medium Cruiser" },
                 new boat_type { id = 5, code = "yacht", name_vi = "Du thuyền", name_en = "Yacht" }
+            );
+        });
+
+        modelBuilder.Entity<certificate_type>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+            entity.HasIndex(e => e.code).IsUnique();
+            entity.Property(e => e.code).HasMaxLength(50);
+            entity.Property(e => e.name_vi).HasMaxLength(100);
+            entity.Property(e => e.name_en).HasMaxLength(100);
+            entity.Property(e => e.is_active).HasDefaultValue(true);
+            entity.HasData(
+                new certificate_type
+                {
+                    id = 1,
+                    code = "registration",
+                    name_vi = "Đăng ký hàng hải",
+                    name_en = "Maritime registration",
+                    sort_order = 1,
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 2,
+                    code = "insurance",
+                    name_vi = "Bảo hiểm",
+                    name_en = "Insurance",
+                    sort_order = 2,
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 3,
+                    code = "business_license",
+                    name_vi = "Giấy phép kinh doanh",
+                    name_en = "Business license",
+                    sort_order = 3,
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 4,
+                    code = "safety_cert",
+                    name_vi = "Chứng nhận an toàn",
+                    name_en = "Safety certificate",
+                    sort_order = 4,
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 5,
+                    code = "other",
+                    name_vi = "Khác",
+                    name_en = "Other",
+                    sort_order = 5,
+                    is_active = true
+                }
             );
         });
 

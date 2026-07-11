@@ -25,6 +25,9 @@ public class BookingService : IBookingService
         var schedule = await _repo.FindScheduleWithTourAsync(request.ScheduleId, ct)
             ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
 
+        if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
+            throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
+
         var now = DateTime.UtcNow;
         var booking = new booking
         {

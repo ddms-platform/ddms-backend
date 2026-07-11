@@ -44,6 +44,8 @@ public static class ErrorCode
     public const int CertificateAlreadyExists = 1514;
     public const int CertificateNotApproved = 1515;
     public const int BoatBlockedCompliance = 1516;
+    public const int CertificateTypeNotFound = 1517;
+    public const int CertificateTypeCodeExists = 1518;
 
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
@@ -158,6 +160,8 @@ public static class ErrorCode
         public const string CertificateAlreadyExists = "Giấy tờ loại này đã tồn tại cho tàu.";
         public const string CertificateNotApproved = "Giấy tờ chưa được duyệt.";
         public const string BoatBlockedCompliance = "Tàu bị khóa do vi phạm tuân thủ pháp lý.";
+        public const string CertificateTypeNotFound = "Không tìm thấy loại giấy tờ.";
+        public const string CertificateTypeCodeExists = "Mã loại giấy tờ đã tồn tại.";
 
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";

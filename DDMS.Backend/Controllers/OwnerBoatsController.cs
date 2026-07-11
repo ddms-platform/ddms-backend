@@ -98,6 +98,11 @@ public class OwnerBoatsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 
+    [HttpGet("certificates")]
+    public async Task<IActionResult> GetAllCertificates(CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateListItem>>.Ok(
+            await _certificates.GetByOwnerIdAsync(_user.Id, ct)));
+
     [HttpGet("{id:guid}/certificates")]
     public async Task<IActionResult> GetCertificates(Guid id, CancellationToken ct) =>
         Ok(ApiResponse<List<CertificateResponse>>.Ok(

@@ -226,6 +226,7 @@ public class BoatService : IBoatService
         type = b.type,
         maxPassengers = b.max_passengers,
         status = CalculateStatus(b),
+        complianceStatus = b.compliance_status,
         cabinCount = b.boat_cabins?.Count ?? 0,
         serviceCount = b.boat_services?.Count ?? 0,
         thumbnailUrl = b.boat_images?.OrderBy(i => i.sort_order).FirstOrDefault()?.image_url,

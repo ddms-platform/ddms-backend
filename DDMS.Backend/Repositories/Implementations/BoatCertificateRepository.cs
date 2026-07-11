@@ -21,6 +21,13 @@ public class BoatCertificateRepository : IBoatCertificateRepository
             .OrderBy(c => c.certificate_type)
             .ToListAsync(ct);
 
+    public Task<List<boat_certificate>> GetByOwnerIdAsync(Guid ownerId, CancellationToken ct = default) =>
+        _db.boat_certificates
+            .Include(c => c.boat)
+            .Where(c => c.boat.owner_id == ownerId && !c.boat.is_deleted)
+            .OrderBy(c => c.expiry_date)
+            .ToListAsync(ct);
+
     public Task<boat_certificate?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         _db.boat_certificates
             .Include(c => c.boat)

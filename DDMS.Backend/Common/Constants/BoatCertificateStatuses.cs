@@ -23,4 +23,7 @@ public static class BoatComplianceStatuses
     public const string Warning = "warning";
     public const string Hidden = "hidden";
     public const string Locked = "locked";
+
+    public static bool IsBlocked(string? status) =>
+        status is Hidden or Locked;
 }

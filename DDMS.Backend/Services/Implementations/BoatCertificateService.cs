@@ -12,19 +12,11 @@ namespace DDMS.Backend.Services.Implementations;
 
 public class BoatCertificateService : IBoatCertificateService
 {
-    private static readonly HashSet<string> ValidCertificateTypes =
-    [
-        BoatCertificateTypes.Registration,
-        BoatCertificateTypes.Insurance,
-        BoatCertificateTypes.BusinessLicense,
-        BoatCertificateTypes.SafetyCert,
-        BoatCertificateTypes.Other
-    ];
-
     private readonly IBoatCertificateRepository _repo;
     private readonly IBoatRepository _boatRepo;
     private readonly ICloudinaryService _cloudinary;
     private readonly IBoatComplianceNotifier _notifier;
+    private readonly ICertificateTypeService _certificateTypes;
     private readonly BoatComplianceOptions _options;
 
     public BoatCertificateService(
@@ -32,12 +24,14 @@ public class BoatCertificateService : IBoatCertificateService
         IBoatRepository boatRepo,
         ICloudinaryService cloudinary,
         IBoatComplianceNotifier notifier,
+        ICertificateTypeService certificateTypes,
         IOptions<BoatComplianceOptions> options)
     {
         _repo = repo;
         _boatRepo = boatRepo;
         _cloudinary = cloudinary;
         _notifier = notifier;
+        _certificateTypes = certificateTypes;
         _options = options.Value;
     }
 
@@ -49,11 +43,17 @@ public class BoatCertificateService : IBoatCertificateService
         return certs.Select(MapResponse).ToList();
     }
 
+    public async Task<List<CertificateListItem>> GetByOwnerIdAsync(Guid ownerId, CancellationToken ct = default)
+    {
+        var certs = await _repo.GetByOwnerIdAsync(ownerId, ct);
+        return certs.Select(MapListItem).ToList();
+    }
+
     public async Task<CertificateResponse> UploadAsync(
         Guid boatId, Guid ownerId, UploadCertificateRequest request, CancellationToken ct = default)
     {
         await EnsureBoatOwnedAsync(boatId, ownerId, ct);
-        ValidateCertificateType(request.certificateType);
+        await _certificateTypes.EnsureActiveCodeAsync(request.certificateType, ct);
         ValidateExpiryDate(request.expiryDate);
         ValidateFile(request.file);
 
@@ -214,19 +214,6 @@ public class BoatCertificateService : IBoatCertificateService
         if (boat is null)
         {
             throw new NotFoundException(ErrorCode.BoatNotExists, ErrorCode.Messages.BoatNotExists);
-        }
-    }
-
-    private static void ValidateCertificateType(string? certificateType)
-    {
-        if (string.IsNullOrWhiteSpace(certificateType))
-        {
-            throw new AppException(ErrorCode.CertificateTypeRequired, ErrorCode.Messages.CertificateTypeRequired);
-        }
-
-        if (!ValidCertificateTypes.Contains(certificateType.Trim()))
-        {
-            throw new AppException(ErrorCode.CertificateTypeRequired, ErrorCode.Messages.CertificateTypeRequired);
         }
     }
 

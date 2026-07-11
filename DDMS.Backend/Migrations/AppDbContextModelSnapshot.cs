@@ -722,6 +722,93 @@ namespace DDMS.Backend.Migrations
                     b.ToTable("booking_services");
                 });
 
+            modelBuilder.Entity("DDMS.Backend.Models.Entities.certificate_type", b =>
+                {
+                    b.Property<int>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("id"));
+
+                    b.Property<string>("code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("is_active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("name_en")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("name_vi")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("sort_order")
+                        .HasColumnType("int");
+
+                    b.HasKey("id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("code")
+                        .IsUnique();
+
+                    b.ToTable("certificate_types");
+
+                    b.HasData(
+                        new
+                        {
+                            id = 1,
+                            code = "registration",
+                            is_active = true,
+                            name_en = "Maritime registration",
+                            name_vi = "Đăng ký hàng hải",
+                            sort_order = 1
+                        },
+                        new
+                        {
+                            id = 2,
+                            code = "insurance",
+                            is_active = true,
+                            name_en = "Insurance",
+                            name_vi = "Bảo hiểm",
+                            sort_order = 2
+                        },
+                        new
+                        {
+                            id = 3,
+                            code = "business_license",
+                            is_active = true,
+                            name_en = "Business license",
+                            name_vi = "Giấy phép kinh doanh",
+                            sort_order = 3
+                        },
+                        new
+                        {
+                            id = 4,
+                            code = "safety_cert",
+                            is_active = true,
+                            name_en = "Safety certificate",
+                            name_vi = "Chứng nhận an toàn",
+                            sort_order = 4
+                        },
+                        new
+                        {
+                            id = 5,
+                            code = "other",
+                            is_active = true,
+                            name_en = "Other",
+                            name_vi = "Khác",
+                            sort_order = 5
+                        });
+                });
+
             modelBuilder.Entity("DDMS.Backend.Models.Entities.conversation", b =>
                 {
                     b.Property<Guid>("id")
