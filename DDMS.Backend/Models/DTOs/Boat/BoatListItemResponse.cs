@@ -8,6 +8,7 @@ public class BoatListItemResponse
     public string? type { get; init; }
     public int maxPassengers { get; init; }
     public string status { get; init; } = null!;
+    public string complianceStatus { get; init; } = "valid";
     public int cabinCount { get; init; }
     public int serviceCount { get; init; }
     public string? thumbnailUrl { get; init; }

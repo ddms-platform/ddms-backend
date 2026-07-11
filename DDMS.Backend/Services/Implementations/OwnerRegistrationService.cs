@@ -4,11 +4,13 @@ using System.Threading.Tasks;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.DTOs.Auth;
+using DDMS.Backend.Models.DTOs.OwnerDocument;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Services.Interfaces;
 using DDMS.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DDMS.Backend.Services.Implementations;
 
@@ -17,15 +19,21 @@ public class OwnerRegistrationService : IOwnerRegistrationService
     private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IEmailSender _emailSender;
+    private readonly ICertificateTypeService _certificateTypes;
+    private readonly IOwnerDocumentService _ownerDocuments;
 
     public OwnerRegistrationService(
         AppDbContext dbContext,
         ICloudinaryService cloudinaryService,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        ICertificateTypeService certificateTypes,
+        IOwnerDocumentService ownerDocuments)
     {
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
         _emailSender = emailSender;
+        _certificateTypes = certificateTypes;
+        _ownerDocuments = ownerDocuments;
     }
 
     public async Task<MessageResponse> RegisterOwnerAsync(Guid userId, OwnerRegistrationRequest request, string language = "vi")
@@ -37,6 +45,16 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         var existingProfile = await _dbContext.owner_profiles.FirstOrDefaultAsync(p => p.user_id == userId);
         if (existingProfile != null)
             throw new AppException(ErrorCode.AuthValidationFailed, "Bạn đã gửi yêu cầu đăng ký chủ thuyền hoặc đã là chủ thuyền.");
+
+        var entityType = string.IsNullOrWhiteSpace(request.EntityType)
+            ? OwnerEntityTypes.Individual
+            : request.EntityType.Trim().ToLowerInvariant();
+
+        if (!OwnerEntityTypes.IsValid(entityType))
+            throw new AppException(ErrorCode.InvalidOwnerEntityType, ErrorCode.Messages.InvalidOwnerEntityType);
+
+        // Owner documents are optional at registration; upload later via Owner Documents page.
+        request.OwnerDocuments ??= new List<OwnerDocumentUploadDto>();
 
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
@@ -50,12 +68,18 @@ public class OwnerRegistrationService : IOwnerRegistrationService
                 license_number = request.LicenseNumber,
                 phone_business = request.Phone,
                 address = request.Address,
+                entity_type = entityType,
                 is_verified = false,
                 status = "Pending",
                 created_at = DateTime.UtcNow,
                 updated_at = DateTime.UtcNow
             };
             _dbContext.owner_profiles.Add(profile);
+
+            var nationalIdUrl = await _ownerDocuments.AddDocumentsOnRegisterAsync(
+                profile.id, request.OwnerDocuments);
+            if (!string.IsNullOrWhiteSpace(nationalIdUrl))
+                profile.license_image = nationalIdUrl;
 
             // 2. Create Boats
             foreach (var vessel in request.Vessels)
@@ -98,11 +122,56 @@ public class OwnerRegistrationService : IOwnerRegistrationService
                     document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
                     max_passengers = 1, // Default value, will be updated by admin later
                     status = "Pending",
+                    compliance_status = BoatComplianceStatuses.Valid,
                     created_at = DateTime.UtcNow,
                     updated_at = DateTime.UtcNow
                 };
 
                 _dbContext.boats.Add(boat);
+
+                if (vessel.Certificates != null && vessel.Certificates.Count > 0)
+                {
+                    var certNow = DateTime.UtcNow;
+                    foreach (var cert in vessel.Certificates)
+                    {
+                        if (cert.File is null || cert.File.Length == 0
+                            || string.IsNullOrWhiteSpace(cert.CertificateType))
+                        {
+                            continue;
+                        }
+
+                        var certType = cert.CertificateType.Trim();
+                        if (BoatCertificateTypes.IsDeprecated(certType))
+                        {
+                            throw new AppException(ErrorCode.CertificateTypeRequired,
+                                "Giấy phép KD vận tải thủy thuộc hồ sơ chủ thuyền (transport_license), không upload trên tàu.");
+                        }
+
+                        await _certificateTypes.EnsureActiveCodeAsync(certType, CertificateScopes.Boat);
+
+                        using var certStream = cert.File.OpenReadStream();
+                        var certUpload = await _cloudinaryService.UploadImageAsync(certStream, cert.File.FileName);
+                        documentUrls.Add(certUpload.ImageUrl);
+
+                        _dbContext.boat_certificates.Add(new boat_certificate
+                        {
+                            id = Guid.NewGuid(),
+                            boat_id = boatId,
+                            certificate_type = certType,
+                            document_url = certUpload.ImageUrl,
+                            public_id = certUpload.PublicId,
+                            expiry_date = cert.ExpiryDate,
+                            status = BoatCertificateStatuses.Pending,
+                            created_at = certNow,
+                            updated_at = certNow
+                        });
+                    }
+
+                    if (documentUrls.Any())
+                    {
+                        boat.document_url = JsonSerializer.Serialize(documentUrls);
+                    }
+                }
 
                 if (imageUrls.Any())
                 {

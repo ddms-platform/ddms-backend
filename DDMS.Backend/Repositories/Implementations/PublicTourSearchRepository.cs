@@ -74,13 +74,19 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
             toursQuery = toursQuery.Where(x => x.tour_schedules.Any(s =>
                 s.status == TourConstants.ScheduleStatuses.Scheduled &&
                 s.start_time >= dayStart &&
-                s.start_time < dayEnd));
+                s.start_time < dayEnd &&
+                (s.boat == null
+                    || (s.boat.compliance_status != BoatComplianceStatuses.Hidden
+                        && s.boat.compliance_status != BoatComplianceStatuses.Locked))));
         }
         else
         {
             toursQuery = toursQuery.Where(x => x.tour_schedules.Any(s =>
                 s.status == TourConstants.ScheduleStatuses.Scheduled &&
-                s.start_time >= now));
+                s.start_time >= now &&
+                (s.boat == null
+                    || (s.boat.compliance_status != BoatComplianceStatuses.Hidden
+                        && s.boat.compliance_status != BoatComplianceStatuses.Locked))));
         }
 
         var sortBy = query.sortBy.Trim().ToLowerInvariant();
