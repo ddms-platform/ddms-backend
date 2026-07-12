@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
@@ -12,11 +12,19 @@ public class ScheduleService : IScheduleService
 {
     private readonly IScheduleRepository _scheduleRepository;
     private readonly IOwnerToursRepository _tourRepository;
+    private readonly INotificationService _notificationService;
+    private readonly IEmailSender _emailSender;
 
-    public ScheduleService(IScheduleRepository scheduleRepository, IOwnerToursRepository tourRepository)
+    public ScheduleService(
+        IScheduleRepository scheduleRepository, 
+        IOwnerToursRepository tourRepository,
+        INotificationService notificationService,
+        IEmailSender emailSender)
     {
         _scheduleRepository = scheduleRepository;
         _tourRepository = tourRepository;
+        _notificationService = notificationService;
+        _emailSender = emailSender;
     }
 
     public async Task<PagedResponse<ScheduleItemResponse>> GetSchedulesAsync(Guid userId, ScheduleListQuery query)
@@ -117,6 +125,8 @@ public class ScheduleService : IScheduleService
             throw new NotFoundException();
         }
 
+        var oldStartTime = entity.start_time;
+
         entity.tour_id = request.tourId;
         entity.boat_id = request.boatId;
         entity.dock_id = request.dockId;
@@ -125,6 +135,54 @@ public class ScheduleService : IScheduleService
         entity.status = normalizedStatus;
 
         await _scheduleRepository.UpdateAsync(entity);
+
+        if (oldStartTime != request.startTime)
+        {
+            try
+            {
+                var activeBookings = await _scheduleRepository.GetActiveBookingsForScheduleAsync(id, default);
+                if (activeBookings != null && activeBookings.Any())
+                {
+                    var newTimeFormatted = request.startTime.ToString("HH:mm dd/MM/yyyy");
+                    var tourName = entity.tour?.name ?? "N/A";
+
+                    foreach (var booking in activeBookings)
+                    {
+                        var bookingCode = booking.id.ToString().Substring(0, 8).ToUpper();
+                        var body = $"Lịch khởi hành tour {tourName} (Mã: {bookingCode}) đã thay đổi sang {newTimeFormatted} do điều kiện kỹ thuật/thời tiết. Rất mong bạn thông cảm.";
+
+                        // 1. Gửi thông báo In-App
+                        await _notificationService.CreateNotificationAsync(
+                            senderId: null,
+                            type: "system",
+                            title: "Thay đổi lịch trình tour ⚠️",
+                            body: body,
+                            recipientIds: new List<Guid> { booking.user_id },
+                            data: null,
+                            ct: default
+                        );
+
+                        // 2. Gửi thông báo Email
+                        if (booking.user != null && !string.IsNullOrEmpty(booking.user.email))
+                        {
+                            await _emailSender.SendScheduleChangeEmailAsync(
+                                booking.user.email,
+                                booking.user.full_name ?? "Khách hàng",
+                                bookingCode,
+                                tourName,
+                                oldStartTime,
+                                request.startTime
+                            );
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi gửi thông báo để tránh làm hỏng tiến trình cập nhật lịch trình chính
+            }
+        }
+
         var updated = await _scheduleRepository.GetByIdAsync(id, userId);
         return MapSchedule(updated!);
     }
