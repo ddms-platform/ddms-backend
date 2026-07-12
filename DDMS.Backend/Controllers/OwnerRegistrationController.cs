@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DDMS.Backend.Models.DTOs.Auth;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
+using DDMS.Backend.Models.DTOs.OwnerDocument;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -39,8 +41,33 @@ public class OwnerRegistrationController : ControllerBase
             Phone = form["Phone"].ToString(),
             LicenseNumber = form["LicenseNumber"].ToString(),
             Address = form["Address"].ToString(),
+            EntityType = form.ContainsKey("EntityType")
+                ? form["EntityType"].ToString()
+                : "individual",
+            OwnerDocuments = new List<OwnerDocumentUploadDto>(),
             Vessels = new List<VesselRegistrationItem>()
         };
+
+        int docIndex = 0;
+        while (form.ContainsKey($"OwnerDocuments[{docIndex}].DocumentType"))
+        {
+            var docPrefix = $"OwnerDocuments[{docIndex}]";
+            var expiryStr = form[$"{docPrefix}.ExpiryDate"].ToString();
+            var docDto = new OwnerDocumentUploadDto
+            {
+                DocumentType = form[$"{docPrefix}.DocumentType"].ToString(),
+                ExpiryDate = string.IsNullOrEmpty(expiryStr) ? null : DateOnly.Parse(expiryStr)
+            };
+
+            var docFiles = form.Files.GetFiles($"{docPrefix}.File");
+            if (docFiles is { Count: > 0 })
+            {
+                docDto.File = docFiles[0];
+            }
+
+            request.OwnerDocuments.Add(docDto);
+            docIndex++;
+        }
 
         // Parse dynamic vessels. Assuming keys like Vessels[0].Name, Vessels[0].Type
         int i = 0;
@@ -97,6 +124,29 @@ public class OwnerRegistrationController : ControllerBase
             if (docFiles != null && docFiles.Count > 0)
             {
                 vessel.DocumentFiles.AddRange(docFiles);
+            }
+
+            int certIndex = 0;
+            while (form.ContainsKey($"{prefix}.Certificates[{certIndex}].CertificateType"))
+            {
+                var certPrefix = $"{prefix}.Certificates[{certIndex}]";
+                var expiryStr = form[$"{certPrefix}.ExpiryDate"].ToString();
+                var certDto = new CertificateUploadDto
+                {
+                    CertificateType = form[$"{certPrefix}.CertificateType"].ToString(),
+                    ExpiryDate = string.IsNullOrEmpty(expiryStr)
+                        ? default
+                        : DateOnly.Parse(expiryStr)
+                };
+
+                var certFiles = form.Files.GetFiles($"{certPrefix}.File");
+                if (certFiles is { Count: > 0 })
+                {
+                    certDto.File = certFiles[0];
+                }
+
+                vessel.Certificates.Add(certDto);
+                certIndex++;
             }
 
             request.Vessels.Add(vessel);

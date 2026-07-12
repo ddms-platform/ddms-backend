@@ -12,7 +12,10 @@ public class BookingRepository : IBookingRepository
     public BookingRepository(AppDbContext db) => _db = db;
 
     public Task<tour_schedule?> FindScheduleWithTourAsync(Guid scheduleId, CancellationToken ct) =>
-        _db.tour_schedules.Include(s => s.tour).FirstOrDefaultAsync(s => s.id == scheduleId, ct);
+        _db.tour_schedules
+            .Include(s => s.tour)
+            .Include(s => s.boat)
+            .FirstOrDefaultAsync(s => s.id == scheduleId, ct);
 
     public void AddBooking(booking entity) => _db.bookings.Add(entity);
     public void AddBookingCabin(booking_cabin entity) => _db.booking_cabins.Add(entity);

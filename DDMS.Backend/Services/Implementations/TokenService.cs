@@ -28,7 +28,7 @@ public class TokenService : ITokenService
             new(JwtRegisteredClaimNames.UniqueName, user.full_name)
         };
 
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(roles.Select(role => new Claim("role", role)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

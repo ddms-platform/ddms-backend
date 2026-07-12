@@ -11,6 +11,12 @@ public static class JwtBearerExtensions
 {
     public static JwtBearerOptions ConfigureDdmsJwtBearer(this JwtBearerOptions options)
     {
+        // Keep JWT short claim names ("role", "sub"). Without this, [Authorize(Roles=...)]
+        // looks for ClaimTypes.Role URI and returns 403 even when the token has "role".
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters.RoleClaimType = "role";
+        options.TokenValidationParameters.NameClaimType = JwtRegisteredClaimNames.Sub;
+
         options.Events = new JwtBearerEvents
         {
             OnChallenge = async context =>

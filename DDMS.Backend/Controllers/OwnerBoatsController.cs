@@ -1,6 +1,7 @@
 using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Boat;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
 using DDMS.Backend.Models.DTOs.OwnerBoats;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -16,17 +17,20 @@ public class OwnerBoatsController : ControllerBase
     private readonly IBoatService _boats;
     private readonly IBoatImageService _images;
     private readonly IBoatMaintenanceService _maintenances;
+    private readonly IBoatCertificateService _certificates;
     private readonly ICurrentUser _user;
 
     public OwnerBoatsController(
         IBoatService boats,
         IBoatImageService images,
         IBoatMaintenanceService maintenances,
+        IBoatCertificateService certificates,
         ICurrentUser user)
     {
         _boats = boats;
         _images = images;
         _maintenances = maintenances;
+        _certificates = certificates;
         _user = user;
     }
 
@@ -93,6 +97,30 @@ public class OwnerBoatsController : ControllerBase
         await _maintenances.DeleteAsync(id, maintenanceId, _user.Id, ct);
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
+
+    [HttpGet("certificates")]
+    public async Task<IActionResult> GetAllCertificates(CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateListItem>>.Ok(
+            await _certificates.GetByOwnerIdAsync(_user.Id, ct)));
+
+    [HttpGet("{id:guid}/certificates")]
+    public async Task<IActionResult> GetCertificates(Guid id, CancellationToken ct) =>
+        Ok(ApiResponse<List<CertificateResponse>>.Ok(
+            await _certificates.GetByBoatIdForOwnerAsync(id, _user.Id, ct)));
+
+    [HttpPost("{id:guid}/certificates")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadCertificate(
+        Guid id, [FromForm] UploadCertificateRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<CertificateResponse>.Ok(
+            await _certificates.UploadAsync(id, _user.Id, request, ct)));
+
+    [HttpPost("{id:guid}/certificates/{certId:guid}/renew")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> RenewCertificate(
+        Guid id, Guid certId, [FromForm] RenewCertificateRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<CertificateResponse>.Ok(
+            await _certificates.RenewAsync(id, certId, _user.Id, request, ct)));
 
     private async Task EnsureOwnedAsync(Guid boatId)
     {

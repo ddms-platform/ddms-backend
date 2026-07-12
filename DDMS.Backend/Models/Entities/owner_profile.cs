@@ -15,11 +15,18 @@ public partial class owner_profile
 
     public string? license_number { get; set; }
 
+    /// <summary>
+    /// Legacy column kept for older admin UI. Populated from owner <c>national_id</c> document URL.
+    /// Prefer <see cref="owner_documents"/> for new flows.
+    /// </summary>
     public string? license_image { get; set; }
 
     public string? phone_business { get; set; }
 
     public string? address { get; set; }
+
+    /// <summary>Owner subject type: individual | business | cooperative.</summary>
+    public string entity_type { get; set; } = "individual";
 
     public bool is_verified { get; set; }
 
@@ -32,4 +39,6 @@ public partial class owner_profile
     public DateTime updated_at { get; set; }
 
     public virtual user user { get; set; } = null!;
+
+    public virtual ICollection<owner_document> owner_documents { get; set; } = new List<owner_document>();
 }
