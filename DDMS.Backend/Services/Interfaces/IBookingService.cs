@@ -8,4 +8,5 @@ public interface IBookingService
     Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct);
     Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct);
     Task<CancelBookingResult> CancelAsync(Guid bookingId, Guid userId, CancellationToken ct);
+    Task<CheckInBookingResponse> CheckInAsync(CheckInBookingRequest request, CancellationToken ct);
 }

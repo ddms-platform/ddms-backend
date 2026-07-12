@@ -193,6 +193,52 @@ public class BookingService : IBookingService
         };
     }
 
+    public async Task<CheckInBookingResponse> CheckInAsync(CheckInBookingRequest request, CancellationToken ct)
+    {
+        var raw = (request.BookingCode ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new AppException(ErrorCode.TourValidationFailed, "Mã vé không hợp lệ.");
+
+        booking? booking = null;
+        if (Guid.TryParse(raw, out var bookingId))
+            booking = await _repo.FindBookingForCheckInByIdAsync(bookingId, ct);
+        else
+        {
+            var code = raw.Length > 8 ? raw[..8] : raw;
+            booking = await _repo.FindBookingForCheckInByCodeAsync(code, ct);
+        }
+
+        if (booking == null)
+            throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy vé tương ứng với mã QR.");
+
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé đã bị hủy, không thể check-in.");
+
+        if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé đã được check-in trước đó.");
+
+        if (!BookingStatuses.CanCheckIn(booking.status))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé chưa thanh toán hoặc chưa được xác nhận.");
+
+        var now = DateTime.UtcNow;
+        booking.status = BookingStatuses.CheckedIn;
+        booking.updated_at = now;
+        await _repo.SaveChangesAsync(ct);
+
+        return new CheckInBookingResponse
+        {
+            BookingId = booking.id,
+            BookingCode = booking.id.ToString()[..8].ToUpperInvariant(),
+            CustomerName = booking.user.full_name ?? booking.user.email,
+            TourName = booking.schedule.tour.name,
+            BoatName = booking.schedule.boat?.name ?? "N/A",
+            NumPeople = booking.num_people,
+            DepartureTime = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy"),
+            Status = booking.status,
+            CheckedInAt = now
+        };
+    }
+
     private async Task RefundToWalletAsync(Guid userId, decimal amount, CancellationToken ct)
     {
         var wallet = await _wallets.FindAsync(userId, ct);

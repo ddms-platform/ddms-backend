@@ -12,5 +12,7 @@ public interface IBookingRepository
     Task<booking?> FindUserBookingAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithScheduleAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithDetailsAsync(Guid id, Guid userId, CancellationToken ct);
+    Task<booking?> FindBookingForCheckInByIdAsync(Guid id, CancellationToken ct);
+    Task<booking?> FindBookingForCheckInByCodeAsync(string codePrefix, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
