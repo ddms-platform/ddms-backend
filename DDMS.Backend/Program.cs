@@ -54,6 +54,10 @@ builder.Services.AddOptions<BoatComplianceOptions>()
     .Bind(builder.Configuration.GetSection(BoatComplianceOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<BookingHoldOptions>()
+    .Bind(builder.Configuration.GetSection(BookingHoldOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();

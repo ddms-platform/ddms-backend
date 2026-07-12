@@ -3,6 +3,10 @@ namespace DDMS.Backend.Common.Constants;
 public static class BookingStatuses
 {
     public const string Pending = "pending";
+
+    /// <summary>Đang giữ chỗ tạm thời, chờ thanh toán trước khi hết hạn (hold_expired_at).</summary>
+    public const string Holding = "holding";
+
     public const string Confirmed = "confirmed";
     public const string Paid = "paid";
     public const string Completed = "completed";
