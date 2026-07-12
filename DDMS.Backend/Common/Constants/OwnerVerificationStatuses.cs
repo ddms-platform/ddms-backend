@@ -16,7 +16,10 @@ public static class BoatStatuses
 
 public static class RoleNames
 {
+    public const string User = "user";
     public const string Owner = "owner";
     public const string Admin = "admin";
+    public const string Agent = "agent";
     public const string OwnerDescription = "Vessel Owner";
+    public const string AgentDescription = "Travel Agency (Đại lý du lịch)";
 }
