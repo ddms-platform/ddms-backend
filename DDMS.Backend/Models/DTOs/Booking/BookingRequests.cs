@@ -28,3 +28,9 @@ public class CreateBookingServiceRequest
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 }
+
+public class CheckInBookingRequest
+{
+    /// <summary>Booking GUID hoặc mã vé 8 ký tự trên QR.</summary>
+    public string BookingCode { get; set; } = null!;
+}

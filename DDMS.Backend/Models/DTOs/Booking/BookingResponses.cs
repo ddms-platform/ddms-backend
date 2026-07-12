@@ -34,3 +34,16 @@ public class CancelBookingResult
     public bool Refunded { get; set; }
     public decimal AmountRefunded { get; set; }
 }
+
+public class CheckInBookingResponse
+{
+    public Guid BookingId { get; set; }
+    public string BookingCode { get; set; } = null!;
+    public string CustomerName { get; set; } = null!;
+    public string TourName { get; set; } = null!;
+    public string BoatName { get; set; } = null!;
+    public int NumPeople { get; set; }
+    public string DepartureTime { get; set; } = null!;
+    public string Status { get; set; } = null!;
+    public DateTime CheckedInAt { get; set; }
+}

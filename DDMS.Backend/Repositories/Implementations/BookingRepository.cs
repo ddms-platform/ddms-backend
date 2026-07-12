@@ -41,5 +41,21 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.schedule).ThenInclude(s => s.boat)
             .FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
 
+    public Task<booking?> FindBookingForCheckInByIdAsync(Guid id, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.user)
+            .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Include(b => b.schedule).ThenInclude(s => s.boat)
+            .FirstOrDefaultAsync(b => b.id == id, ct);
+
+    public Task<booking?> FindBookingForCheckInByCodeAsync(string codePrefix, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.user)
+            .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Include(b => b.schedule).ThenInclude(s => s.boat)
+            .Where(b => b.id.ToString().StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(b => b.created_at)
+            .FirstOrDefaultAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }

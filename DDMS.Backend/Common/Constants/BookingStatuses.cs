@@ -6,6 +6,7 @@ public static class BookingStatuses
     public const string Confirmed = "confirmed";
     public const string Paid = "paid";
     public const string Completed = "completed";
+    public const string CheckedIn = "checked_in";
     public const string Cancelled = "cancelled";
 
     public static readonly TimeSpan RefundWindow = TimeSpan.FromDays(2);
@@ -22,11 +23,16 @@ public static class BookingStatuses
 
     public static bool IsPaidLike(string status) =>
         status.Equals(Paid, StringComparison.OrdinalIgnoreCase)
+     || status.Equals(Confirmed, StringComparison.OrdinalIgnoreCase)
+     || status.Equals(CheckedIn, StringComparison.OrdinalIgnoreCase);
+
+    public static bool CanCheckIn(string status) =>
+        status.Equals(Paid, StringComparison.OrdinalIgnoreCase)
      || status.Equals(Confirmed, StringComparison.OrdinalIgnoreCase);
 
     public static string ToFrontendStatus(string dbStatus) => dbStatus switch
     {
-        Paid or Confirmed => "UPCOMING",
+        Paid or Confirmed or CheckedIn => "UPCOMING",
         Completed => "COMPLETED",
         Cancelled => "CANCELLED",
         _ => "PENDING"
