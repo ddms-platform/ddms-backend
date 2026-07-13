@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.TourSearch;
 using DDMS.Backend.Repositories.Interfaces;
@@ -20,6 +21,9 @@ public class TourSearchRepository : ITourSearchRepository
             .AsNoTracking()
             .Include(x => x.tour)
             .Include(x => x.boat)
+            .Where(x => x.boat == null
+                || (x.boat.compliance_status != BoatComplianceStatuses.Hidden
+                    && x.boat.compliance_status != BoatComplianceStatuses.Locked))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.location))

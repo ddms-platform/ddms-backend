@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -59,7 +60,9 @@ public class PublicTourCatalogService : IPublicTourCatalogService
     private static TourItemResponse MapTour(tour entity)
     {
         var activeSchedules = entity.tour_schedules?
-            .Where(s => s.status == DDMS.Backend.Common.Constants.TourConstants.ScheduleStatuses.Scheduled && s.start_time >= DateTime.UtcNow)
+            .Where(s => s.status == TourConstants.ScheduleStatuses.Scheduled
+                && s.start_time >= DateTime.UtcNow
+                && !BoatComplianceStatuses.IsBlocked(s.boat?.compliance_status))
             .ToList() ?? new List<tour_schedule>();
 
         var allCabins = activeSchedules
@@ -70,7 +73,7 @@ public class PublicTourCatalogService : IPublicTourCatalogService
 
         var allServices = activeSchedules
             .Where(s => s.boat != null && s.boat.boat_services != null)
-            .SelectMany(s => s.boat!.boat_services)
+            .SelectMany(s => s.boat!.boat_services.Where(bs => bs.is_active == true))
             .DistinctBy(s => s.name)
             .ToList();
 

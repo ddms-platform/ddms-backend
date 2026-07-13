@@ -119,7 +119,9 @@ public class PublicTourSearchService : IPublicTourSearchService
     {
         var now = DateTime.UtcNow;
         var schedules = entity.tour_schedules
-            .Where(s => s.status == TourConstants.ScheduleStatuses.Scheduled && s.start_time >= now);
+            .Where(s => s.status == TourConstants.ScheduleStatuses.Scheduled
+                && s.start_time >= now
+                && !BoatComplianceStatuses.IsBlocked(s.boat?.compliance_status));
 
         if (query.date.HasValue)
         {

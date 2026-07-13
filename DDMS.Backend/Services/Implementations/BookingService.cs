@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Booking;
@@ -12,18 +13,23 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _repo;
     private readonly IWalletRepository _wallets;
     private readonly IEmailSender _emailSender;
+    private readonly INotificationService _notificationService;
 
-    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender)
+    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender, INotificationService notificationService)
     {
         _repo = repo;
         _wallets = wallets;
         _emailSender = emailSender;
+        _notificationService = notificationService;
     }
 
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
     {
         var schedule = await _repo.FindScheduleWithTourAsync(request.ScheduleId, ct)
             ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+
+        if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
+            throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
 
         var now = DateTime.UtcNow;
         var booking = new booking
@@ -103,6 +109,39 @@ public class BookingService : IBookingService
 
         try
         {
+            var formattedTime = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy");
+            var bookingCode = booking.id.ToString().Substring(0, 8).ToUpper();
+            
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Đặt tour thành công 🎉",
+                body: $"Cảm ơn bạn! Tour {booking.schedule.tour.name} khởi hành lúc {formattedTime} đã được xác nhận. Mã đặt chỗ của bạn là {bookingCode}.",
+                recipientIds: new List<Guid> { booking.user_id },
+                data: JsonSerializer.Serialize(new { bookingId = booking.id }),
+                ct: ct
+            );
+
+            if (booking.schedule.boat?.owner_id != null)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    senderId: null,
+                    type: "owner",
+                    title: "Đơn đặt chỗ mới ⚓",
+                    body: $"Khách hàng {booking.user.full_name ?? "Khách hàng"} vừa đặt {booking.num_people} vé tour {booking.schedule.tour.name} khởi hành lúc {formattedTime}. Doanh thu tạm tính: {booking.total_price.ToString("N0")} đ.",
+                    recipientIds: new List<Guid> { booking.schedule.boat.owner_id.Value },
+                    data: JsonSerializer.Serialize(new { bookingId = booking.id }),
+                    ct: ct
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.StackTrace);
+        }
+
+        try
+        {
             await _emailSender.SendBookingStatusEmailAsync(
                 booking.user.email,
                 booking.user.full_name ?? "Khách hàng",
@@ -151,6 +190,52 @@ public class BookingService : IBookingService
             Status = booking.status,
             Refunded = eligibleForRefund,
             AmountRefunded = eligibleForRefund ? booking.total_price : 0m
+        };
+    }
+
+    public async Task<CheckInBookingResponse> CheckInAsync(CheckInBookingRequest request, CancellationToken ct)
+    {
+        var raw = (request.BookingCode ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new AppException(ErrorCode.TourValidationFailed, "Mã vé không hợp lệ.");
+
+        booking? booking = null;
+        if (Guid.TryParse(raw, out var bookingId))
+            booking = await _repo.FindBookingForCheckInByIdAsync(bookingId, ct);
+        else
+        {
+            var code = raw.Length > 8 ? raw[..8] : raw;
+            booking = await _repo.FindBookingForCheckInByCodeAsync(code, ct);
+        }
+
+        if (booking == null)
+            throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy vé tương ứng với mã QR.");
+
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé đã bị hủy, không thể check-in.");
+
+        if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé đã được check-in trước đó.");
+
+        if (!BookingStatuses.CanCheckIn(booking.status))
+            throw new AppException(ErrorCode.UncategorizedError, "Vé chưa thanh toán hoặc chưa được xác nhận.");
+
+        var now = DateTime.UtcNow;
+        booking.status = BookingStatuses.CheckedIn;
+        booking.updated_at = now;
+        await _repo.SaveChangesAsync(ct);
+
+        return new CheckInBookingResponse
+        {
+            BookingId = booking.id,
+            BookingCode = booking.id.ToString()[..8].ToUpperInvariant(),
+            CustomerName = booking.user.full_name ?? booking.user.email,
+            TourName = booking.schedule.tour.name,
+            BoatName = booking.schedule.boat?.name ?? "N/A",
+            NumPeople = booking.num_people,
+            DepartureTime = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy"),
+            Status = booking.status,
+            CheckedInAt = now
         };
     }
 

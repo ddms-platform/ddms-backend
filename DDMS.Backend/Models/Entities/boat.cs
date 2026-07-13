@@ -17,6 +17,8 @@ public partial class boat
 
     public string status { get; set; } = null!;
 
+    public string compliance_status { get; set; } = null!;
+
     public decimal? length { get; set; }
 
     public decimal? beam { get; set; }
@@ -36,6 +38,8 @@ public partial class boat
     public DateTime updated_at { get; set; }
 
     public virtual user? owner { get; set; }
+
+    public virtual ICollection<boat_certificate> boat_certificates { get; set; } = new List<boat_certificate>();
 
     public virtual ICollection<boat_cabin> boat_cabins { get; set; } = new List<boat_cabin>();
 

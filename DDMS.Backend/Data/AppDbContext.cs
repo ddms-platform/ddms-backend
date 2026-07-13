@@ -20,6 +20,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<boat> boats { get; set; }
 
+    public virtual DbSet<boat_certificate> boat_certificates { get; set; }
+    public virtual DbSet<certificate_type> certificate_types { get; set; }
+
     public virtual DbSet<boat_cabin> boat_cabins { get; set; }
 
     public virtual DbSet<boat_image> boat_images { get; set; }
@@ -55,6 +58,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<notification_recipient> notification_recipients { get; set; }
 
     public virtual DbSet<owner_profile> owner_profiles { get; set; }
+
+    public virtual DbSet<owner_document> owner_documents { get; set; }
 
     public virtual DbSet<payment> payments { get; set; }
 
@@ -119,6 +124,142 @@ public partial class AppDbContext : DbContext
                 new boat_type { id = 3, code = "speedboat", name_vi = "Cano", name_en = "Speedboat" },
                 new boat_type { id = 4, code = "cruiser", name_vi = "Tàu du lịch cỡ vừa", name_en = "Medium Cruiser" },
                 new boat_type { id = 5, code = "yacht", name_vi = "Du thuyền", name_en = "Yacht" }
+            );
+        });
+
+        modelBuilder.Entity<certificate_type>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+            entity.HasIndex(e => e.code).IsUnique();
+            entity.Property(e => e.code).HasMaxLength(50);
+            entity.Property(e => e.name_vi).HasMaxLength(100);
+            entity.Property(e => e.name_en).HasMaxLength(100);
+            entity.Property(e => e.scope)
+                .HasMaxLength(20)
+                .HasDefaultValue("boat");
+            entity.Property(e => e.is_active).HasDefaultValue(true);
+            entity.HasIndex(e => e.scope, "idx_certificate_types_scope");
+            entity.HasData(
+                new certificate_type
+                {
+                    id = 1,
+                    code = "registration",
+                    name_vi = "Giấy chứng nhận đăng ký phương tiện thủy nội địa",
+                    name_en = "Inland waterway vessel registration certificate",
+                    sort_order = 1,
+                    scope = "boat",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 2,
+                    code = "insurance",
+                    name_vi = "Bảo hiểm trách nhiệm dân sự",
+                    name_en = "Civil liability insurance",
+                    sort_order = 2,
+                    scope = "boat",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 3,
+                    code = "business_license",
+                    name_vi = "Giấy phép kinh doanh",
+                    name_en = "Business license",
+                    sort_order = 3,
+                    scope = "boat",
+                    is_active = false
+                },
+                new certificate_type
+                {
+                    id = 4,
+                    code = "safety_cert",
+                    name_vi = "Giấy chứng nhận an toàn kỹ thuật & bảo vệ môi trường (Đăng kiểm)",
+                    name_en = "Technical safety & environmental protection certificate",
+                    sort_order = 4,
+                    scope = "boat",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 5,
+                    code = "other",
+                    name_vi = "Khác",
+                    name_en = "Other",
+                    sort_order = 8,
+                    scope = "boat",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 6,
+                    code = "crew_certificate",
+                    name_vi = "Danh bạ thuyền viên / Chứng chỉ người lái",
+                    name_en = "Crew certificate / Skipper certificate",
+                    sort_order = 6,
+                    scope = "boat",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 7,
+                    code = "national_id",
+                    name_vi = "CCCD / Hộ chiếu",
+                    name_en = "National ID / Passport",
+                    sort_order = 1,
+                    scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 8,
+                    code = "transport_license",
+                    name_vi = "Giấy phép hoạt động vận tải",
+                    name_en = "Transport operation license",
+                    sort_order = 2,
+                    scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 9,
+                    code = "business_registration",
+                    name_vi = "Giấy chứng nhận đăng ký doanh nghiệp",
+                    name_en = "Business registration certificate",
+                    sort_order = 3,
+                    scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 10,
+                    code = "residence_proof",
+                    name_vi = "Giấy tờ cư trú",
+                    name_en = "Residence proof",
+                    sort_order = 4,
+                    scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 11,
+                    code = "authorization_letter",
+                    name_vi = "Giấy ủy quyền",
+                    name_en = "Authorization letter",
+                    sort_order = 5,
+                    scope = "owner",
+                    is_active = true
+                },
+                new certificate_type
+                {
+                    id = 12,
+                    code = "fire_safety",
+                    name_vi = "Giấy chứng nhận PCCC",
+                    name_en = "Fire safety certificate",
+                    sort_order = 7,
+                    scope = "boat",
+                    is_active = true
+                }
             );
         });
 
@@ -239,6 +380,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'idle'");
+            entity.Property(e => e.compliance_status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'valid'");
             entity.Property(e => e.type).HasMaxLength(100);
             entity.Property(e => e.length).HasPrecision(10, 2);
             entity.Property(e => e.beam).HasPrecision(10, 2);
@@ -258,6 +402,37 @@ public partial class AppDbContext : DbContext
             entity.HasQueryFilter(b => !b.is_deleted);
             entity.Property(e => e.is_deleted)
                 .HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<boat_certificate>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            entity.HasIndex(e => new { e.boat_id, e.expiry_date }, "idx_boat_certificates_boat_expiry");
+
+            entity.Property(e => e.certificate_type).HasMaxLength(50);
+            entity.Property(e => e.document_url).HasColumnType("text");
+            entity.Property(e => e.public_id).HasMaxLength(255);
+            entity.Property(e => e.status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'pending'");
+            entity.Property(e => e.rejection_reason).HasColumnType("text");
+            entity.Property(e => e.created_at)
+                .HasMaxLength(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.Property(e => e.updated_at)
+                .HasMaxLength(6)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(d => d.boat).WithMany(p => p.boat_certificates)
+                .HasForeignKey(d => d.boat_id)
+                .HasConstraintName("fk_boat_certificates_boat");
+
+            entity.HasOne(d => d.verifier).WithMany()
+                .HasForeignKey(d => d.verified_by)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_boat_certificates_verifier");
         });
 
         modelBuilder.Entity<boat_cabin>(entity =>
@@ -708,6 +883,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.address).HasColumnType("text");
             entity.Property(e => e.bio).HasColumnType("text");
             entity.Property(e => e.business_name).HasMaxLength(255);
+            entity.Property(e => e.entity_type)
+                .HasMaxLength(20)
+                .HasDefaultValue("individual");
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
@@ -724,6 +902,29 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.user).WithOne(p => p.owner_profile)
                 .HasForeignKey<owner_profile>(d => d.user_id)
                 .HasConstraintName("fk_owner_profiles_user");
+        });
+
+        modelBuilder.Entity<owner_document>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            entity.HasIndex(e => new { e.owner_profile_id, e.document_type }, "idx_owner_documents_profile_type");
+
+            entity.Property(e => e.document_type).HasMaxLength(50);
+            entity.Property(e => e.document_url).HasColumnType("text");
+            entity.Property(e => e.public_id).HasMaxLength(255);
+            entity.Property(e => e.admin_note).HasColumnType("text");
+            entity.Property(e => e.created_at)
+                .HasMaxLength(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.Property(e => e.updated_at)
+                .HasMaxLength(6)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(d => d.owner_profile).WithMany(p => p.owner_documents)
+                .HasForeignKey(d => d.owner_profile_id)
+                .HasConstraintName("fk_owner_documents_owner_profile");
         });
 
         modelBuilder.Entity<payment>(entity =>

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using DDMS.Backend.Models.DTOs.BoatCertificate;
+using DDMS.Backend.Models.DTOs.OwnerDocument;
 
 namespace DDMS.Backend.Models.DTOs.Auth;
 
@@ -21,6 +23,11 @@ public class OwnerRegistrationRequest
 
     [Required]
     public string Address { get; set; } = null!;
+
+    /// <summary>individual | business | cooperative</summary>
+    public string EntityType { get; set; } = "individual";
+
+    public List<OwnerDocumentUploadDto> OwnerDocuments { get; set; } = new();
 
     public List<VesselRegistrationItem> Vessels { get; set; } = new List<VesselRegistrationItem>();
 }
@@ -50,4 +57,6 @@ public class VesselRegistrationItem
     public List<IFormFile> ImageFiles { get; set; } = new List<IFormFile>();
 
     public List<IFormFile> DocumentFiles { get; set; } = new List<IFormFile>();
+
+    public List<CertificateUploadDto> Certificates { get; set; } = new List<CertificateUploadDto>();
 }

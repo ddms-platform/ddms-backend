@@ -62,6 +62,16 @@ public static class DependencyInjection
 
         services.AddScoped<IWithdrawalsRepository, WithdrawalsRepository>();
         services.AddScoped<IWalletService, WalletService>();
+
+        services.AddScoped<IBoatCertificateRepository, BoatCertificateRepository>();
+        services.AddScoped<IBoatCertificateService, BoatCertificateService>();
+        services.AddScoped<IBoatComplianceService, BoatComplianceService>();
+        services.AddScoped<IBoatComplianceNotifier, NoOpBoatComplianceNotifier>();
+        services.AddScoped<ICertificateTypeRepository, CertificateTypeRepository>();
+        services.AddScoped<ICertificateTypeService, CertificateTypeService>();
+        services.AddScoped<IOwnerDocumentRepository, OwnerDocumentRepository>();
+        services.AddScoped<IOwnerDocumentService, OwnerDocumentService>();
+
         return services;
     }
 }
