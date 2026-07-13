@@ -48,14 +48,24 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.schedule).ThenInclude(s => s.boat)
             .FirstOrDefaultAsync(b => b.id == id, ct);
 
-    public Task<booking?> FindBookingForCheckInByCodeAsync(string codePrefix, CancellationToken ct) =>
-        _db.bookings
+    public Task<booking?> FindBookingForCheckInByCodeAsync(string codePrefix, CancellationToken ct)
+    {
+        var prefix = codePrefix.Trim();
+        if (prefix.Length > 8)
+            prefix = prefix[..8];
+
+        // Booking code = first 8 chars of GUID string. Use SQL LIKE (translatable by Pomelo).
+        prefix = prefix.ToLowerInvariant();
+        var pattern = $"{prefix}%";
+
+        return _db.bookings
             .Include(b => b.user)
             .Include(b => b.schedule).ThenInclude(s => s.tour)
             .Include(b => b.schedule).ThenInclude(s => s.boat)
-            .Where(b => b.id.ToString().StartsWith(codePrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(b => EF.Functions.Like(b.id.ToString(), pattern))
             .OrderByDescending(b => b.created_at)
             .FirstOrDefaultAsync(ct);
+    }
 
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }

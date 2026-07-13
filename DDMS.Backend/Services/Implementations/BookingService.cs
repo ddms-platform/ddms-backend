@@ -211,14 +211,26 @@ public class BookingService : IBookingService
         if (booking == null)
             throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy vé tương ứng với mã QR.");
 
-        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé đã bị hủy, không thể check-in.");
-
         if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
             throw new AppException(ErrorCode.UncategorizedError, "Vé đã được check-in trước đó.");
 
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+        {
+            var cancelMessage = BookingStatuses.IsOwnerCancelled(booking.cancel_reason)
+                ? "Vé đã bị chủ tour hủy, không thể check-in."
+                : "Vé đã bị hủy, không thể check-in.";
+            throw new AppException(ErrorCode.UncategorizedError, cancelMessage);
+        }
+
         if (!BookingStatuses.CanCheckIn(booking.status))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé chưa thanh toán hoặc chưa được xác nhận.");
+        {
+            var invalidMessage = string.Equals(booking.status, BookingStatuses.Pending, StringComparison.OrdinalIgnoreCase)
+                ? "Vé chưa thanh toán hoặc chưa được xác nhận."
+                : string.Equals(booking.status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase)
+                    ? "Vé đã hoàn thành, không thể check-in."
+                    : "Vé không đủ điều kiện check-in.";
+            throw new AppException(ErrorCode.UncategorizedError, invalidMessage);
+        }
 
         var now = DateTime.UtcNow;
         booking.status = BookingStatuses.CheckedIn;
@@ -228,7 +240,7 @@ public class BookingService : IBookingService
         return new CheckInBookingResponse
         {
             BookingId = booking.id,
-            BookingCode = booking.id.ToString()[..8].ToUpperInvariant(),
+            BookingCode = BookingStatuses.ToBookingCode(booking.id),
             CustomerName = booking.user.full_name ?? booking.user.email,
             TourName = booking.schedule.tour.name,
             BoatName = booking.schedule.boat?.name ?? "N/A",
@@ -281,6 +293,8 @@ public class BookingService : IBookingService
             Guests = b.num_people,
             TotalPrice = (double)b.total_price,
             Status = BookingStatuses.ToFrontendStatus(b.status),
+            BookingCode = BookingStatuses.ToBookingCode(b.id),
+            CanShowCheckInQr = BookingStatuses.CanShowCheckInQr(b.status),
             CreatedAt = b.created_at.ToString("o")
         };
     }
