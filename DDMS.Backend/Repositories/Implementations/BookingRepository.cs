@@ -8,6 +8,7 @@ namespace DDMS.Backend.Repositories.Implementations;
 public class BookingRepository : IBookingRepository
 {
     private readonly AppDbContext _db;
+    private static readonly string[] OccupyingStatuses = ["pending", "confirmed", "paid"];
 
     public BookingRepository(AppDbContext db) => _db = db;
 
@@ -16,6 +17,33 @@ public class BookingRepository : IBookingRepository
             .Include(s => s.tour)
             .Include(s => s.boat)
             .FirstOrDefaultAsync(s => s.id == scheduleId, ct);
+
+    public Task<tour_schedule?> FindScheduleWithCabinsAsync(Guid scheduleId, CancellationToken ct) =>
+        _db.tour_schedules
+            .Include(s => s.boat).ThenInclude(b => b!.boat_cabins)
+            .FirstOrDefaultAsync(s => s.id == scheduleId, ct);
+
+    public async Task<Dictionary<Guid, int>> GetBookedCabinQuantitiesAsync(Guid scheduleId, CancellationToken ct) =>
+        await _db.booking_cabins
+            .Where(bc => bc.booking.schedule_id == scheduleId && OccupyingStatuses.Contains(bc.booking.status))
+            .GroupBy(bc => bc.cabin_id)
+            .Select(g => new { CabinId = g.Key, Quantity = g.Sum(x => x.quantity) })
+            .ToDictionaryAsync(x => x.CabinId, x => x.Quantity, ct);
+
+    public Task<bool> HasActiveBookingForTourDateAsync(
+        Guid userId,
+        Guid tourId,
+        DateTime startOfDay,
+        DateTime endOfDay,
+        CancellationToken ct) =>
+        _db.bookings.AnyAsync(
+            b =>
+                b.user_id == userId &&
+                b.schedule.tour_id == tourId &&
+                b.schedule.start_time >= startOfDay &&
+                b.schedule.start_time < endOfDay &&
+                OccupyingStatuses.Contains(b.status),
+            ct);
 
     public void AddBooking(booking entity) => _db.bookings.Add(entity);
     public void AddBookingCabin(booking_cabin entity) => _db.booking_cabins.Add(entity);

@@ -47,3 +47,14 @@ public class CheckInBookingResponse
     public string Status { get; set; } = null!;
     public DateTime CheckedInAt { get; set; }
 }
+
+public class CabinAvailabilityResponse
+{
+    public Guid CabinId { get; set; }
+    public string CabinName { get; set; } = string.Empty;
+    public int Capacity { get; set; }
+    public decimal Price { get; set; }
+    public int TotalRooms { get; set; }
+    public int BookedRooms { get; set; }
+    public int AvailableRooms { get; set; }
+}

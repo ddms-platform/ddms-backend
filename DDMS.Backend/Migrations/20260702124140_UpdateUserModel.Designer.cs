@@ -4,6 +4,7 @@ using DDMS.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DDMS.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260702124140_UpdateUserModel")]
+    partial class UpdateUserModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,13 +154,6 @@ namespace DDMS.Backend.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<string>("compliance_status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValueSql("'valid'");
-
                     b.Property<DateTime>("created_at")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(6)
@@ -283,74 +279,6 @@ namespace DDMS.Backend.Migrations
                     b.HasIndex(new[] { "boat_id" }, "idx_cabins_boat");
 
                     b.ToTable("boat_cabins");
-                });
-
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.boat_certificate", b =>
-                {
-                    b.Property<Guid>("id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("boat_id")
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("certificate_type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<DateTime>("created_at")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(6)
-                        .HasColumnType("datetime(6)")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
-
-                    b.Property<string>("document_url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly>("expiry_date")
-                        .HasColumnType("date");
-
-                    b.Property<string>("public_id")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("rejection_reason")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("reminder_sent_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValueSql("'pending'");
-
-                    b.Property<DateTime>("updated_at")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasMaxLength(6)
-                        .HasColumnType("datetime(6)")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("updated_at"));
-
-                    b.Property<DateTime?>("verified_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<Guid?>("verified_by")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("id")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("verified_by");
-
-                    b.HasIndex(new[] { "boat_id", "expiry_date" }, "idx_boat_certificates_boat_expiry");
-
-                    b.ToTable("boat_certificates");
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.boat_image", b =>
@@ -720,177 +648,6 @@ namespace DDMS.Backend.Migrations
                     b.HasIndex(new[] { "booking_id" }, "idx_bk_services");
 
                     b.ToTable("booking_services");
-                });
-
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.certificate_type", b =>
-                {
-                    b.Property<int>("id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("id"));
-
-                    b.Property<string>("code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("is_active")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("name_en")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("name_vi")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("scope")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("boat");
-
-                    b.Property<int>("sort_order")
-                        .HasColumnType("int");
-
-                    b.HasKey("id")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("code")
-                        .IsUnique();
-
-                    b.HasIndex(new[] { "scope" }, "idx_certificate_types_scope");
-
-                    b.ToTable("certificate_types");
-
-                    b.HasData(
-                        new
-                        {
-                            id = 1,
-                            code = "registration",
-                            is_active = true,
-                            name_en = "Inland waterway vessel registration certificate",
-                            name_vi = "Giấy chứng nhận đăng ký phương tiện thủy nội địa",
-                            scope = "boat",
-                            sort_order = 1
-                        },
-                        new
-                        {
-                            id = 2,
-                            code = "insurance",
-                            is_active = true,
-                            name_en = "Civil liability insurance",
-                            name_vi = "Bảo hiểm trách nhiệm dân sự",
-                            scope = "boat",
-                            sort_order = 2
-                        },
-                        new
-                        {
-                            id = 3,
-                            code = "business_license",
-                            is_active = false,
-                            name_en = "Business license",
-                            name_vi = "Giấy phép kinh doanh",
-                            scope = "boat",
-                            sort_order = 3
-                        },
-                        new
-                        {
-                            id = 4,
-                            code = "safety_cert",
-                            is_active = true,
-                            name_en = "Technical safety & environmental protection certificate",
-                            name_vi = "Giấy chứng nhận an toàn kỹ thuật & bảo vệ môi trường (Đăng kiểm)",
-                            scope = "boat",
-                            sort_order = 4
-                        },
-                        new
-                        {
-                            id = 5,
-                            code = "other",
-                            is_active = true,
-                            name_en = "Other",
-                            name_vi = "Khác",
-                            scope = "boat",
-                            sort_order = 8
-                        },
-                        new
-                        {
-                            id = 6,
-                            code = "crew_certificate",
-                            is_active = true,
-                            name_en = "Crew certificate / Skipper certificate",
-                            name_vi = "Danh bạ thuyền viên / Chứng chỉ người lái",
-                            scope = "boat",
-                            sort_order = 6
-                        },
-                        new
-                        {
-                            id = 7,
-                            code = "national_id",
-                            is_active = true,
-                            name_en = "National ID / Passport",
-                            name_vi = "CCCD / Hộ chiếu",
-                            scope = "owner",
-                            sort_order = 1
-                        },
-                        new
-                        {
-                            id = 8,
-                            code = "transport_license",
-                            is_active = true,
-                            name_en = "Transport operation license",
-                            name_vi = "Giấy phép hoạt động vận tải",
-                            scope = "owner",
-                            sort_order = 2
-                        },
-                        new
-                        {
-                            id = 9,
-                            code = "business_registration",
-                            is_active = true,
-                            name_en = "Business registration certificate",
-                            name_vi = "Giấy chứng nhận đăng ký doanh nghiệp",
-                            scope = "owner",
-                            sort_order = 3
-                        },
-                        new
-                        {
-                            id = 10,
-                            code = "residence_proof",
-                            is_active = true,
-                            name_en = "Residence proof",
-                            name_vi = "Giấy tờ cư trú",
-                            scope = "owner",
-                            sort_order = 4
-                        },
-                        new
-                        {
-                            id = 11,
-                            code = "authorization_letter",
-                            is_active = true,
-                            name_en = "Authorization letter",
-                            name_vi = "Giấy ủy quyền",
-                            scope = "owner",
-                            sort_order = 5
-                        },
-                        new
-                        {
-                            id = 12,
-                            code = "fire_safety",
-                            is_active = true,
-                            name_en = "Fire safety certificate",
-                            name_vi = "Giấy chứng nhận PCCC",
-                            scope = "boat",
-                            sort_order = 7
-                        });
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.conversation", b =>
@@ -1306,56 +1063,6 @@ namespace DDMS.Backend.Migrations
                     b.ToTable("notification_recipients");
                 });
 
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.owner_document", b =>
-                {
-                    b.Property<Guid>("id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("admin_note")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("created_at")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(6)
-                        .HasColumnType("datetime(6)")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
-
-                    b.Property<string>("document_type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("document_url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly?>("expiry_date")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("owner_profile_id")
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("public_id")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime>("updated_at")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasMaxLength(6)
-                        .HasColumnType("datetime(6)")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("updated_at"));
-
-                    b.HasKey("id")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "owner_profile_id", "document_type" }, "idx_owner_documents_profile_type");
-
-                    b.ToTable("owner_documents");
-                });
-
             modelBuilder.Entity("DDMS.Backend.Models.Entities.owner_payment", b =>
                 {
                     b.Property<Guid>("id")
@@ -1418,13 +1125,6 @@ namespace DDMS.Backend.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("datetime(6)")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
-
-                    b.Property<string>("entity_type")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("individual");
 
                     b.Property<bool>("is_verified")
                         .HasColumnType("tinyint(1)");
@@ -1570,7 +1270,7 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(5221),
+                            created_at = new DateTime(2026, 7, 2, 12, 41, 39, 999, DateTimeKind.Utc).AddTicks(7145),
                             icon_code = "Settings",
                             name = "Bảo trì định kỳ",
                             price = 1200000m
@@ -1578,14 +1278,14 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6388),
+                            created_at = new DateTime(2026, 7, 2, 12, 41, 39, 999, DateTimeKind.Utc).AddTicks(8306),
                             icon_code = "AlertTriangle",
                             name = "Sửa chữa khẩn cấp"
                         },
                         new
                         {
                             id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6394),
+                            created_at = new DateTime(2026, 7, 2, 12, 41, 39, 999, DateTimeKind.Utc).AddTicks(8313),
                             icon_code = "User",
                             name = "Vệ sinh thân tàu",
                             price = 500000m
@@ -1593,7 +1293,7 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6396),
+                            created_at = new DateTime(2026, 7, 2, 12, 41, 39, 999, DateTimeKind.Utc).AddTicks(8315),
                             icon_code = "Zap",
                             name = "Kiểm tra hệ thống điện",
                             price = 300000m
@@ -2508,26 +2208,6 @@ namespace DDMS.Backend.Migrations
                     b.Navigation("boat");
                 });
 
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.boat_certificate", b =>
-                {
-                    b.HasOne("DDMS.Backend.Models.Entities.boat", "boat")
-                        .WithMany("boat_certificates")
-                        .HasForeignKey("boat_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_boat_certificates_boat");
-
-                    b.HasOne("DDMS.Backend.Models.Entities.user", "verifier")
-                        .WithMany()
-                        .HasForeignKey("verified_by")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_boat_certificates_verifier");
-
-                    b.Navigation("boat");
-
-                    b.Navigation("verifier");
-                });
-
             modelBuilder.Entity("DDMS.Backend.Models.Entities.boat_image", b =>
                 {
                     b.HasOne("DDMS.Backend.Models.Entities.boat", "boat")
@@ -2798,18 +2478,6 @@ namespace DDMS.Backend.Migrations
                     b.Navigation("user");
                 });
 
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.owner_document", b =>
-                {
-                    b.HasOne("DDMS.Backend.Models.Entities.owner_profile", "owner_profile")
-                        .WithMany("owner_documents")
-                        .HasForeignKey("owner_profile_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_owner_documents_owner_profile");
-
-                    b.Navigation("owner_profile");
-                });
-
             modelBuilder.Entity("DDMS.Backend.Models.Entities.owner_payment", b =>
                 {
                     b.HasOne("DDMS.Backend.Models.Entities.user", "owner")
@@ -3031,8 +2699,6 @@ namespace DDMS.Backend.Migrations
                 {
                     b.Navigation("boat_cabins");
 
-                    b.Navigation("boat_certificates");
-
                     b.Navigation("boat_images");
 
                     b.Navigation("boat_maintenances");
@@ -3086,11 +2752,6 @@ namespace DDMS.Backend.Migrations
             modelBuilder.Entity("DDMS.Backend.Models.Entities.notification", b =>
                 {
                     b.Navigation("notification_recipients");
-                });
-
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.owner_profile", b =>
-                {
-                    b.Navigation("owner_documents");
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.promotion", b =>

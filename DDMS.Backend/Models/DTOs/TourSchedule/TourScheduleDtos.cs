@@ -19,6 +19,8 @@ public class TourScheduleResponse
     public Guid id { get; set; }
     public Guid tour_id { get; set; }
     public Guid? boat_id { get; set; }
+    public string? boatName { get; set; }
+    public List<string> boatImageUrls { get; set; } = new();
     public Guid? dock_id { get; set; }
     public DateTime start_time { get; set; }
     public DateTime end_time { get; set; }

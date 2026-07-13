@@ -1,6 +1,6 @@
 using System;
-using System.Security.Claims;
 using System.Threading.Tasks;
+using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Models.DTOs.Wishlists;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -14,48 +14,50 @@ namespace DDMS.Backend.Controllers;
 public class WishlistsController : ControllerBase
 {
     private readonly IWishlistService _wishlistService;
+    private readonly ICurrentUser _user;
 
-    public WishlistsController(IWishlistService wishlistService)
+    public WishlistsController(IWishlistService wishlistService, ICurrentUser user)
     {
         _wishlistService = wishlistService;
+        _user = user;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetWishlists()
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        var userId = _user.IdOrNull;
+        if (userId is null)
         {
             return Unauthorized();
         }
 
-        var tours = await _wishlistService.GetWishlistToursAsync(userId);
+        var tours = await _wishlistService.GetWishlistToursAsync(userId.Value);
         return Ok(new { items = tours, totalCount = tours.Count });
     }
     
     [HttpGet("ids")]
     public async Task<IActionResult> GetWishlistedTourIds()
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        var userId = _user.IdOrNull;
+        if (userId is null)
         {
             return Unauthorized();
         }
 
-        var ids = await _wishlistService.GetWishlistedTourIdsAsync(userId);
+        var ids = await _wishlistService.GetWishlistedTourIdsAsync(userId.Value);
         return Ok(ids);
     }
 
     [HttpPost("toggle")]
     public async Task<IActionResult> ToggleWishlist([FromBody] WishlistToggleRequest request)
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        var userId = _user.IdOrNull;
+        if (userId is null)
         {
             return Unauthorized();
         }
 
-        var isAdded = await _wishlistService.ToggleWishlistAsync(userId, request);
+        var isAdded = await _wishlistService.ToggleWishlistAsync(userId.Value, request);
         return Ok(new { isAdded });
     }
 }
