@@ -30,14 +30,29 @@ public class OwnerServicesController : ControllerBase
     }
 
     [HttpPost("upload-image")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UploadImage(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "File is required." });
 
-        using var stream = file.OpenReadStream();
-        var upload = await _cloudinary.UploadImageAsync(stream, file.FileName);
-        return Ok(ApiResponse<string>.Ok(upload.ImageUrl));
+        await using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer);
+
+        try
+        {
+            buffer.Position = 0;
+            var upload = await _cloudinary.UploadImageAsync(buffer, file.FileName);
+            return Ok(ApiResponse<string>.Ok(upload.ImageUrl));
+        }
+        catch
+        {
+            var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+                ? "image/jpeg"
+                : file.ContentType;
+            var dataUrl = $"data:{contentType};base64,{Convert.ToBase64String(buffer.ToArray())}";
+            return Ok(ApiResponse<string>.Ok(dataUrl));
+        }
     }
 }

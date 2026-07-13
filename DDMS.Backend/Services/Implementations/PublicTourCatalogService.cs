@@ -77,6 +77,10 @@ public class PublicTourCatalogService : IPublicTourCatalogService
             .DistinctBy(s => s.name)
             .ToList();
 
+        var scheduleOwnerId = entity.tour_schedules?
+            .Select(s => s.boat?.owner_id)
+            .FirstOrDefault(ownerId => ownerId.HasValue);
+
         return new TourItemResponse
         {
             id = entity.id,
@@ -122,7 +126,7 @@ public class PublicTourCatalogService : IPublicTourCatalogService
                 description = s.description,
                 imageUrl = s.image_url
             }).ToList(),
-            createdBy = entity.created_by,
+            createdBy = scheduleOwnerId ?? entity.created_by,
             createdAt = entity.created_at,
             updatedAt = entity.updated_at
         };

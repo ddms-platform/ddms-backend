@@ -129,8 +129,25 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
     public Task<tour?> FindTourAsync(Guid tourId, CancellationToken ct) =>
         _db.tours.FindAsync(new object?[] { tourId }, ct).AsTask();
 
+    public Task<bool> HasTourScheduleOverlapAsync(Guid ownerId, Guid tourId, DateTime start, DateTime end, CancellationToken ct) =>
+        _db.tour_schedules.AnyAsync(
+            ts =>
+                ts.tour_id == tourId &&
+                ts.boat != null &&
+                ts.boat.owner_id == ownerId &&
+                ts.status != "cancelled" &&
+                ts.start_time < end &&
+                ts.end_time > start,
+            ct);
+
     public Task<bool> HasScheduleOverlapAsync(Guid boatId, DateTime start, DateTime end, CancellationToken ct) =>
-        _db.tour_schedules.AnyAsync(ts => ts.boat_id == boatId && ts.start_time < end && ts.end_time > start, ct);
+        _db.tour_schedules.AnyAsync(
+            ts =>
+                ts.boat_id == boatId &&
+                ts.status != "cancelled" &&
+                ts.start_time < end &&
+                ts.end_time > start,
+            ct);
 
     public void AddSchedule(tour_schedule schedule) => _db.tour_schedules.Add(schedule);
 

@@ -28,6 +28,14 @@ public class BookingsController : ControllerBase
         return Ok(ApiResponse<BookingResponse>.Ok(result));
     }
 
+    [AllowAnonymous]
+    [HttpGet("schedules/{scheduleId:guid}/cabins")]
+    public async Task<IActionResult> GetCabinAvailability(Guid scheduleId, CancellationToken ct)
+    {
+        var result = await _bookings.GetCabinAvailabilityAsync(scheduleId, ct);
+        return Ok(ApiResponse<List<CabinAvailabilityResponse>>.Ok(result));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetUserBookings(CancellationToken ct)
     {

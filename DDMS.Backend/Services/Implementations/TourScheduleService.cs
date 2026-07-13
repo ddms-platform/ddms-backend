@@ -97,6 +97,12 @@ public class TourScheduleService : ITourScheduleService
             id = source.id,
             tour_id = source.tour_id,
             boat_id = source.boat_id,
+            boatName = source.boat?.name,
+            boatImageUrls = source.boat?.boat_images
+                .OrderBy(image => image.sort_order)
+                .Select(image => image.image_url)
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .ToList() ?? new List<string>(),
             dock_id = source.dock_id,
             start_time = source.start_time,
             end_time = source.end_time,

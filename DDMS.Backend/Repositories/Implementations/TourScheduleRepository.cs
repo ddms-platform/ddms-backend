@@ -23,6 +23,7 @@ public class TourScheduleRepository : ITourScheduleRepository
     {
         return await _db.tour_schedules
             .AsNoTracking()
+            .Include(x => x.boat).ThenInclude(b => b!.boat_images)
             .Where(x => x.tour_id == tourId)
             .OrderBy(x => x.start_time)
             .ToListAsync(cancellationToken);

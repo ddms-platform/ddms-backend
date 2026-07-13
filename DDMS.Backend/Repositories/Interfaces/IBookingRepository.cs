@@ -5,6 +5,14 @@ namespace DDMS.Backend.Repositories.Interfaces;
 public interface IBookingRepository
 {
     Task<tour_schedule?> FindScheduleWithTourAsync(Guid scheduleId, CancellationToken ct);
+    Task<tour_schedule?> FindScheduleWithCabinsAsync(Guid scheduleId, CancellationToken ct);
+    Task<Dictionary<Guid, int>> GetBookedCabinQuantitiesAsync(Guid scheduleId, CancellationToken ct);
+    Task<bool> HasActiveBookingForTourDateAsync(
+        Guid userId,
+        Guid tourId,
+        DateTime startOfDay,
+        DateTime endOfDay,
+        CancellationToken ct);
     void AddBooking(booking entity);
     void AddBookingCabin(booking_cabin entity);
     void AddBookingService(booking_service entity);

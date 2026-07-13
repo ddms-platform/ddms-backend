@@ -31,6 +31,41 @@ public class BookingService : IBookingService
         if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
             throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
 
+        var scheduleDayStart = schedule.start_time.Date;
+        var scheduleDayEnd = scheduleDayStart.AddDays(1);
+        var alreadyBooked = await _repo.HasActiveBookingForTourDateAsync(
+            userId,
+            schedule.tour_id,
+            scheduleDayStart,
+            scheduleDayEnd,
+            ct);
+
+        if (alreadyBooked)
+            throw new AppException(
+                ErrorCode.UncategorizedError,
+                "Bạn đã đặt tour này trong ngày đã chọn. Vui lòng chọn ngày khác hoặc hủy đơn cũ trước khi đặt lại.");
+
+        var requestedCabins = request.Cabins ?? new List<CreateBookingCabinRequest>();
+        if (requestedCabins.Count > 0)
+        {
+            var scheduleWithCabins = await _repo.FindScheduleWithCabinsAsync(request.ScheduleId, ct)
+                ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+            var cabinsById = scheduleWithCabins.boat?.boat_cabins.ToDictionary(c => c.id)
+                ?? new Dictionary<Guid, boat_cabin>();
+            var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(request.ScheduleId, ct);
+
+            foreach (var requested in requestedCabins.GroupBy(c => c.CabinId))
+            {
+                if (!cabinsById.TryGetValue(requested.Key, out var cabin))
+                    throw new AppException(ErrorCode.ResourceNotFound, "Cabin không thuộc lịch trình đã chọn.");
+
+                var requestedQuantity = requested.Sum(c => c.Quantity);
+                var bookedQuantity = bookedByCabin.GetValueOrDefault(requested.Key);
+                if (requestedQuantity <= 0 || bookedQuantity + requestedQuantity > cabin.total_rooms)
+                    throw new AppException(ErrorCode.UncategorizedError, "Cabin này đã hết chỗ. Vui lòng chọn cabin khác.");
+            }
+        }
+
         var now = DateTime.UtcNow;
         var booking = new booking
         {
@@ -88,6 +123,39 @@ public class BookingService : IBookingService
             Status = booking.status,
             CreatedAt = booking.created_at
         };
+    }
+
+    public async Task<List<CabinAvailabilityResponse>> GetCabinAvailabilityAsync(Guid scheduleId, CancellationToken ct)
+    {
+        var schedule = await _repo.FindScheduleWithCabinsAsync(scheduleId, ct)
+            ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+
+        if (schedule.boat == null)
+        {
+            return new List<CabinAvailabilityResponse>();
+        }
+
+        var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(scheduleId, ct);
+
+        return schedule.boat.boat_cabins
+            .OrderBy(c => c.name)
+            .Select(c =>
+            {
+                var bookedRooms = bookedByCabin.GetValueOrDefault(c.id);
+                var availableRooms = Math.Max(c.total_rooms - bookedRooms, 0);
+
+                return new CabinAvailabilityResponse
+                {
+                    CabinId = c.id,
+                    CabinName = c.name,
+                    Capacity = c.capacity,
+                    Price = c.price,
+                    TotalRooms = c.total_rooms,
+                    BookedRooms = Math.Min(bookedRooms, c.total_rooms),
+                    AvailableRooms = availableRooms
+                };
+            })
+            .ToList();
     }
 
     public async Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct)
