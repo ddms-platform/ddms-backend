@@ -265,7 +265,7 @@ public class BookingService : IBookingService
     {
         var raw = (request.BookingCode ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(raw))
-            throw new AppException(ErrorCode.TourValidationFailed, "Mã vé không hợp lệ.");
+            throw new AppException(ErrorCode.BookingCheckInInvalidCode, ErrorCode.Messages.BookingCheckInInvalidCode);
 
         booking? booking = null;
         if (Guid.TryParse(raw, out var bookingId))
@@ -277,16 +277,26 @@ public class BookingService : IBookingService
         }
 
         if (booking == null)
-            throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy vé tương ứng với mã QR.");
-
-        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé đã bị hủy, không thể check-in.");
+            throw new NotFoundException(ErrorCode.BookingCheckInNotFound, ErrorCode.Messages.BookingCheckInNotFound);
 
         if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé đã được check-in trước đó.");
+            throw new AppException(ErrorCode.BookingCheckInAlreadyCheckedIn, ErrorCode.Messages.BookingCheckInAlreadyCheckedIn);
+
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+        {
+            if (BookingStatuses.IsOwnerCancelled(booking.cancel_reason))
+                throw new AppException(ErrorCode.BookingCheckInOwnerCancelled, ErrorCode.Messages.BookingCheckInOwnerCancelled);
+            throw new AppException(ErrorCode.BookingCheckInCancelled, ErrorCode.Messages.BookingCheckInCancelled);
+        }
 
         if (!BookingStatuses.CanCheckIn(booking.status))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé chưa thanh toán hoặc chưa được xác nhận.");
+        {
+            if (string.Equals(booking.status, BookingStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInPending, ErrorCode.Messages.BookingCheckInPending);
+            if (string.Equals(booking.status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInCompleted, ErrorCode.Messages.BookingCheckInCompleted);
+            throw new AppException(ErrorCode.BookingCheckInNotEligible, ErrorCode.Messages.BookingCheckInNotEligible);
+        }
 
         var now = DateTime.UtcNow;
         booking.status = BookingStatuses.CheckedIn;
@@ -296,7 +306,7 @@ public class BookingService : IBookingService
         return new CheckInBookingResponse
         {
             BookingId = booking.id,
-            BookingCode = booking.id.ToString()[..8].ToUpperInvariant(),
+            BookingCode = BookingStatuses.ToBookingCode(booking.id),
             CustomerName = booking.user.full_name ?? booking.user.email,
             TourName = booking.schedule.tour.name,
             BoatName = booking.schedule.boat?.name ?? "N/A",
@@ -349,6 +359,8 @@ public class BookingService : IBookingService
             Guests = b.num_people,
             TotalPrice = (double)b.total_price,
             Status = BookingStatuses.ToFrontendStatus(b.status),
+            BookingCode = BookingStatuses.ToBookingCode(b.id),
+            CanShowCheckInQr = BookingStatuses.CanShowCheckInQr(b.status),
             CreatedAt = b.created_at.ToString("o")
         };
     }

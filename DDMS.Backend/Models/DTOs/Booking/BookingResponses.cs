@@ -24,6 +24,8 @@ public class UserBookingListItemResponse
     public int Guests { get; set; }
     public double TotalPrice { get; set; }
     public string Status { get; set; } = null!;
+    public string BookingCode { get; set; } = null!;
+    public bool CanShowCheckInQr { get; set; }
     public string CreatedAt { get; set; } = null!;
 }
 

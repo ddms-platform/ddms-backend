@@ -99,7 +99,7 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
         if (string.Equals(req.Status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
         {
             booking.cancelled_at = now;
-            booking.cancel_reason = req.CancelReason ?? "Hủy bởi chủ tàu (Hoàn tiền tự động)";
+            booking.cancel_reason = req.CancelReason ?? BookingStatuses.CancelReasonOwnerCancelled;
             if (wasPaid) await RefundToWalletAsync(booking.user_id, booking.total_price, ct);
         }
 
