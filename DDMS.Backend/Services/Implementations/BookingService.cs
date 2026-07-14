@@ -197,7 +197,7 @@ public class BookingService : IBookingService
     {
         var raw = (request.BookingCode ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(raw))
-            throw new AppException(ErrorCode.TourValidationFailed, "Mã vé không hợp lệ.");
+            throw new AppException(ErrorCode.BookingCheckInInvalidCode, ErrorCode.Messages.BookingCheckInInvalidCode);
 
         booking? booking = null;
         if (Guid.TryParse(raw, out var bookingId))
@@ -209,27 +209,25 @@ public class BookingService : IBookingService
         }
 
         if (booking == null)
-            throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy vé tương ứng với mã QR.");
+            throw new NotFoundException(ErrorCode.BookingCheckInNotFound, ErrorCode.Messages.BookingCheckInNotFound);
 
         if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
-            throw new AppException(ErrorCode.UncategorizedError, "Vé đã được check-in trước đó.");
+            throw new AppException(ErrorCode.BookingCheckInAlreadyCheckedIn, ErrorCode.Messages.BookingCheckInAlreadyCheckedIn);
 
         if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
         {
-            var cancelMessage = BookingStatuses.IsOwnerCancelled(booking.cancel_reason)
-                ? "Vé đã bị chủ tour hủy, không thể check-in."
-                : "Vé đã bị hủy, không thể check-in.";
-            throw new AppException(ErrorCode.UncategorizedError, cancelMessage);
+            if (BookingStatuses.IsOwnerCancelled(booking.cancel_reason))
+                throw new AppException(ErrorCode.BookingCheckInOwnerCancelled, ErrorCode.Messages.BookingCheckInOwnerCancelled);
+            throw new AppException(ErrorCode.BookingCheckInCancelled, ErrorCode.Messages.BookingCheckInCancelled);
         }
 
         if (!BookingStatuses.CanCheckIn(booking.status))
         {
-            var invalidMessage = string.Equals(booking.status, BookingStatuses.Pending, StringComparison.OrdinalIgnoreCase)
-                ? "Vé chưa thanh toán hoặc chưa được xác nhận."
-                : string.Equals(booking.status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase)
-                    ? "Vé đã hoàn thành, không thể check-in."
-                    : "Vé không đủ điều kiện check-in.";
-            throw new AppException(ErrorCode.UncategorizedError, invalidMessage);
+            if (string.Equals(booking.status, BookingStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInPending, ErrorCode.Messages.BookingCheckInPending);
+            if (string.Equals(booking.status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInCompleted, ErrorCode.Messages.BookingCheckInCompleted);
+            throw new AppException(ErrorCode.BookingCheckInNotEligible, ErrorCode.Messages.BookingCheckInNotEligible);
         }
 
         var now = DateTime.UtcNow;
