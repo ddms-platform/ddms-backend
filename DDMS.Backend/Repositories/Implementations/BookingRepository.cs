@@ -17,6 +17,9 @@ public class BookingRepository : IBookingRepository
             .Include(s => s.boat)
             .FirstOrDefaultAsync(s => s.id == scheduleId, ct);
 
+    public Task<bool> UserHasRoleAsync(Guid userId, string roleName, CancellationToken ct) =>
+        _db.user_roles.AnyAsync(ur => ur.user_id == userId && ur.role.name == roleName, ct);
+
     public void AddBooking(booking entity) => _db.bookings.Add(entity);
     public void AddBookingCabin(booking_cabin entity) => _db.booking_cabins.Add(entity);
     public void AddBookingService(booking_service entity) => _db.booking_services.Add(entity);

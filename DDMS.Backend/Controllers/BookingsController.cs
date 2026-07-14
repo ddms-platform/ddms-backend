@@ -28,6 +28,14 @@ public class BookingsController : ControllerBase
         return Ok(ApiResponse<BookingResponse>.Ok(result));
     }
 
+    /// <summary>Giữ chỗ tạm thời (chưa thanh toán) — trả về hold_expired_at để FE đếm ngược.</summary>
+    [HttpPost("hold")]
+    public async Task<IActionResult> Hold([FromBody] CreateBookingRequest request, CancellationToken ct)
+    {
+        var result = await _bookings.HoldAsync(_user.Id, request, ct);
+        return Ok(ApiResponse<BookingResponse>.Ok(result));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetUserBookings(CancellationToken ct)
     {
