@@ -3,6 +3,7 @@ namespace DDMS.Backend.Services.Interfaces;
 public interface IEmailSender
 {
     Task SendVerificationLinkEmailAsync(string toEmail, string verificationLink, int expiryMinutes);
+    Task SendHoldReminderEmailAsync(string toEmail, string customerName, string tourName, DateTime holdExpiredAt);
     Task SendPasswordResetEmailAsync(string toEmail, string resetLink, int expiryMinutes);
     Task SendOwnerRegistrationSuccessEmailAsync(string toEmail, string ownerName, Models.DTOs.Auth.OwnerRegistrationRequest request, string language);
     Task SendBookingStatusEmailAsync(

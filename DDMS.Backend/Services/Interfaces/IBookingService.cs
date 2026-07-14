@@ -12,4 +12,7 @@ public interface IBookingService
 
     /// <summary>Huỷ các booking giữ chỗ đã quá hạn. Trả về số booking bị huỷ. Dùng cho background worker.</summary>
     Task<int> CancelExpiredHoldsAsync(CancellationToken ct);
+
+    /// <summary>Gửi email nhắc cho các booking B2B sắp hết hạn giữ chỗ. Trả về số email đã gửi.</summary>
+    Task<int> SendHoldRemindersAsync(CancellationToken ct);
 }

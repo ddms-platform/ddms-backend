@@ -33,6 +33,19 @@ public class BookingRepository : IBookingRepository
                 .SetProperty(b => b.cancelled_at, now)
                 .SetProperty(b => b.updated_at, now), ct);
 
+    // B2B holds sắp hết hạn, chưa gửi nhắc. Load user + tour để soạn email.
+    public Task<List<booking>> GetHoldsNeedingReminderAsync(DateTime now, DateTime remindBefore, string agentRole, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.user)
+            .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Where(b => b.status == BookingStatuses.Holding
+                && !b.hold_reminder_sent
+                && b.hold_expired_at != null
+                && b.hold_expired_at > now
+                && b.hold_expired_at <= remindBefore
+                && _db.user_roles.Any(ur => ur.user_id == b.user_id && ur.role.name == agentRole))
+            .ToListAsync(ct);
+
     public void AddBooking(booking entity) => _db.bookings.Add(entity);
     public void AddBookingCabin(booking_cabin entity) => _db.booking_cabins.Add(entity);
     public void AddBookingService(booking_service entity) => _db.booking_services.Add(entity);

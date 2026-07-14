@@ -31,6 +31,22 @@ public class EmailSender : IEmailSender
         await SendHtmlEmailAsync(toEmail, subject, body, "Password reset", resetLink);
     }
 
+    public async Task SendHoldReminderEmailAsync(string toEmail, string customerName, string tourName, DateTime holdExpiredAt)
+    {
+        var deadline = holdExpiredAt.ToLocalTime().ToString("HH:mm dd/MM/yyyy");
+        var subject = "DDMS - Vé của bạn sắp bị huỷ do quá hạn giữ chỗ";
+        var body = $@"
+            <div style='font-family:Arial,sans-serif;max-width:520px;margin:auto'>
+                <h2 style='color:#E67E22'>Nhắc thanh toán giữ chỗ</h2>
+                <p>Xin chào <b>{customerName}</b>,</p>
+                <p>Vé giữ chỗ cho tour <b>{tourName}</b> của bạn sắp hết hạn.</p>
+                <p>Vui lòng thanh toán trước <b>{deadline}</b>, nếu không hệ thống sẽ
+                   tự động huỷ để nhả ghế cho khách khác.</p>
+                <p>Trân trọng,<br/>DDMS</p>
+            </div>";
+        await SendHtmlEmailAsync(toEmail, subject, body, "Hold reminder", $"deadline {deadline}");
+    }
+
     private async Task SendHtmlEmailAsync(
         string toEmail,
         string subject,

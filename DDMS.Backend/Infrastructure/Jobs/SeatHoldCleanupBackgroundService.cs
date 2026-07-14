@@ -48,9 +48,14 @@ public class SeatHoldCleanupBackgroundService : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
             var cancelled = await bookingService.CancelExpiredHoldsAsync(ct);
             if (cancelled > 0)
                 _logger.LogInformation("Đã tự huỷ {Count} booking giữ chỗ quá hạn", cancelled);
+
+            var reminded = await bookingService.SendHoldRemindersAsync(ct);
+            if (reminded > 0)
+                _logger.LogInformation("Đã gửi {Count} email nhắc hết hạn giữ chỗ (B2B)", reminded);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

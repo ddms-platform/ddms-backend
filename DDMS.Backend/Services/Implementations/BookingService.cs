@@ -182,6 +182,35 @@ public class BookingService : IBookingService
     public Task<int> CancelExpiredHoldsAsync(CancellationToken ct) =>
         _repo.CancelExpiredHoldsAsync(DateTime.UtcNow, BookingStatuses.CancelReasonHoldExpired, ct);
 
+    public async Task<int> SendHoldRemindersAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var remindBefore = now.AddHours(_holdOptions.ReminderBeforeExpiryHours);
+        var holds = await _repo.GetHoldsNeedingReminderAsync(now, remindBefore, RoleNames.Agent, ct);
+
+        var sent = 0;
+        foreach (var b in holds)
+        {
+            try
+            {
+                await _emailSender.SendHoldReminderEmailAsync(
+                    b.user.email,
+                    b.user.full_name ?? "Quý khách",
+                    b.schedule.tour.name,
+                    b.hold_expired_at!.Value);
+                b.hold_reminder_sent = true; // đánh dấu để không gửi lại
+                sent++;
+            }
+            catch
+            {
+                // Lỗi gửi 1 email không làm hỏng cả vòng; sẽ thử lại vòng sau (chưa set cờ).
+            }
+        }
+
+        if (sent > 0) await _repo.SaveChangesAsync(ct);
+        return sent;
+    }
+
     public async Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct)
     {
         var bookings = await _repo.GetUserBookingsAsync(userId, ct);
