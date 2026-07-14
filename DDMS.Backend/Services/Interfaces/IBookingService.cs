@@ -9,4 +9,7 @@ public interface IBookingService
     Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct);
     Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct);
     Task<CancelBookingResult> CancelAsync(Guid bookingId, Guid userId, CancellationToken ct);
+
+    /// <summary>Huỷ các booking giữ chỗ đã quá hạn. Trả về số booking bị huỷ. Dùng cho background worker.</summary>
+    Task<int> CancelExpiredHoldsAsync(CancellationToken ct);
 }

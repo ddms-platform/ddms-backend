@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
@@ -19,6 +20,18 @@ public class BookingRepository : IBookingRepository
 
     public Task<bool> UserHasRoleAsync(Guid userId, string roleName, CancellationToken ct) =>
         _db.user_roles.AnyAsync(ur => ur.user_id == userId && ur.role.name == roleName, ct);
+
+    // Bulk update: huỷ mọi booking đang giữ chỗ đã quá hạn (atomic, không load entity).
+    public Task<int> CancelExpiredHoldsAsync(DateTime now, string reason, CancellationToken ct) =>
+        _db.bookings
+            .Where(b => b.status == BookingStatuses.Holding
+                && b.hold_expired_at != null
+                && b.hold_expired_at <= now)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.status, BookingStatuses.Cancelled)
+                .SetProperty(b => b.cancel_reason, reason)
+                .SetProperty(b => b.cancelled_at, now)
+                .SetProperty(b => b.updated_at, now), ct);
 
     public void AddBooking(booking entity) => _db.bookings.Add(entity);
     public void AddBookingCabin(booking_cabin entity) => _db.booking_cabins.Add(entity);

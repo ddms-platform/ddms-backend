@@ -59,6 +59,7 @@ builder.Services.AddOptions<BookingHoldOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
+builder.Services.AddHostedService<SeatHoldCleanupBackgroundService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 

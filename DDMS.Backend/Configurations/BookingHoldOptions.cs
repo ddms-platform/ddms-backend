@@ -21,6 +21,14 @@ public class BookingHoldOptions
     [Range(1, 1440)]
     public int B2CHoldMinutes { get; set; } = 30;
 
+    /// <summary>Chu kỳ worker quét & huỷ hold quá hạn (phút).</summary>
+    [Range(1, 60)]
+    public int CleanupIntervalMinutes { get; set; } = 1;
+
+    /// <summary>Gửi email nhắc trước khi hết hạn giữ chỗ (giờ) — dùng cho B2B.</summary>
+    [Range(1, 48)]
+    public int ReminderBeforeExpiryHours { get; set; } = 2;
+
     // --- Đại lý (B2B): giữ chỗ động theo ngày khởi hành ---
 
     /// <summary>Ngưỡng "tour còn xa": khởi hành sau >= số ngày này → giữ dài nhất.</summary>

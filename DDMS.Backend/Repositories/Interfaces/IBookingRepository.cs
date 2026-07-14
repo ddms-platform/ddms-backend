@@ -6,6 +6,7 @@ public interface IBookingRepository
 {
     Task<tour_schedule?> FindScheduleWithTourAsync(Guid scheduleId, CancellationToken ct);
     Task<bool> UserHasRoleAsync(Guid userId, string roleName, CancellationToken ct);
+    Task<int> CancelExpiredHoldsAsync(DateTime now, string reason, CancellationToken ct);
     void AddBooking(booking entity);
     void AddBookingCabin(booking_cabin entity);
     void AddBookingService(booking_service entity);

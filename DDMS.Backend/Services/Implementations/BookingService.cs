@@ -179,6 +179,9 @@ public class BookingService : IBookingService
         };
     }
 
+    public Task<int> CancelExpiredHoldsAsync(CancellationToken ct) =>
+        _repo.CancelExpiredHoldsAsync(DateTime.UtcNow, BookingStatuses.CancelReasonHoldExpired, ct);
+
     public async Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct)
     {
         var bookings = await _repo.GetUserBookingsAsync(userId, ct);
