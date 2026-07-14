@@ -193,9 +193,18 @@ public class BookingService : IBookingService
         var booking = await _repo.FindUserBookingWithDetailsAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
-        if (booking.status != BookingStatuses.Pending) return;
+        // Cho phép xác nhận từ pending hoặc holding (còn hạn). Trạng thái khác thì bỏ qua.
+        if (booking.status != BookingStatuses.Pending && booking.status != BookingStatuses.Holding)
+            return;
+
+        // Giữ chỗ đã quá hạn -> không cho thanh toán (worker sẽ/đã tự huỷ).
+        if (booking.status == BookingStatuses.Holding
+            && booking.hold_expired_at != null
+            && booking.hold_expired_at <= DateTime.UtcNow)
+            throw new AppException(ErrorCode.HoldExpired, ErrorCode.Messages.HoldExpired);
 
         booking.status = BookingStatuses.Confirmed;
+        booking.hold_expired_at = null; // đã xác nhận, không còn thời hạn giữ
         booking.updated_at = DateTime.UtcNow;
         await _repo.SaveChangesAsync(ct);
 
