@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Models.DTOs.Tours;
+using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
 
 namespace DDMS.Backend.Repositories.Interfaces;
@@ -13,4 +13,5 @@ public interface IScheduleRepository
     Task<bool> HasDockTimeOverlapAsync(Guid dockId, DateTime startTime, DateTime endTime, Guid? excludeScheduleId = null);
     Task AddAsync(tour_schedule entity);
     Task UpdateAsync(tour_schedule entity);
+    Task<List<booking>> GetActiveBookingsForScheduleAsync(Guid scheduleId, CancellationToken ct);
 }

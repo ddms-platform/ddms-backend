@@ -50,4 +50,11 @@ public interface IEmailSender
         string senderName,
         string messageBody,
         string viewChatLink);
+    Task SendScheduleChangeEmailAsync(
+        string toEmail,
+        string customerName,
+        string bookingId,
+        string tourName,
+        DateTime oldTime,
+        DateTime newTime);
 }
