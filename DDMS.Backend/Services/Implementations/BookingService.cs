@@ -1,10 +1,13 @@
 using System.Text.Json;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Helpers;
+using DDMS.Backend.Configurations;
 using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace DDMS.Backend.Services.Implementations;
 
@@ -14,13 +17,15 @@ public class BookingService : IBookingService
     private readonly IWalletRepository _wallets;
     private readonly IEmailSender _emailSender;
     private readonly INotificationService _notificationService;
+    private readonly BookingHoldOptions _holdOptions;
 
-    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender, INotificationService notificationService)
+    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender, INotificationService notificationService, IOptions<BookingHoldOptions> holdOptions)
     {
         _repo = repo;
         _wallets = wallets;
         _emailSender = emailSender;
         _notificationService = notificationService;
+        _holdOptions = holdOptions.Value;
     }
 
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
@@ -125,6 +130,122 @@ public class BookingService : IBookingService
         };
     }
 
+    /// <summary>
+    /// Giữ chỗ tạm thời (chưa thanh toán). Thời gian giữ tính động theo loại khách
+    /// và ngày khởi hành (xem <see cref="HoldPolicy"/>). Quá hạn sẽ bị worker tự huỷ.
+    /// </summary>
+    public async Task<BookingResponse> HoldAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
+    {
+        var schedule = await _repo.FindScheduleWithTourAsync(request.ScheduleId, ct)
+            ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+
+        if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
+            throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
+
+        var now = DateTime.UtcNow;
+
+        // Đại lý (B2B) được giữ lâu hơn; khách lẻ giữ ngắn. Tính theo ngày khởi hành.
+        var isAgent = await _repo.UserHasRoleAsync(userId, RoleNames.Agent, ct);
+        var holdDuration = HoldPolicy.CalculateHoldDuration(isAgent, schedule.start_time, now, _holdOptions);
+
+        // Tour khởi hành quá sát → cấm giữ chỗ, phải thanh toán ngay.
+        if (holdDuration is null)
+            throw new AppException(ErrorCode.HoldNotAllowed, ErrorCode.Messages.HoldNotAllowed);
+
+        var holdExpiredAt = now.Add(holdDuration.Value);
+
+        var booking = new booking
+        {
+            id = Guid.NewGuid(),
+            user_id = userId,
+            schedule_id = request.ScheduleId,
+            promotion_id = request.PromotionId,
+            num_people = request.NumPeople,
+            base_price = request.BasePrice,
+            cabin_price = request.CabinPrice,
+            service_price = request.ServicePrice,
+            discount_amount = request.DiscountAmount,
+            total_price = request.TotalPrice,
+            status = BookingStatuses.Holding,
+            hold_expired_at = holdExpiredAt,
+            notes = request.Notes,
+            created_at = now,
+            updated_at = now
+        };
+        _repo.AddBooking(booking);
+
+        foreach (var c in request.Cabins ?? Enumerable.Empty<CreateBookingCabinRequest>())
+        {
+            _repo.AddBookingCabin(new booking_cabin
+            {
+                id = Guid.NewGuid(),
+                booking_id = booking.id,
+                cabin_id = c.CabinId,
+                quantity = c.Quantity,
+                unit_price = c.UnitPrice,
+                created_at = now
+            });
+        }
+
+        foreach (var s in request.Services ?? Enumerable.Empty<CreateBookingServiceRequest>())
+        {
+            _repo.AddBookingService(new booking_service
+            {
+                id = Guid.NewGuid(),
+                booking_id = booking.id,
+                service_id = s.ServiceId,
+                quantity = s.Quantity,
+                unit_price = s.UnitPrice,
+                created_at = now
+            });
+        }
+
+        await _repo.SaveChangesAsync(ct);
+
+        return new BookingResponse
+        {
+            Id = booking.id,
+            ScheduleId = booking.schedule_id,
+            NumPeople = booking.num_people,
+            TotalPrice = booking.total_price,
+            Status = booking.status,
+            CreatedAt = booking.created_at,
+            HoldExpiredAt = booking.hold_expired_at
+        };
+    }
+
+    public Task<int> CancelExpiredHoldsAsync(CancellationToken ct) =>
+        _repo.CancelExpiredHoldsAsync(DateTime.UtcNow, BookingStatuses.CancelReasonHoldExpired, ct);
+
+    public async Task<int> SendHoldRemindersAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var remindBefore = now.AddHours(_holdOptions.ReminderBeforeExpiryHours);
+        var holds = await _repo.GetHoldsNeedingReminderAsync(now, remindBefore, RoleNames.Agent, ct);
+
+        var sent = 0;
+        foreach (var b in holds)
+        {
+            try
+            {
+                await _emailSender.SendHoldReminderEmailAsync(
+                    b.user.email,
+                    b.user.full_name ?? "Quý khách",
+                    b.schedule.tour.name,
+                    b.hold_expired_at!.Value);
+                b.hold_reminder_sent = true; // đánh dấu để không gửi lại
+                sent++;
+            }
+            catch
+            {
+                // Lỗi gửi 1 email không làm hỏng cả vòng; sẽ thử lại vòng sau (chưa set cờ).
+            }
+        }
+
+        if (sent > 0) await _repo.SaveChangesAsync(ct);
+        return sent;
+    }
+
     public async Task<List<CabinAvailabilityResponse>> GetCabinAvailabilityAsync(Guid scheduleId, CancellationToken ct)
     {
         var schedule = await _repo.FindScheduleWithCabinsAsync(scheduleId, ct)
@@ -169,9 +290,18 @@ public class BookingService : IBookingService
         var booking = await _repo.FindUserBookingWithDetailsAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
-        if (booking.status != BookingStatuses.Pending) return;
+        // Cho phép xác nhận từ pending hoặc holding (còn hạn). Trạng thái khác thì bỏ qua.
+        if (booking.status != BookingStatuses.Pending && booking.status != BookingStatuses.Holding)
+            return;
+
+        // Giữ chỗ đã quá hạn -> không cho thanh toán (worker sẽ/đã tự huỷ).
+        if (booking.status == BookingStatuses.Holding
+            && booking.hold_expired_at != null
+            && booking.hold_expired_at <= DateTime.UtcNow)
+            throw new AppException(ErrorCode.HoldExpired, ErrorCode.Messages.HoldExpired);
 
         booking.status = BookingStatuses.Confirmed;
+        booking.hold_expired_at = null; // đã xác nhận, không còn thời hạn giữ
         booking.updated_at = DateTime.UtcNow;
         await _repo.SaveChangesAsync(ct);
 

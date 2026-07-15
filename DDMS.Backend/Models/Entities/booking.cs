@@ -33,6 +33,17 @@ public partial class booking
 
     public string? cancel_reason { get; set; }
 
+    /// <summary>
+    /// Thời điểm hết hạn giữ chỗ. Có giá trị khi status = holding;
+    /// null với booking không đi qua bước giữ chỗ. Quá hạn thì worker tự huỷ.
+    /// </summary>
+    public DateTime? hold_expired_at { get; set; }
+
+    /// <summary>
+    /// Đã gửi email nhắc sắp hết hạn giữ chỗ chưa (chống gửi trùng, dùng cho B2B).
+    /// </summary>
+    public bool hold_reminder_sent { get; set; }
+
     public DateTime created_at { get; set; }
 
     public DateTime updated_at { get; set; }

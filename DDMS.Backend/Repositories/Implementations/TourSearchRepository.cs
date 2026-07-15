@@ -64,9 +64,16 @@ public class TourSearchRepository : ITourSearchRepository
 
         var schedules = await query.ToListAsync(cancellationToken);
         var scheduleIds = schedules.Select(x => x.id).ToList();
+        var now = DateTime.UtcNow;
+        // Ghế coi là ĐÃ ĐẶT (trừ khỏi chỗ trống) khi: chưa huỷ,
+        // VÀ nếu là giữ chỗ (holding) thì phải chưa hết hạn (hold_expired_at > now).
+        // Hold quá hạn tự động được coi là trống ngay, không cần chờ worker huỷ.
         var bookings = await _db.bookings
             .AsNoTracking()
-            .Where(x => scheduleIds.Contains(x.schedule_id) && x.status != "cancelled")
+            .Where(x => scheduleIds.Contains(x.schedule_id)
+                && x.status != BookingStatuses.Cancelled
+                && (x.status != BookingStatuses.Holding
+                    || (x.hold_expired_at != null && x.hold_expired_at > now)))
             .GroupBy(x => x.schedule_id)
             .Select(x => new { schedule_id = x.Key, total_people = x.Sum(y => y.num_people) })
             .ToListAsync(cancellationToken);

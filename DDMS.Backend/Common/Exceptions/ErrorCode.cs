@@ -46,6 +46,8 @@ public static class ErrorCode
     public const int BoatBlockedCompliance = 1516;
     public const int CertificateTypeNotFound = 1517;
     public const int CertificateTypeCodeExists = 1518;
+    public const int HoldNotAllowed = 1519;
+    public const int HoldExpired = 1520;
 
     public const int OwnerDocumentTypeRequired = 1520;
     public const int OwnerDocumentRequired = 1521;
@@ -175,6 +177,8 @@ public static class ErrorCode
         public const string BoatBlockedCompliance = "Tàu bị khóa do vi phạm tuân thủ pháp lý.";
         public const string CertificateTypeNotFound = "Không tìm thấy loại giấy tờ.";
         public const string CertificateTypeCodeExists = "Mã loại giấy tờ đã tồn tại.";
+        public const string HoldNotAllowed = "Tour khởi hành quá gần, không thể giữ chỗ. Vui lòng thanh toán ngay.";
+        public const string HoldExpired = "Chỗ giữ đã hết hạn, vui lòng đặt lại.";
 
         public const string OwnerDocumentTypeRequired = "Loại giấy tờ chủ thuyền là bắt buộc.";
         public const string OwnerDocumentRequired = "Thiếu giấy tờ bắt buộc của chủ thuyền.";

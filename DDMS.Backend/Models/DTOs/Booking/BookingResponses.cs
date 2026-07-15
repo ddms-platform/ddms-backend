@@ -8,6 +8,9 @@ public class BookingResponse
     public decimal TotalPrice { get; set; }
     public string Status { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>Thời điểm hết hạn giữ chỗ (chỉ có khi Status = holding) — FE dùng vẽ đồng hồ đếm ngược.</summary>
+    public DateTime? HoldExpiredAt { get; set; }
 }
 
 public class UserBookingListItemResponse

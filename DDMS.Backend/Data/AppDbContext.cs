@@ -551,6 +551,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.cabin_price).HasPrecision(12, 2);
             entity.Property(e => e.cancel_reason).HasColumnType("text");
             entity.Property(e => e.cancelled_at).HasMaxLength(6);
+            entity.Property(e => e.hold_expired_at).HasMaxLength(6);
+            entity.Property(e => e.hold_reminder_sent).HasDefaultValue(false);
+            entity.HasIndex(e => e.hold_expired_at, "idx_bookings_hold_expired");
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");

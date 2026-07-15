@@ -5,6 +5,9 @@ namespace DDMS.Backend.Repositories.Interfaces;
 public interface IBookingRepository
 {
     Task<tour_schedule?> FindScheduleWithTourAsync(Guid scheduleId, CancellationToken ct);
+    Task<bool> UserHasRoleAsync(Guid userId, string roleName, CancellationToken ct);
+    Task<int> CancelExpiredHoldsAsync(DateTime now, string reason, CancellationToken ct);
+    Task<List<booking>> GetHoldsNeedingReminderAsync(DateTime now, DateTime remindBefore, string agentRole, CancellationToken ct);
     Task<tour_schedule?> FindScheduleWithCabinsAsync(Guid scheduleId, CancellationToken ct);
     Task<Dictionary<Guid, int>> GetBookedCabinQuantitiesAsync(Guid scheduleId, CancellationToken ct);
     Task<bool> HasActiveBookingForTourDateAsync(
