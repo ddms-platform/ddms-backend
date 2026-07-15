@@ -10,7 +10,7 @@ namespace DDMS.Backend.Services.Implementations;
 
 public class AdminUserService : IAdminUserService
 {
-    private static readonly HashSet<string> AllowedRoles = ["admin", "owner", "user"];
+    private static readonly HashSet<string> AllowedRoles = ["admin", "owner", "user", "agent"];
 
     private readonly IAdminUserRepository _adminUserRepository;
     private readonly IUserRepository _userRepository;
