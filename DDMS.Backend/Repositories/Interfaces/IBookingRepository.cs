@@ -8,6 +8,14 @@ public interface IBookingRepository
     Task<bool> UserHasRoleAsync(Guid userId, string roleName, CancellationToken ct);
     Task<int> CancelExpiredHoldsAsync(DateTime now, string reason, CancellationToken ct);
     Task<List<booking>> GetHoldsNeedingReminderAsync(DateTime now, DateTime remindBefore, string agentRole, CancellationToken ct);
+    Task<tour_schedule?> FindScheduleWithCabinsAsync(Guid scheduleId, CancellationToken ct);
+    Task<Dictionary<Guid, int>> GetBookedCabinQuantitiesAsync(Guid scheduleId, CancellationToken ct);
+    Task<bool> HasActiveBookingForTourDateAsync(
+        Guid userId,
+        Guid tourId,
+        DateTime startOfDay,
+        DateTime endOfDay,
+        CancellationToken ct);
     void AddBooking(booking entity);
     void AddBookingCabin(booking_cabin entity);
     void AddBookingService(booking_service entity);
@@ -15,5 +23,7 @@ public interface IBookingRepository
     Task<booking?> FindUserBookingAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithScheduleAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithDetailsAsync(Guid id, Guid userId, CancellationToken ct);
+    Task<booking?> FindBookingForCheckInByIdAsync(Guid id, CancellationToken ct);
+    Task<booking?> FindBookingForCheckInByCodeAsync(string codePrefix, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }

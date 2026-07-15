@@ -62,6 +62,10 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
         if (end <= start)
             throw new AppException(ErrorCode.UncategorizedError, "Thời gian kết thúc phải sau thời gian bắt đầu!");
 
+        if (await _repo.HasTourScheduleOverlapAsync(ownerId, req.TourId, start, end, ct))
+            throw new AppException(ErrorCode.UncategorizedError,
+                "Tour này đã có lịch trình trong khoảng thời gian đã chọn. Vui lòng chọn thời gian khác!");
+
         if (await _repo.HasScheduleOverlapAsync(req.BoatId, start, end, ct))
             throw new AppException(ErrorCode.UncategorizedError,
                 "Thuyền này đã có lịch trình khác trùng thời gian trong khoảng này!");
@@ -95,7 +99,7 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
         if (string.Equals(req.Status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
         {
             booking.cancelled_at = now;
-            booking.cancel_reason = req.CancelReason ?? "Hủy bởi chủ tàu (Hoàn tiền tự động)";
+            booking.cancel_reason = req.CancelReason ?? BookingStatuses.CancelReasonOwnerCancelled;
             if (wasPaid) await RefundToWalletAsync(booking.user_id, booking.total_price, ct);
         }
 

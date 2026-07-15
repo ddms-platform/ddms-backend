@@ -4,6 +4,7 @@ using DDMS.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DDMS.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713151809_AllowCheckedInBookingStatusConstraint")]
+    partial class AllowCheckedInBookingStatusConstraint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -593,15 +596,6 @@ namespace DDMS.Backend.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
-                    b.Property<DateTime?>("hold_expired_at")
-                        .HasMaxLength(6)
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("hold_reminder_sent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("notes")
                         .HasColumnType("text");
 
@@ -647,8 +641,6 @@ namespace DDMS.Backend.Migrations
 
                     b.HasIndex(new[] { "created_at" }, "idx_bookings_created")
                         .IsDescending();
-
-                    b.HasIndex(new[] { "hold_expired_at" }, "idx_bookings_hold_expired");
 
                     b.HasIndex(new[] { "schedule_id" }, "idx_bookings_sched");
 
@@ -1581,7 +1573,7 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(5221),
+                            created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(1318),
                             icon_code = "Settings",
                             name = "Bảo trì định kỳ",
                             price = 1200000m
@@ -1589,14 +1581,14 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6388),
+                            created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2434),
                             icon_code = "AlertTriangle",
                             name = "Sửa chữa khẩn cấp"
                         },
                         new
                         {
                             id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6394),
+                            created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2438),
                             icon_code = "User",
                             name = "Vệ sinh thân tàu",
                             price = 500000m
@@ -1604,7 +1596,7 @@ namespace DDMS.Backend.Migrations
                         new
                         {
                             id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            created_at = new DateTime(2026, 7, 2, 12, 43, 33, 104, DateTimeKind.Utc).AddTicks(6396),
+                            created_at = new DateTime(2026, 6, 12, 3, 17, 35, 872, DateTimeKind.Utc).AddTicks(2440),
                             icon_code = "Zap",
                             name = "Kiểm tra hệ thống điện",
                             price = 300000m

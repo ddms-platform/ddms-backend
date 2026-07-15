@@ -207,6 +207,19 @@ CALL AddIndexIfNotExists('wallet_withdrawals', 'IX_wallet_withdrawals_user_id', 
 -- 11. Add status column to promotions table
 CALL AddColumnIfNotExists('promotions', 'status', "varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'approved'");
 
+-- 12. Allow checked_in in bookings status check constraint (QR kiosk check-in)
+ALTER TABLE `bookings` DROP CHECK `chk_booking_status`;
+ALTER TABLE `bookings`
+ADD CONSTRAINT `chk_booking_status`
+CHECK (`status` IN (
+    'pending',
+    'confirmed',
+    'paid',
+    'completed',
+    'cancelled',
+    'checked_in'
+));
+
 -- Clean up helper stored procedures
 DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
 DROP PROCEDURE IF EXISTS AddIndexIfNotExists;

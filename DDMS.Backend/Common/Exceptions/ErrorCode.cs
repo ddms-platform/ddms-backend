@@ -63,6 +63,15 @@ public static class ErrorCode
     public const int WithdrawBankInfoRequired = 1703;
     public const int WithdrawInsufficientBalance = 1704;
 
+    public const int BookingCheckInPending = 1800;
+    public const int BookingCheckInCompleted = 1801;
+    public const int BookingCheckInNotEligible = 1802;
+    public const int BookingCheckInInvalidCode = 1803;
+    public const int BookingCheckInNotFound = 1804;
+    public const int BookingCheckInAlreadyCheckedIn = 1805;
+    public const int BookingCheckInOwnerCancelled = 1806;
+    public const int BookingCheckInCancelled = 1807;
+
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
     public const int TourCancelPolicyInvalid = 2102;
@@ -184,6 +193,16 @@ public static class ErrorCode
         public const string WithdrawAmountInvalid = "Số tiền rút phải lớn hơn 0.";
         public const string WithdrawBankInfoRequired = "Vui lòng nhập đầy đủ thông tin ngân hàng.";
         public const string WithdrawInsufficientBalance = "Số dư ví không đủ để thực hiện giao dịch.";
+
+        public const string BookingCheckInPending = "Vé chưa thanh toán hoặc chưa được xác nhận.";
+        public const string BookingCheckInCompleted = "Vé đã hoàn thành, không thể check-in.";
+        public const string BookingCheckInNotEligible = "Vé không đủ điều kiện check-in.";
+        public const string BookingCheckInInvalidCode = "Mã vé không hợp lệ.";
+        public const string BookingCheckInNotFound = "Không tìm thấy vé tương ứng với mã QR.";
+        public const string BookingCheckInAlreadyCheckedIn = "Vé đã được check-in trước đó.";
+        public const string BookingCheckInOwnerCancelled = "Vé đã bị chủ tour hủy, không thể check-in.";
+        public const string BookingCheckInCancelled = "Vé đã bị hủy, không thể check-in.";
+
         public const string DockScheduleOverlap = "Dock schedule overlap";
 
         public const string CannotModifySelf = "Cannot modify your own account";

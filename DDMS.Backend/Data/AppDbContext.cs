@@ -1345,10 +1345,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");
 
-            entity.Property(e => e.owner_id)
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_unicode_ci");
-            
+            entity.Property(e => e.owner_id);
             entity.HasOne(d => d.owner)
                 .WithMany()
                 .HasForeignKey(d => d.owner_id)
@@ -1360,11 +1357,9 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id);
             entity.Property(e => e.id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
+                .HasColumnType("char(36)");
             entity.Property(e => e.user_id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
+                .HasColumnType("char(36)");
             entity.Property(e => e.balance).HasPrecision(12, 2);
             entity.Property(e => e.created_at).HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
             entity.Property(e => e.updated_at).HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
@@ -1378,11 +1373,9 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id);
             entity.Property(e => e.id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
+                .HasColumnType("char(36)");
             entity.Property(e => e.user_id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
+                .HasColumnType("char(36)");
             entity.Property(e => e.amount).HasPrecision(12, 2);
             entity.Property(e => e.bank_name).HasMaxLength(100);
             entity.Property(e => e.account_number).HasMaxLength(50);

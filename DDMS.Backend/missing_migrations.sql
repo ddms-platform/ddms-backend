@@ -1,0 +1,51 @@
+﻿START TRANSACTION;
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:41:39'
+WHERE `id` = '11111111-1111-1111-1111-111111111111';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:41:39'
+WHERE `id` = '22222222-2222-2222-2222-222222222222';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:41:39'
+WHERE `id` = '33333333-3333-3333-3333-333333333333';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:41:39'
+WHERE `id` = '44444444-4444-4444-4444-444444444444';
+SELECT ROW_COUNT();
+
+
+INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+VALUES ('20260702124140_UpdateUserModel', '9.0.0');
+
+ALTER TABLE users ADD COLUMN address VARCHAR(500) NULL;
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:43:33'
+WHERE `id` = '11111111-1111-1111-1111-111111111111';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:43:33'
+WHERE `id` = '22222222-2222-2222-2222-222222222222';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:43:33'
+WHERE `id` = '33333333-3333-3333-3333-333333333333';
+SELECT ROW_COUNT();
+
+
+UPDATE `port_maintenance_service` SET `created_at` = TIMESTAMP '2026-07-02 12:43:33'
+WHERE `id` = '44444444-4444-4444-4444-444444444444';
+SELECT ROW_COUNT();
+
+
+INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+VALUES ('20260702124333_ManualAddAddress', '9.0.0');
+
+COMMIT;
+

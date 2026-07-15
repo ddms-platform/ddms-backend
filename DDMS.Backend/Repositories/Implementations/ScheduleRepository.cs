@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -126,5 +126,13 @@ public class ScheduleRepository : IScheduleRepository
     {
         _dbContext.tour_schedules.Update(entity);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public Task<List<booking>> GetActiveBookingsForScheduleAsync(Guid scheduleId, CancellationToken ct)
+    {
+        return _dbContext.bookings
+            .Include(b => b.user)
+            .Where(b => b.schedule_id == scheduleId && b.status != "cancelled")
+            .ToListAsync(ct);
     }
 }

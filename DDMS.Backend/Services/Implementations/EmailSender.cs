@@ -831,4 +831,72 @@ public class EmailSender : IEmailSender
 </body>
 </html>";
     }
+
+    public async Task SendScheduleChangeEmailAsync(
+        string toEmail,
+        string customerName,
+        string bookingId,
+        string tourName,
+        DateTime oldTime,
+        DateTime newTime)
+    {
+        var subject = $"DDMS - Thay đổi lịch trình tour [{bookingId}]";
+        var oldTimeStr = oldTime.ToString("HH:mm dd/MM/yyyy");
+        var newTimeStr = newTime.ToString("HH:mm dd/MM/yyyy");
+        var body = $@"<!DOCTYPE html>
+<html lang=""vi"">
+<head>
+  <meta charset=""utf-8"" />
+</head>
+<body style=""margin:0;padding:0;background-color:#f4f6fb;font-family:Segoe UI,Roboto,Arial,sans-serif;"">
+  <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f6fb;padding:32px 0;"">
+    <tr>
+      <td align=""center"">
+        <table role=""presentation"" width=""560"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,25,47,0.08);"">
+          <tr>
+            <td style=""background:linear-gradient(135deg,#0A192F 0%,#112240 60%,#0d2847 100%);padding:32px;text-align:center;"">
+              <h1 style=""margin:0;color:#00F0FF;font-size:22px;letter-spacing:-0.3px;"">DDMS</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style=""padding:36px 40px 8px;"">
+              <p style=""margin:0 0 16px;color:#0A192F;font-size:16px;"">Kính chào {customerName},</p>
+              <p style=""margin:0 0 20px;color:#3c4858;font-size:15px;line-height:1.6;"">
+                Chúng tôi xin thông báo lịch khởi hành của tour <strong>{tourName}</strong> (Mã đặt chỗ: <strong>#{bookingId}</strong>) đã thay đổi vì lý do bất khả kháng (thời tiết/kỹ thuật).
+              </p>
+              
+              <div style=""background-color:#fff2e8;border:1px solid #ffd591;padding:16px;border-radius:8px;margin-bottom:24px;text-align:left;"">
+                <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""font-size:14px;color:#3c4858;"">
+                  <tr>
+                    <td style=""padding:6px 0;color:#fa8c16;font-weight:bold;width:150px;"">Giờ khởi hành CŨ:</td>
+                    <td style=""padding:6px 0;text-decoration:line-through;color:#8c8c8c;"">{oldTimeStr}</td>
+                  </tr>
+                  <tr>
+                    <td style=""padding:6px 0;color:#52c41a;font-weight:bold;width:150px;"">Giờ khởi hành MỚI:</td>
+                    <td style=""padding:6px 0;color:#237804;font-weight:bold;font-size:16px;"">{newTimeStr}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <p style=""margin:0 0 24px;color:#3c4858;font-size:15px;line-height:1.6;"">
+                Rất mong bạn thông cảm cho sự bất tiện này. Quý khách vui lòng có mặt tại bến cảng trước giờ khởi hành mới ít nhất 15 phút để làm thủ tục.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style=""background-color:#f8fafc;padding:24px 40px;text-align:center;"">
+              <p style=""margin:0;color:#8a94a6;font-size:13px;line-height:1.6;"">
+                Trân trọng,<br />Đội ngũ phát triển hệ thống DDMS
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>";
+
+        await SendHtmlEmailAsync(toEmail, subject, body, "Schedule Change Notice", "");
+    }
 }

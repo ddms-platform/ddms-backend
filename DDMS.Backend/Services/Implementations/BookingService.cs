@@ -36,6 +36,41 @@ public class BookingService : IBookingService
         if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
             throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
 
+        var scheduleDayStart = schedule.start_time.Date;
+        var scheduleDayEnd = scheduleDayStart.AddDays(1);
+        var alreadyBooked = await _repo.HasActiveBookingForTourDateAsync(
+            userId,
+            schedule.tour_id,
+            scheduleDayStart,
+            scheduleDayEnd,
+            ct);
+
+        if (alreadyBooked)
+            throw new AppException(
+                ErrorCode.UncategorizedError,
+                "Bạn đã đặt tour này trong ngày đã chọn. Vui lòng chọn ngày khác hoặc hủy đơn cũ trước khi đặt lại.");
+
+        var requestedCabins = request.Cabins ?? new List<CreateBookingCabinRequest>();
+        if (requestedCabins.Count > 0)
+        {
+            var scheduleWithCabins = await _repo.FindScheduleWithCabinsAsync(request.ScheduleId, ct)
+                ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+            var cabinsById = scheduleWithCabins.boat?.boat_cabins.ToDictionary(c => c.id)
+                ?? new Dictionary<Guid, boat_cabin>();
+            var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(request.ScheduleId, ct);
+
+            foreach (var requested in requestedCabins.GroupBy(c => c.CabinId))
+            {
+                if (!cabinsById.TryGetValue(requested.Key, out var cabin))
+                    throw new AppException(ErrorCode.ResourceNotFound, "Cabin không thuộc lịch trình đã chọn.");
+
+                var requestedQuantity = requested.Sum(c => c.Quantity);
+                var bookedQuantity = bookedByCabin.GetValueOrDefault(requested.Key);
+                if (requestedQuantity <= 0 || bookedQuantity + requestedQuantity > cabin.total_rooms)
+                    throw new AppException(ErrorCode.UncategorizedError, "Cabin này đã hết chỗ. Vui lòng chọn cabin khác.");
+            }
+        }
+
         var now = DateTime.UtcNow;
         var booking = new booking
         {
@@ -211,6 +246,39 @@ public class BookingService : IBookingService
         return sent;
     }
 
+    public async Task<List<CabinAvailabilityResponse>> GetCabinAvailabilityAsync(Guid scheduleId, CancellationToken ct)
+    {
+        var schedule = await _repo.FindScheduleWithCabinsAsync(scheduleId, ct)
+            ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+
+        if (schedule.boat == null)
+        {
+            return new List<CabinAvailabilityResponse>();
+        }
+
+        var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(scheduleId, ct);
+
+        return schedule.boat.boat_cabins
+            .OrderBy(c => c.name)
+            .Select(c =>
+            {
+                var bookedRooms = bookedByCabin.GetValueOrDefault(c.id);
+                var availableRooms = Math.Max(c.total_rooms - bookedRooms, 0);
+
+                return new CabinAvailabilityResponse
+                {
+                    CabinId = c.id,
+                    CabinName = c.name,
+                    Capacity = c.capacity,
+                    Price = c.price,
+                    TotalRooms = c.total_rooms,
+                    BookedRooms = Math.Min(bookedRooms, c.total_rooms),
+                    AvailableRooms = availableRooms
+                };
+            })
+            .ToList();
+    }
+
     public async Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct)
     {
         var bookings = await _repo.GetUserBookingsAsync(userId, ct);
@@ -323,6 +391,62 @@ public class BookingService : IBookingService
         };
     }
 
+    public async Task<CheckInBookingResponse> CheckInAsync(CheckInBookingRequest request, CancellationToken ct)
+    {
+        var raw = (request.BookingCode ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new AppException(ErrorCode.BookingCheckInInvalidCode, ErrorCode.Messages.BookingCheckInInvalidCode);
+
+        booking? booking = null;
+        if (Guid.TryParse(raw, out var bookingId))
+            booking = await _repo.FindBookingForCheckInByIdAsync(bookingId, ct);
+        else
+        {
+            var code = raw.Length > 8 ? raw[..8] : raw;
+            booking = await _repo.FindBookingForCheckInByCodeAsync(code, ct);
+        }
+
+        if (booking == null)
+            throw new NotFoundException(ErrorCode.BookingCheckInNotFound, ErrorCode.Messages.BookingCheckInNotFound);
+
+        if (string.Equals(booking.status, BookingStatuses.CheckedIn, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.BookingCheckInAlreadyCheckedIn, ErrorCode.Messages.BookingCheckInAlreadyCheckedIn);
+
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+        {
+            if (BookingStatuses.IsOwnerCancelled(booking.cancel_reason))
+                throw new AppException(ErrorCode.BookingCheckInOwnerCancelled, ErrorCode.Messages.BookingCheckInOwnerCancelled);
+            throw new AppException(ErrorCode.BookingCheckInCancelled, ErrorCode.Messages.BookingCheckInCancelled);
+        }
+
+        if (!BookingStatuses.CanCheckIn(booking.status))
+        {
+            if (string.Equals(booking.status, BookingStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInPending, ErrorCode.Messages.BookingCheckInPending);
+            if (string.Equals(booking.status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase))
+                throw new AppException(ErrorCode.BookingCheckInCompleted, ErrorCode.Messages.BookingCheckInCompleted);
+            throw new AppException(ErrorCode.BookingCheckInNotEligible, ErrorCode.Messages.BookingCheckInNotEligible);
+        }
+
+        var now = DateTime.UtcNow;
+        booking.status = BookingStatuses.CheckedIn;
+        booking.updated_at = now;
+        await _repo.SaveChangesAsync(ct);
+
+        return new CheckInBookingResponse
+        {
+            BookingId = booking.id,
+            BookingCode = BookingStatuses.ToBookingCode(booking.id),
+            CustomerName = booking.user.full_name ?? booking.user.email,
+            TourName = booking.schedule.tour.name,
+            BoatName = booking.schedule.boat?.name ?? "N/A",
+            NumPeople = booking.num_people,
+            DepartureTime = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy"),
+            Status = booking.status,
+            CheckedInAt = now
+        };
+    }
+
     private async Task RefundToWalletAsync(Guid userId, decimal amount, CancellationToken ct)
     {
         var wallet = await _wallets.FindAsync(userId, ct);
@@ -365,6 +489,8 @@ public class BookingService : IBookingService
             Guests = b.num_people,
             TotalPrice = (double)b.total_price,
             Status = BookingStatuses.ToFrontendStatus(b.status),
+            BookingCode = BookingStatuses.ToBookingCode(b.id),
+            CanShowCheckInQr = BookingStatuses.CanShowCheckInQr(b.status),
             CreatedAt = b.created_at.ToString("o")
         };
     }

@@ -1,4 +1,5 @@
 ﻿using DDMS.Backend.Common.Responses;
+using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace DDMS.Backend.Controllers;
 public class PublicToursController : ControllerBase
 {
     private readonly IPublicTourCatalogService _catalogService;
+    private readonly IBookingService _bookingService;
 
-    public PublicToursController(IPublicTourCatalogService catalogService)
+    public PublicToursController(IPublicTourCatalogService catalogService, IBookingService bookingService)
     {
         _catalogService = catalogService;
+        _bookingService = bookingService;
     }
 
     [HttpGet("{tourId:guid}")]
@@ -40,5 +43,16 @@ public class PublicToursController : ControllerBase
     {
         var result = await _catalogService.GetTourFaqsAsync(tourId);
         return Ok(ApiResponse<List<FaqItemResponse>>.Ok(result));
+    }
+
+    /// <summary>Check-in vé điện tử qua mã QR (Kiosk cảng).</summary>
+    [HttpPut("bookings/check-in")]
+    [ProducesResponseType(typeof(ApiResponse<CheckInBookingResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CheckInBooking([FromBody] CheckInBookingRequest request, CancellationToken ct)
+    {
+        var result = await _bookingService.CheckInAsync(request, ct);
+        return Ok(ApiResponse<CheckInBookingResponse>.Ok(result));
     }
 }

@@ -12,6 +12,7 @@ public interface IOwnerToursDashboardRepository
 
     Task<boat?> FindOwnerBoatAsync(Guid boatId, Guid ownerId, CancellationToken ct);
     Task<tour?> FindTourAsync(Guid tourId, CancellationToken ct);
+    Task<bool> HasTourScheduleOverlapAsync(Guid ownerId, Guid tourId, DateTime start, DateTime end, CancellationToken ct);
     Task<bool> HasScheduleOverlapAsync(Guid boatId, DateTime start, DateTime end, CancellationToken ct);
     void AddSchedule(tour_schedule schedule);
 
