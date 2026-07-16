@@ -4,10 +4,12 @@ public static class TourConstants
 {
     public static class Statuses
     {
+        public const string Pending = "pending";
         public const string Active = "active";
         public const string Inactive = "inactive";
+        public const string Rejected = "rejected";
 
-        public static readonly HashSet<string> Allowed = [Active, Inactive];
+        public static readonly HashSet<string> Allowed = [Pending, Active, Inactive, Rejected];
     }
 
     public static class CancelPolicies

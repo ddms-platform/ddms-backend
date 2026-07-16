@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.DTOs.TourSearch;
 using FluentValidation;
 
@@ -16,8 +17,8 @@ public class TourSearchRequestValidator : AbstractValidator<TourSearchRequest>
             .When(x => x.min_price.HasValue && x.max_price.HasValue);
 
         RuleFor(x => x.status)
-            .Must(s => s is null or "active" or "inactive")
-            .WithMessage("Status must be active or inactive");
+            .Must(s => string.IsNullOrWhiteSpace(s) || TourConstants.Statuses.Allowed.Contains(s.Trim().ToLowerInvariant()))
+            .WithMessage("Status must be pending, active, inactive or rejected");
 
         RuleFor(x => x.sort_by)
             .Must(s => s is null or "price" or "rating")

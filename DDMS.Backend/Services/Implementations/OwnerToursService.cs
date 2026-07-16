@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
@@ -69,7 +69,7 @@ public class OwnerToursService : IOwnerToursService
             description = NormalizeOptional(request.description),
             duration_minutes = request.durationMinutes,
             location = NormalizeOptional(request.location),
-            status = TourConstants.Statuses.Active,
+            status = TourConstants.Statuses.Pending,
             cancel_policy = cancelPolicy,
             cancel_hours = cancelHours,
             created_by = userId,

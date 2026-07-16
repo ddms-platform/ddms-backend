@@ -37,6 +37,6 @@
   <data name="TourSearchPriceRangeInvalid" xml:space="preserve"><value>Minimum price must be less than or equal to maximum price</value></data>
   <data name="TourSearchSortInvalid" xml:space="preserve"><value>Sort by must be price or rating</value></data>
   <data name="TourSearchSortOrderInvalid" xml:space="preserve"><value>Sort order must be asc or desc</value></data>
-  <data name="TourStatusInvalid" xml:space="preserve"><value>Tour status must be active or inactive</value></data>
+  <data name="TourStatusInvalid" xml:space="preserve"><value>Tour status must be pending, active, inactive, or rejected</value></data>
   <data name="TourValidationFailed" xml:space="preserve"><value>Validation failed</value></data>
 </root>

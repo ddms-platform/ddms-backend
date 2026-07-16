@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Tour;
 using DDMS.Backend.Models.Entities;
@@ -8,7 +9,7 @@ namespace DDMS.Backend.Services.Implementations;
 
 public class TourService : ITourService
 {
-    private static readonly HashSet<string> ValidStatus = ["active", "inactive"];
+    private static readonly HashSet<string> ValidStatus = TourConstants.Statuses.Allowed;
     private readonly ITourRepository _tourRepository;
 
     public TourService(ITourRepository tourRepository)
@@ -26,7 +27,7 @@ public class TourService : ITourService
             description = request.description,
             duration_minutes = request.duration_minutes,
             location = request.location,
-            status = request.status,
+            status = NormalizeStatus(request.status),
             cancel_policy = request.cancel_policy,
             cancel_hours = request.cancel_hours,
             avg_rating = 0,
@@ -50,7 +51,7 @@ public class TourService : ITourService
         currentTour.description = request.description;
         currentTour.duration_minutes = request.duration_minutes;
         currentTour.location = request.location;
-        currentTour.status = request.status;
+        currentTour.status = NormalizeStatus(request.status);
         currentTour.cancel_policy = request.cancel_policy;
         currentTour.cancel_hours = request.cancel_hours;
         currentTour.updated_at = DateTime.UtcNow;
@@ -79,13 +80,22 @@ public class TourService : ITourService
 
     public async Task<List<TourResponse>> GetListAsync(TourFilterRequest request, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(request.status) && !ValidStatus.Contains(request.status))
+        var normalizedStatus = string.IsNullOrWhiteSpace(request.status)
+            ? null
+            : request.status.Trim().ToLowerInvariant();
+
+        if (normalizedStatus is not null && !ValidStatus.Contains(normalizedStatus))
         {
             throw new AppException(ErrorCode.TourInvalidStatus, ErrorCode.Messages.TourInvalidStatus);
         }
 
-        var tours = await _tourRepository.GetListAsync(request.status, request.location, cancellationToken);
+        var tours = await _tourRepository.GetListAsync(normalizedStatus, request.location, cancellationToken);
         return tours.Select(MapTour).ToList();
+    }
+
+    private static string NormalizeStatus(string status)
+    {
+        return status.Trim().ToLowerInvariant();
     }
 
     private static TourResponse MapTour(tour source)
