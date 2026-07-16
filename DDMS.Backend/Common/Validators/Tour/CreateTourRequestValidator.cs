@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.DTOs.Tour;
 using FluentValidation;
 
@@ -5,7 +6,7 @@ namespace DDMS.Backend.Common.Validators.Tour;
 
 public class CreateTourRequestValidator : AbstractValidator<CreateTourRequest>
 {
-    private static readonly string[] ValidStatus = ["active", "inactive"];
+    private static readonly string[] ValidStatus = [.. TourConstants.Statuses.Allowed];
     private static readonly string[] ValidCancelPolicy = ["free", "partial", "no_refund"];
 
     public CreateTourRequestValidator()
@@ -22,8 +23,8 @@ public class CreateTourRequestValidator : AbstractValidator<CreateTourRequest>
 
         RuleFor(x => x.status)
             .NotEmpty()
-            .Must(s => ValidStatus.Contains(s))
-            .WithMessage("Status must be active or inactive");
+            .Must(s => ValidStatus.Contains(s?.Trim().ToLowerInvariant() ?? string.Empty))
+            .WithMessage("Status must be pending, active, inactive or rejected");
 
         RuleFor(x => x.cancel_policy)
             .NotEmpty()
@@ -49,7 +50,7 @@ public class TourFilterRequestValidator : AbstractValidator<TourFilterRequest>
     public TourFilterRequestValidator()
     {
         RuleFor(x => x.status)
-            .Must(s => s is null or "active" or "inactive")
-            .WithMessage("Status must be active or inactive");
+            .Must(s => string.IsNullOrWhiteSpace(s) || TourConstants.Statuses.Allowed.Contains(s.Trim().ToLowerInvariant()))
+            .WithMessage("Status must be pending, active, inactive or rejected");
     }
 }

@@ -37,6 +37,6 @@
   <data name="TourSearchPriceRangeInvalid" xml:space="preserve"><value>Giá tối thiểu phải nhỏ hơn hoặc bằng giá tối đa</value></data>
   <data name="TourSearchSortInvalid" xml:space="preserve"><value>Sắp xếp theo phải là price hoặc rating</value></data>
   <data name="TourSearchSortOrderInvalid" xml:space="preserve"><value>Thứ tự sắp xếp phải là asc hoặc desc</value></data>
-  <data name="TourStatusInvalid" xml:space="preserve"><value>Trạng thái tour phải là active hoặc inactive</value></data>
+  <data name="TourStatusInvalid" xml:space="preserve"><value>Trạng thái tour phải là pending, active, inactive hoặc rejected</value></data>
   <data name="TourValidationFailed" xml:space="preserve"><value>Xác thực thất bại</value></data>
 </root>
