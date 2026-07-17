@@ -1,8 +1,8 @@
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 namespace DDMS.Backend.Configurations;
 
