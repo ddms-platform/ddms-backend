@@ -272,4 +272,63 @@ public class BoatRepository : IBoatRepository
             monthlyProfits = monthlyProfits
         };
     }
+
+    public Task<tour?> GetTourForBoatOwnerAsync(Guid boatId, Guid tourId, Guid ownerId)
+    {
+        return _dbContext.tours
+            .Include(t => t.faqs)
+            .Include(t => t.routes)
+            .Include(t => t.tour_images)
+            .Include(t => t.wishlists)
+            .Include(t => t.reviews)
+            .Include(t => t.tour_schedules).ThenInclude(ts => ts.bookings)
+            .FirstOrDefaultAsync(t => t.id == tourId && t.tour_schedules.Any(ts =>
+                ts.boat_id == boatId && ts.boat != null && ts.boat.owner_id == ownerId));
+    }
+
+    public Task<boat_service?> GetBoatServiceForOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId)
+    {
+        return _dbContext.boat_services
+            .Include(s => s.booking_services)
+            .FirstOrDefaultAsync(s => s.id == serviceId && s.boat_id == boatId && s.boat.owner_id == ownerId);
+    }
+
+    public async Task DetachTourFromBoatAsync(tour entity, Guid boatId)
+    {
+        var schedules = entity.tour_schedules.Where(ts => ts.boat_id == boatId).ToList();
+        var scheduleIds = schedules.Select(s => s.id).ToList();
+
+        var dockSchedules = await _dbContext.dock_schedules
+            .Where(d => d.schedule_id != null && scheduleIds.Contains(d.schedule_id.Value))
+            .ToListAsync();
+        _dbContext.dock_schedules.RemoveRange(dockSchedules);
+
+        // Conversations outlive the schedule they were started from, so unlink instead of deleting.
+        var conversations = await _dbContext.conversations
+            .Where(c => c.schedule_id != null && scheduleIds.Contains(c.schedule_id.Value))
+            .ToListAsync();
+        foreach (var conversation in conversations)
+            conversation.schedule_id = null;
+
+        _dbContext.tour_schedules.RemoveRange(schedules);
+
+        // The tour itself is shared, so only drop it once no other boat runs it.
+        if (entity.tour_schedules.All(ts => ts.boat_id == boatId))
+        {
+            _dbContext.faqs.RemoveRange(entity.faqs);
+            _dbContext.routes.RemoveRange(entity.routes);
+            _dbContext.tour_images.RemoveRange(entity.tour_images);
+            _dbContext.wishlists.RemoveRange(entity.wishlists);
+            _dbContext.reviews.RemoveRange(entity.reviews);
+            _dbContext.tours.Remove(entity);
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteBoatServiceAsync(boat_service entity)
+    {
+        _dbContext.boat_services.Remove(entity);
+        await _dbContext.SaveChangesAsync();
+    }
 }

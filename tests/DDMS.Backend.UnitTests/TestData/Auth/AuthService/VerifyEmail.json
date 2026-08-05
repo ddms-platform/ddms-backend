@@ -1,0 +1,23 @@
+[
+  {
+    "caseName": "UserNotFound_ThrowsInvalidCredentials",
+    "userExists": false,
+    "alreadyVerified": false,
+    "expectedException": "InvalidCredentials",
+    "expectedMessage": null
+  },
+  {
+    "caseName": "AlreadyVerified_ReturnsAlreadyVerifiedMessage",
+    "userExists": true,
+    "alreadyVerified": true,
+    "expectedException": null,
+    "expectedMessage": "Email is already verified"
+  },
+  {
+    "caseName": "FirstTimeVerify_ReturnsVerifiedMessage",
+    "userExists": true,
+    "alreadyVerified": false,
+    "expectedException": null,
+    "expectedMessage": "Email verified successfully"
+  }
+]
