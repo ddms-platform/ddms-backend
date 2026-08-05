@@ -85,6 +85,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<user_role> user_roles { get; set; }
 
+    public virtual DbSet<sos_alert> sos_alerts { get; set; }
+
     public virtual DbSet<v_booking_detail> v_booking_details { get; set; }
 
     public virtual DbSet<v_dashboard> v_dashboards { get; set; }
@@ -1386,6 +1388,24 @@ public partial class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(d => d.user_id)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<sos_alert>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+            entity.Property(e => e.latitude).HasPrecision(10, 7);
+            entity.Property(e => e.longitude).HasPrecision(10, 7);
+            entity.Property(e => e.status).HasMaxLength(20).HasDefaultValueSql("'ACTIVE'");
+            entity.Property(e => e.note).HasMaxLength(500);
+            entity.Property(e => e.created_at).HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.HasOne(d => d.user)
+                .WithMany()
+                .HasForeignKey(d => d.user_id)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(d => d.boat)
+                .WithMany()
+                .HasForeignKey(d => d.boat_id)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);

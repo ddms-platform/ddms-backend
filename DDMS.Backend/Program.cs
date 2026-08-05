@@ -204,6 +204,7 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISosService, SosService>();
 
 var app = builder.Build();
 
@@ -339,5 +340,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<BillingHub>("/hub/billing");
 app.MapHub<ChatHub>("/hub/chat");
+app.MapHub<SosHub>("/hub/sos");
 app.MapControllers();
 app.Run();
