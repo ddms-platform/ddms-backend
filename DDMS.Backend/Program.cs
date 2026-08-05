@@ -46,6 +46,7 @@ builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(C
 builder.Services.Configure<EmailVerificationOptions>(builder.Configuration.GetSection(EmailVerificationOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
+builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
 builder.Services.AddOptions<BillingOptions>()
     .Bind(builder.Configuration.GetSection(BillingOptions.SectionName))
     .ValidateDataAnnotations()
@@ -205,6 +206,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISosService, SosService>();
+builder.Services.AddHttpClient<IAiService, GeminiAiService>();
 
 var app = builder.Build();
 
