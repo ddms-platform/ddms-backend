@@ -12,6 +12,9 @@ public class BoatService : IBoatService
     private static readonly HashSet<string> AllowedStatuses = ["idle", "running"];
     private static readonly HashSet<string> AllowedTypes = ["catamaran", "fishing_boat", "speedboat", "cruiser", "yacht", "cruise", "luxury", "standard", "party"];
 
+    private const string ServiceHasBookingsMessage =
+        "Không thể xóa dịch vụ đã có khách đặt. Vui lòng hủy hoặc hoàn tất các booking liên quan trước.";
+
     private readonly IBoatRepository _boatRepository;
 
     public BoatService(IBoatRepository boatRepository)
@@ -180,6 +183,31 @@ public class BoatService : IBoatService
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền xóa");
 
         await _boatRepository.DeleteAsync(boat);
+    }
+
+    public async Task DeleteServiceByOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId)
+    {
+        _ = await _boatRepository.GetByIdAndOwnerAsync(boatId, ownerId)
+            ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền chỉnh sửa");
+
+        // A boat's service list mixes tours (scheduled on the boat) with boat_service addons.
+        var tour = await _boatRepository.GetTourForBoatOwnerAsync(boatId, serviceId, ownerId);
+        if (tour != null)
+        {
+            if (tour.tour_schedules.Any(ts => ts.boat_id == boatId && ts.bookings.Count > 0))
+                throw new ValidationException(ServiceHasBookingsMessage);
+
+            await _boatRepository.DetachTourFromBoatAsync(tour, boatId);
+            return;
+        }
+
+        var addon = await _boatRepository.GetBoatServiceForOwnerAsync(boatId, serviceId, ownerId)
+            ?? throw new NotFoundException("Dịch vụ không tồn tại hoặc không thuộc thuyền này");
+
+        if (addon.booking_services.Count > 0)
+            throw new ValidationException(ServiceHasBookingsMessage);
+
+        await _boatRepository.DeleteBoatServiceAsync(addon);
     }
 
     // ── Helpers ──────────────────────────────────────────────

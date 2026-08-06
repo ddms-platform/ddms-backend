@@ -20,4 +20,5 @@ public interface IBoatService
     Task<BoatDetailResponse> CreateByOwnerAsync(CreateBoatRequest request, Guid ownerId);
     Task<BoatDetailResponse> UpdateByOwnerAsync(Guid id, UpdateBoatRequest request, Guid ownerId);
     Task DeleteByOwnerAsync(Guid id, Guid ownerId);
+    Task DeleteServiceByOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId);
 }

@@ -18,4 +18,8 @@ public interface IBoatRepository
     Task<(List<boat> items, int total)> GetPagedByOwnerAsync(Guid ownerId, OwnerBoatListQuery query);
     Task<boat?> GetByIdAndOwnerAsync(Guid id, Guid ownerId);
     Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId);
+    Task<tour?> GetTourForBoatOwnerAsync(Guid boatId, Guid tourId, Guid ownerId);
+    Task<boat_service?> GetBoatServiceForOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId);
+    Task DetachTourFromBoatAsync(tour entity, Guid boatId);
+    Task DeleteBoatServiceAsync(boat_service entity);
 }

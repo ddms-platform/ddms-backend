@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/DDMS.Backend.Shared/DDMS.Backend.Shared.csproj" />
+    <Project Path="tests/DDMS.Backend.UnitTests/DDMS.Backend.UnitTests.csproj" />
+  </Folder>
+  <Project Path="DDMS.Backend/DDMS.Backend.csproj" />
+</Solution>

@@ -1,0 +1,50 @@
+[
+  {
+    "caseName": "ScheduleNotFound_ThrowsScheduleNotFound",
+    "scheduleExists": false,
+    "boatExists": false,
+    "hasCabin": false,
+    "totalRooms": 0,
+    "bookedRooms": 0,
+    "expectedExceptionCode": 1503,
+    "expectedResultCount": 0,
+    "expectedAvailableRooms": null,
+    "expectedBookedRooms": null
+  },
+  {
+    "caseName": "ScheduleWithoutBoat_ReturnsEmptyList",
+    "scheduleExists": true,
+    "boatExists": false,
+    "hasCabin": false,
+    "totalRooms": 0,
+    "bookedRooms": 0,
+    "expectedExceptionCode": null,
+    "expectedResultCount": 0,
+    "expectedAvailableRooms": null,
+    "expectedBookedRooms": null
+  },
+  {
+    "caseName": "BoatWithCabin_HasAvailableRooms",
+    "scheduleExists": true,
+    "boatExists": true,
+    "hasCabin": true,
+    "totalRooms": 5,
+    "bookedRooms": 2,
+    "expectedExceptionCode": null,
+    "expectedResultCount": 1,
+    "expectedAvailableRooms": 3,
+    "expectedBookedRooms": 2
+  },
+  {
+    "caseName": "BoatWithCabin_Overbooked_CapsAtTotalRooms",
+    "scheduleExists": true,
+    "boatExists": true,
+    "hasCabin": true,
+    "totalRooms": 5,
+    "bookedRooms": 8,
+    "expectedExceptionCode": null,
+    "expectedResultCount": 1,
+    "expectedAvailableRooms": 0,
+    "expectedBookedRooms": 5
+  }
+]

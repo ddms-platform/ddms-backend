@@ -61,6 +61,13 @@ public class OwnerBoatsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 
+    [HttpDelete("{id:guid}/services/{serviceId:guid}")]
+    public async Task<IActionResult> DeleteService(Guid id, Guid serviceId)
+    {
+        await _boats.DeleteServiceByOwnerAsync(id, serviceId, _user.Id);
+        return Ok(ApiResponse<object>.Ok(new { deleted = true }));
+    }
+
     [HttpGet("{id:guid}/images")]
     public async Task<IActionResult> GetImages(Guid id)
     {
