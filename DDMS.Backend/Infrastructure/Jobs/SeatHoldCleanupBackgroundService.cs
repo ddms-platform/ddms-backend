@@ -3,12 +3,6 @@ using DDMS.Backend.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace DDMS.Backend.Infrastructure.Jobs;
-
-/// <summary>
-/// Worker nền: định kỳ (mặc định mỗi 1 phút) quét và tự huỷ các booking
-/// đang giữ chỗ đã quá hạn (status=holding, hold_expired_at &lt;= now),
-/// nhả ghế về rổ chung.
-/// </summary>
 public class SeatHoldCleanupBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;

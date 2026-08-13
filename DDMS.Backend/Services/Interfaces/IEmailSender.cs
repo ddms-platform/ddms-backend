@@ -58,4 +58,12 @@ public interface IEmailSender
         string tourName,
         DateTime oldTime,
         DateTime newTime);
+    Task SendAdminOpsBriefingEmailAsync(
+        string toEmail,
+        string adminName,
+        DateTime dayVn,
+        string narrative,
+        int toursToday,
+        int guestsExpected,
+        decimal revenueForecast);
 }

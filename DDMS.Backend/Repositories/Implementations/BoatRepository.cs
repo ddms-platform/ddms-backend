@@ -99,7 +99,9 @@ public class BoatRepository : IBoatRepository
         return _dbContext.boats
             .Include(b => b.boat_cabins)
             .Include(b => b.boat_services)
-            .Include(b => b.tour_schedules).ThenInclude(ts => ts.tour)
+            .Include(b => b.tour_schedules).ThenInclude(ts => ts.tour).ThenInclude(t => t!.routes)
+            .Include(b => b.tour_schedules).ThenInclude(ts => ts.tour).ThenInclude(t => t!.faqs)
+            .Include(b => b.tour_schedules).ThenInclude(ts => ts.tour).ThenInclude(t => t!.tour_images)
             .Include(b => b.boat_images.OrderBy(i => i.sort_order))
             .Include(b => b.boat_maintenances.OrderByDescending(m => m.start_time))
                 .ThenInclude(m => m.port_maintenance_service)

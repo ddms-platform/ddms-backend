@@ -9,6 +9,12 @@ public interface IBookingService
     Task<List<CabinAvailabilityResponse>> GetCabinAvailabilityAsync(Guid scheduleId, CancellationToken ct);
     Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct);
     Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct);
+
+    /// <summary>
+    /// Áp mã giảm giá lên booking đang chờ thanh toán và tính lại giá.
+    /// Truyền <paramref name="code"/> null hoặc rỗng để gỡ mã.
+    /// </summary>
+    Task<BookingQuote> ApplyPromotionAsync(Guid bookingId, Guid userId, string? code, CancellationToken ct);
     Task<CancelBookingResult> CancelAsync(Guid bookingId, Guid userId, CancellationToken ct);
     Task<CheckInBookingResponse> CheckInAsync(CheckInBookingRequest request, CancellationToken ct);
 

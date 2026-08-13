@@ -61,6 +61,7 @@ builder.Services.AddOptions<BookingHoldOptions>()
     .ValidateOnStart();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
 builder.Services.AddHostedService<SeatHoldCleanupBackgroundService>();
+builder.Services.AddHostedService<OpsBriefingEmailService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
@@ -73,7 +74,17 @@ if (string.IsNullOrWhiteSpace(jwtOptions.secretKey))
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
+    options.UseMySql(
+        connectionString,
+        new MySqlServerVersion(new Version(8, 0, 21)),
+        mysqlOptions =>
+        {
+            mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null);
+            mysqlOptions.CommandTimeout(30);
+        });
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -207,6 +218,8 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISosService, SosService>();
 builder.Services.AddHttpClient<IAiService, GeminiAiService>();
+builder.Services.AddHttpClient<IAdminOpsService, AdminOpsService>();
+builder.Services.AddScoped<IAdminAlertPublisher, AdminAlertPublisher>();
 
 var app = builder.Build();
 
@@ -343,5 +356,6 @@ app.UseAuthorization();
 app.MapHub<BillingHub>("/hub/billing");
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<SosHub>("/hub/sos");
+app.MapHub<AdminAlertsHub>("/hub/admin-alerts");
 app.MapControllers();
 app.Run();
