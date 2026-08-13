@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using DDMS.Backend.Hubs;
 using DDMS.Backend.Infrastructure.Jobs;
+using Microsoft.AspNetCore.HttpOverrides;
 using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,7 +77,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(8, 0, 21)),
+        new MySqlServerVersion(new Version(8, 4, 0)),
         mysqlOptions =>
         {
             mysqlOptions.EnableRetryOnFailure(
@@ -223,6 +224,16 @@ builder.Services.AddScoped<IAdminAlertPublisher, AdminAlertPublisher>();
 
 var app = builder.Build();
 
+// Chạy sau Nginx/ALB nên request tới app luôn là HTTP nội bộ. Không đọc
+// X-Forwarded-Proto thì UseHttpsRedirection bên dưới sẽ redirect vô hạn.
+// KnownNetworks/KnownProxies để trống: container chỉ nhận kết nối từ 127.0.0.1.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownNetworks = { },
+    KnownProxies = { }
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -337,12 +348,14 @@ app.UseRequestLocalization();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "BoatTour API v1");
-       
     });
+}
 
 // In Development, FE often calls http://localhost:5015; redirect breaks axios POST (Network Error).
 if (!app.Environment.IsDevelopment())
