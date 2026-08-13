@@ -7,6 +7,7 @@ using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Chat;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;
@@ -53,8 +54,23 @@ public class ChatController : ControllerBase
     [HttpPost("conversations/{id:guid}/messages")]
     public async Task<IActionResult> SendMessage(Guid id, [FromBody] SendMessageRequest request, CancellationToken ct)
     {
-        var result = await _chatService.SendMessageAsync(id, _currentUser.Id, request.Body, ct);
+        var result = await _chatService.SendMessageAsync(
+            id,
+            _currentUser.Id,
+            request.Body,
+            request.AttachmentUrl,
+            request.AttachmentType,
+            request.AttachmentName,
+            ct);
         return Ok(ApiResponse<MessageResponse>.Ok(result));
+    }
+
+    [HttpPost("conversations/{id:guid}/attachments")]
+    [RequestSizeLimit(52_428_800)] // 50 MB
+    public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, CancellationToken ct)
+    {
+        var result = await _chatService.UploadAttachmentAsync(id, _currentUser.Id, file, ct);
+        return Ok(ApiResponse<ChatAttachmentResponse>.Ok(result));
     }
 
     [HttpPost("conversations/{id:guid}/read")]

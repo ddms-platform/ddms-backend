@@ -10,6 +10,7 @@ using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Http;
 
 namespace DDMS.Backend.Services.Implementations;
 
@@ -18,12 +19,19 @@ public class ChatService : IChatService
     private readonly IChatRepository _repo;
     private readonly IEmailSender _emailSender;
     private readonly IHubContext<ChatHub> _hubContext;
+    private readonly ICloudinaryService _cloudinary;
 
-    public ChatService(IChatRepository repo, IEmailSender emailSender, IHubContext<ChatHub> hubContext)
+    private static readonly string[] AllowedImageTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+    private static readonly string[] AllowedVideoTypes = new[] { "video/mp4", "video/webm", "video/quicktime" };
+    private static readonly string[] AllowedAudioTypes = new[] { "audio/webm", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav" };
+    private const long MaxAttachmentBytes = 50 * 1024 * 1024; // 50 MB
+
+    public ChatService(IChatRepository repo, IEmailSender emailSender, IHubContext<ChatHub> hubContext, ICloudinaryService cloudinary)
     {
         _repo = repo;
         _emailSender = emailSender;
         _hubContext = hubContext;
+        _cloudinary = cloudinary;
     }
 
     public async Task<List<ConversationResponse>> GetConversationsAsync(Guid userId, CancellationToken ct)
@@ -50,6 +58,9 @@ public class ChatService : IChatService
             SenderName = m.sender.full_name,
             SenderAvatar = m.sender.avatar_url,
             Body = m.body,
+            AttachmentUrl = m.attachment_url,
+            AttachmentType = m.attachment_type,
+            AttachmentName = m.attachment_name,
             CreatedAt = m.created_at
         }).OrderBy(m => m.CreatedAt).ToList();
     }
@@ -71,10 +82,49 @@ public class ChatService : IChatService
         var existingConv = await _repo.GetConversationByBookingIdAsync(bookingId, ct);
         if (existingConv != null)
         {
-            var resultList = await GetConversationsAsync(userId, ct);
-            var matched = resultList.FirstOrDefault(c => c.Id == existingConv.id);
+            // Backfill any missing member (customer or owner) so both sides can access it.
+            var existingMembers = await _repo.GetConversationMembersAsync(existingConv.id, ct);
+            var memberIds = existingMembers.Select(m => m.user_id).ToHashSet();
+            var added = false;
+
+            if (!memberIds.Contains(booking.user_id))
+            {
+                await _repo.AddConversationMemberAsync(new conversation_member
+                {
+                    id = Guid.NewGuid(),
+                    conversation_id = existingConv.id,
+                    user_id = booking.user_id,
+                    joined_at = DateTime.UtcNow,
+                    last_read_at = (booking.user_id == userId) ? DateTime.UtcNow : null
+                }, ct);
+                added = true;
+            }
+
+            if (ownerId.HasValue && ownerId.Value != booking.user_id && !memberIds.Contains(ownerId.Value))
+            {
+                await _repo.AddConversationMemberAsync(new conversation_member
+                {
+                    id = Guid.NewGuid(),
+                    conversation_id = existingConv.id,
+                    user_id = ownerId.Value,
+                    joined_at = DateTime.UtcNow,
+                    last_read_at = (ownerId.Value == userId) ? DateTime.UtcNow : null
+                }, ct);
+                added = true;
+            }
+
+            if (added)
+            {
+                await _repo.SaveChangesAsync(ct);
+            }
+
+            var refreshed = await GetConversationsAsync(userId, ct);
+            var matched = refreshed.FirstOrDefault(c => c.Id == existingConv.id);
             if (matched != null)
+            {
                 return matched;
+            }
+            // Fall through only in the impossible case (should never happen after backfill).
         }
 
         var newConv = new conversation
@@ -99,8 +149,8 @@ public class ChatService : IChatService
             last_read_at = (booking.user_id == userId) ? DateTime.UtcNow : null
         }, ct);
 
-        // Add Owner member
-        if (ownerId.HasValue)
+        // Add Owner member (skip if same as customer to avoid duplicate member for self-owned tour)
+        if (ownerId.HasValue && ownerId.Value != booking.user_id)
         {
             await _repo.AddConversationMemberAsync(new conversation_member
             {
@@ -119,8 +169,21 @@ public class ChatService : IChatService
         return list.First(c => c.Id == newConv.id);
     }
 
-    public async Task<MessageResponse> SendMessageAsync(Guid conversationId, Guid senderId, string body, CancellationToken ct)
+    public async Task<MessageResponse> SendMessageAsync(
+        Guid conversationId,
+        Guid senderId,
+        string? body,
+        string? attachmentUrl,
+        string? attachmentType,
+        string? attachmentName,
+        CancellationToken ct)
     {
+        var trimmedBody = body?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmedBody) && string.IsNullOrEmpty(attachmentUrl))
+        {
+            throw new AppException(ErrorCode.ChatValidationFailed, "Tin nhắn phải có nội dung hoặc tệp đính kèm.");
+        }
+
         var conversation = await _repo.GetConversationByIdAsync(conversationId, ct);
         if (conversation == null)
         {
@@ -139,7 +202,10 @@ public class ChatService : IChatService
             id = Guid.NewGuid(),
             conversation_id = conversationId,
             sender_id = senderId,
-            body = body,
+            body = trimmedBody,
+            attachment_url = string.IsNullOrEmpty(attachmentUrl) ? null : attachmentUrl,
+            attachment_type = string.IsNullOrEmpty(attachmentType) ? null : attachmentType,
+            attachment_name = string.IsNullOrEmpty(attachmentName) ? null : attachmentName,
             created_at = DateTime.UtcNow,
             updated_at = DateTime.UtcNow
         };
@@ -162,6 +228,9 @@ public class ChatService : IChatService
             SenderName = senderMember.user.full_name,
             SenderAvatar = senderMember.user.avatar_url,
             Body = msg.body,
+            AttachmentUrl = msg.attachment_url,
+            AttachmentType = msg.attachment_type,
+            AttachmentName = msg.attachment_name,
             CreatedAt = msg.created_at
         };
 
@@ -185,7 +254,10 @@ public class ChatService : IChatService
             {
                 try
                 {
-                    await _emailSender.SendNewChatMessageEmailAsync(recipientEmail, recipientName, senderName, body, viewChatLink);
+                    var emailBody = string.IsNullOrEmpty(trimmedBody)
+                        ? (attachmentType == "video" ? "[Video]" : attachmentType == "image" ? "[Hình ảnh]" : "[Tệp đính kèm]")
+                        : trimmedBody;
+                    await _emailSender.SendNewChatMessageEmailAsync(recipientEmail, recipientName, senderName, emailBody, viewChatLink);
                 }
                 catch (Exception)
                 {
@@ -195,6 +267,56 @@ public class ChatService : IChatService
         }
 
         return response;
+    }
+
+    public async Task<ChatAttachmentResponse> UploadAttachmentAsync(Guid conversationId, Guid userId, IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new AppException(ErrorCode.ChatValidationFailed, "Tệp đính kèm không hợp lệ.");
+        }
+        if (file.Length > MaxAttachmentBytes)
+        {
+            throw new AppException(ErrorCode.ChatValidationFailed, "Tệp vượt quá dung lượng cho phép (50 MB).");
+        }
+
+        var member = await _repo.GetMemberAsync(conversationId, userId, ct);
+        if (member == null)
+        {
+            throw new ForbiddenException("Bạn không phải thành viên của cuộc hội thoại này.");
+        }
+
+        var contentType = file.ContentType?.ToLowerInvariant() ?? string.Empty;
+        string typeCategory;
+        if (AllowedImageTypes.Contains(contentType))
+        {
+            typeCategory = "image";
+        }
+        else if (AllowedVideoTypes.Contains(contentType))
+        {
+            typeCategory = "video";
+        }
+        else if (AllowedAudioTypes.Any(t => contentType.StartsWith(t)))
+        {
+            typeCategory = "audio";
+        }
+        else
+        {
+            throw new AppException(ErrorCode.ChatValidationFailed, "Định dạng tệp không được hỗ trợ.");
+        }
+
+        await using var stream = file.OpenReadStream();
+        // Cloudinary "video" resource type also handles audio uploads
+        var uploadResult = typeCategory == "image"
+            ? await _cloudinary.UploadImageAsync(stream, file.FileName)
+            : await _cloudinary.UploadVideoAsync(stream, file.FileName);
+
+        return new ChatAttachmentResponse
+        {
+            Url = uploadResult.ImageUrl,
+            Type = typeCategory,
+            Name = file.FileName
+        };
     }
 
     public async Task MarkAsReadAsync(Guid conversationId, Guid userId, CancellationToken ct)

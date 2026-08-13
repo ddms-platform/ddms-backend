@@ -17,6 +17,9 @@ public class AiRecommendedTourDto
     public string? ImageUrl { get; set; }
     public string? Duration { get; set; }
     public string? DepartureLocation { get; set; }
+    public decimal AvgRating { get; set; }
+    public int TotalReviews { get; set; }
+    public DateTime? NextDeparture { get; set; }
 }
 
 public class AiChatResponseDto
@@ -33,6 +36,16 @@ public class AiConversationDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public int MessageCount { get; set; }
+}
+
+public class AiStreamChunk
+{
+    /// <summary>"chunk" | "done" | "error"</summary>
+    public string Type { get; set; } = "chunk";
+    public string? Delta { get; set; }
+    public Guid? ConversationId { get; set; }
+    public List<AiRecommendedTourDto>? RecommendedTours { get; set; }
+    public string? Error { get; set; }
 }
 
 public class AiMessageDto

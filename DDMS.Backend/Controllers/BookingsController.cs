@@ -51,6 +51,23 @@ public class BookingsController : ControllerBase
         return Ok(ApiResponse<List<UserBookingListItemResponse>>.Ok(result));
     }
 
+    /// <summary>Áp mã giảm giá lên đơn đang chờ thanh toán. Trả về bảng giá đã tính lại.</summary>
+    [HttpPut("{id:guid}/promotion")]
+    public async Task<IActionResult> ApplyPromotion(
+        Guid id, [FromBody] ApplyPromotionRequest request, CancellationToken ct)
+    {
+        var result = await _bookings.ApplyPromotionAsync(id, _user.Id, request.Code, ct);
+        return Ok(ApiResponse<BookingQuote>.Ok(result));
+    }
+
+    /// <summary>Gỡ mã giảm giá khỏi đơn và trả giá về như cũ.</summary>
+    [HttpDelete("{id:guid}/promotion")]
+    public async Task<IActionResult> RemovePromotion(Guid id, CancellationToken ct)
+    {
+        var result = await _bookings.ApplyPromotionAsync(id, _user.Id, null, ct);
+        return Ok(ApiResponse<BookingQuote>.Ok(result));
+    }
+
     [HttpPut("{id:guid}/pay")]
     public async Task<IActionResult> ConfirmPayment(Guid id, CancellationToken ct)
     {

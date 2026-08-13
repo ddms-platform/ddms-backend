@@ -9,7 +9,10 @@ namespace DDMS.Backend.Repositories.Implementations;
 public class BookingRepository : IBookingRepository
 {
     private readonly AppDbContext _db;
-    private static readonly string[] OccupyingStatuses = ["pending", "confirmed", "paid"];
+    // Phải là List chứ không phải mảng: với mảng, .NET 10 chọn overload
+    // MemoryExtensions.Contains(ReadOnlySpan<string>, ...) mà EF không dịch sang SQL được,
+    // làm mọi truy vấn dùng nó ném InvalidOperationException lúc chạy.
+    private static readonly List<string> OccupyingStatuses = ["pending", "confirmed", "paid"];
 
     public BookingRepository(AppDbContext db) => _db = db;
 
@@ -59,6 +62,21 @@ public class BookingRepository : IBookingRepository
             .Select(g => new { CabinId = g.Key, Quantity = g.Sum(x => x.quantity) })
             .ToDictionaryAsync(x => x.CabinId, x => x.Quantity, ct);
 
+    // Lọc theo boat_id để khách không thể mượn id cabin của tàu khác lấy giá rẻ hơn.
+    public async Task<Dictionary<Guid, decimal>> GetCabinPricesAsync(
+        Guid boatId, IReadOnlyCollection<Guid> cabinIds, CancellationToken ct) =>
+        await _db.boat_cabins
+            .Where(c => c.boat_id == boatId && cabinIds.Contains(c.id))
+            .Select(c => new { c.id, c.price })
+            .ToDictionaryAsync(x => x.id, x => x.price, ct);
+
+    public async Task<Dictionary<Guid, decimal>> GetServicePricesAsync(
+        Guid boatId, IReadOnlyCollection<Guid> serviceIds, CancellationToken ct) =>
+        await _db.boat_services
+            .Where(s => s.boat_id == boatId && serviceIds.Contains(s.id))
+            .Select(s => new { s.id, s.price })
+            .ToDictionaryAsync(x => x.id, x => x.price, ct);
+
     public Task<bool> HasActiveBookingForTourDateAsync(
         Guid userId,
         Guid tourId,
@@ -96,6 +114,12 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.user)
             .Include(b => b.schedule).ThenInclude(s => s.tour)
             .Include(b => b.schedule).ThenInclude(s => s.boat)
+            .FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
+
+    public Task<booking?> FindUserBookingWithLinesAsync(Guid id, Guid userId, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.booking_cabins)
+            .Include(b => b.booking_services)
             .FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
 
     public Task<booking?> FindBookingForCheckInByIdAsync(Guid id, CancellationToken ct) =>

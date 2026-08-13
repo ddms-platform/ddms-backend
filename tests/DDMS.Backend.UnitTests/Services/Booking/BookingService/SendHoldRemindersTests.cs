@@ -31,7 +31,10 @@ public class SendHoldRemindersTests
         var holdOptions = OptionsFactory.CreateDefault<DDMS.Backend.Configurations.BookingHoldOptions>();
 
         var service = new DDMS.Backend.Services.Implementations.BookingService(
-            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions);
+            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
+            AdminAlertPublisherMockFactory.Create().Object,
+            BookingPricingServiceMockFactory.Create().Object,
+            PromotionsRepositoryMockFactory.Create().Object);
 
         return (bookingRepo, walletRepo, emailSender, notificationService, service);
     }

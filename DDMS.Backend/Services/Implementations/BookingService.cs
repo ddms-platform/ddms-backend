@@ -18,14 +18,108 @@ public class BookingService : IBookingService
     private readonly IEmailSender _emailSender;
     private readonly INotificationService _notificationService;
     private readonly BookingHoldOptions _holdOptions;
+    private readonly IAdminAlertPublisher _adminAlerts;
+    private readonly IBookingPricingService _pricing;
+    private readonly IPromotionsRepository _promotions;
 
-    public BookingService(IBookingRepository repo, IWalletRepository wallets, IEmailSender emailSender, INotificationService notificationService, IOptions<BookingHoldOptions> holdOptions)
+    public BookingService(
+        IBookingRepository repo,
+        IWalletRepository wallets,
+        IEmailSender emailSender,
+        INotificationService notificationService,
+        IOptions<BookingHoldOptions> holdOptions,
+        IAdminAlertPublisher adminAlerts,
+        IBookingPricingService pricing,
+        IPromotionsRepository promotions)
     {
         _repo = repo;
         _wallets = wallets;
         _emailSender = emailSender;
         _notificationService = notificationService;
         _holdOptions = holdOptions.Value;
+        _adminAlerts = adminAlerts;
+        _pricing = pricing;
+        _promotions = promotions;
+    }
+
+    /// <summary>Tính giá bằng service dùng chung với endpoint áp mã, nên hai đường luôn ra cùng con số.</summary>
+    private Task<BookingQuote> QuoteAsync(CreateBookingRequest request, CancellationToken ct) =>
+        _pricing.QuoteAsync(
+            request.ScheduleId,
+            request.NumPeople,
+            (request.Cabins ?? []).Select(c => new BookingLineRequest { Id = c.CabinId, Quantity = c.Quantity }).ToList(),
+            (request.Services ?? []).Select(s => new BookingLineRequest { Id = s.ServiceId, Quantity = s.Quantity }).ToList(),
+            request.PromotionCode,
+            ct);
+
+    /// <summary>
+    /// Áp mã giảm giá lên một booking đang chờ thanh toán. Tính lại toàn bộ giá từ DB
+    /// thay vì tin số cũ, rồi ghi đè promotion_id/discount_amount/total_price.
+    /// Chưa tiêu lượt ở đây — lượt chỉ tính khi khách thanh toán xong.
+    /// </summary>
+    public async Task<BookingQuote> ApplyPromotionAsync(
+        Guid bookingId, Guid userId, string? code, CancellationToken ct)
+    {
+        var booking = await _repo.FindUserBookingWithLinesAsync(bookingId, userId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
+
+        if (booking.status != BookingStatuses.Pending && booking.status != BookingStatuses.Holding)
+            throw new AppException(
+                ErrorCode.UncategorizedError, "Đơn này không còn ở trạng thái cho phép đổi mã giảm giá.");
+
+        if (booking.status == BookingStatuses.Holding
+            && booking.hold_expired_at != null
+            && booking.hold_expired_at <= DateTime.UtcNow)
+            throw new AppException(ErrorCode.HoldExpired, ErrorCode.Messages.HoldExpired);
+
+        var quote = await _pricing.QuoteAsync(
+            booking.schedule_id,
+            booking.num_people,
+            booking.booking_cabins.Select(c => new BookingLineRequest { Id = c.cabin_id, Quantity = c.quantity }).ToList(),
+            booking.booking_services.Select(s => new BookingLineRequest { Id = s.service_id, Quantity = s.quantity }).ToList(),
+            code,
+            ct);
+
+        booking.promotion_id = quote.PromotionId;
+        booking.base_price = quote.BasePrice;
+        booking.cabin_price = quote.CabinPrice;
+        booking.service_price = quote.ServicePrice;
+        booking.discount_amount = quote.DiscountAmount;
+        booking.total_price = quote.TotalPrice;
+        booking.updated_at = DateTime.UtcNow;
+
+        await _repo.SaveChangesAsync(ct);
+        return quote;
+    }
+
+    /// <summary>Đơn giá ghi vào booking_cabin/booking_service lấy từ quote, không lấy từ client.</summary>
+    private void AddLines(booking booking, BookingQuote quote, DateTime now)
+    {
+        foreach (var c in quote.CabinLines)
+        {
+            _repo.AddBookingCabin(new booking_cabin
+            {
+                id = Guid.NewGuid(),
+                booking_id = booking.id,
+                cabin_id = c.Id,
+                quantity = c.Quantity,
+                unit_price = c.UnitPrice,
+                created_at = now
+            });
+        }
+
+        foreach (var s in quote.ServiceLines)
+        {
+            _repo.AddBookingService(new booking_service
+            {
+                id = Guid.NewGuid(),
+                booking_id = booking.id,
+                service_id = s.Id,
+                quantity = s.Quantity,
+                unit_price = s.UnitPrice,
+                created_at = now
+            });
+        }
     }
 
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
@@ -71,51 +165,28 @@ public class BookingService : IBookingService
             }
         }
 
+        var quote = await QuoteAsync(request, ct);
+
         var now = DateTime.UtcNow;
         var booking = new booking
         {
             id = Guid.NewGuid(),
             user_id = userId,
             schedule_id = request.ScheduleId,
-            promotion_id = request.PromotionId,
+            promotion_id = quote.PromotionId,
             num_people = request.NumPeople,
-            base_price = request.BasePrice,
-            cabin_price = request.CabinPrice,
-            service_price = request.ServicePrice,
-            discount_amount = request.DiscountAmount,
-            total_price = request.TotalPrice,
+            base_price = quote.BasePrice,
+            cabin_price = quote.CabinPrice,
+            service_price = quote.ServicePrice,
+            discount_amount = quote.DiscountAmount,
+            total_price = quote.TotalPrice,
             status = BookingStatuses.Pending,
             notes = request.Notes,
             created_at = now,
             updated_at = now
         };
         _repo.AddBooking(booking);
-
-        foreach (var c in request.Cabins ?? Enumerable.Empty<CreateBookingCabinRequest>())
-        {
-            _repo.AddBookingCabin(new booking_cabin
-            {
-                id = Guid.NewGuid(),
-                booking_id = booking.id,
-                cabin_id = c.CabinId,
-                quantity = c.Quantity,
-                unit_price = c.UnitPrice,
-                created_at = now
-            });
-        }
-
-        foreach (var s in request.Services ?? Enumerable.Empty<CreateBookingServiceRequest>())
-        {
-            _repo.AddBookingService(new booking_service
-            {
-                id = Guid.NewGuid(),
-                booking_id = booking.id,
-                service_id = s.ServiceId,
-                quantity = s.Quantity,
-                unit_price = s.UnitPrice,
-                created_at = now
-            });
-        }
+        AddLines(booking, quote, now);
 
         await _repo.SaveChangesAsync(ct);
 
@@ -154,18 +225,20 @@ public class BookingService : IBookingService
 
         var holdExpiredAt = now.Add(holdDuration.Value);
 
+        var quote = await QuoteAsync(request, ct);
+
         var booking = new booking
         {
             id = Guid.NewGuid(),
             user_id = userId,
             schedule_id = request.ScheduleId,
-            promotion_id = request.PromotionId,
+            promotion_id = quote.PromotionId,
             num_people = request.NumPeople,
-            base_price = request.BasePrice,
-            cabin_price = request.CabinPrice,
-            service_price = request.ServicePrice,
-            discount_amount = request.DiscountAmount,
-            total_price = request.TotalPrice,
+            base_price = quote.BasePrice,
+            cabin_price = quote.CabinPrice,
+            service_price = quote.ServicePrice,
+            discount_amount = quote.DiscountAmount,
+            total_price = quote.TotalPrice,
             status = BookingStatuses.Holding,
             hold_expired_at = holdExpiredAt,
             notes = request.Notes,
@@ -173,32 +246,7 @@ public class BookingService : IBookingService
             updated_at = now
         };
         _repo.AddBooking(booking);
-
-        foreach (var c in request.Cabins ?? Enumerable.Empty<CreateBookingCabinRequest>())
-        {
-            _repo.AddBookingCabin(new booking_cabin
-            {
-                id = Guid.NewGuid(),
-                booking_id = booking.id,
-                cabin_id = c.CabinId,
-                quantity = c.Quantity,
-                unit_price = c.UnitPrice,
-                created_at = now
-            });
-        }
-
-        foreach (var s in request.Services ?? Enumerable.Empty<CreateBookingServiceRequest>())
-        {
-            _repo.AddBookingService(new booking_service
-            {
-                id = Guid.NewGuid(),
-                booking_id = booking.id,
-                service_id = s.ServiceId,
-                quantity = s.Quantity,
-                unit_price = s.UnitPrice,
-                created_at = now
-            });
-        }
+        AddLines(booking, quote, now);
 
         await _repo.SaveChangesAsync(ct);
 
@@ -305,6 +353,12 @@ public class BookingService : IBookingService
         booking.updated_at = DateTime.UtcNow;
         await _repo.SaveChangesAsync(ct);
 
+        // Lượt dùng mã chỉ tính khi đơn thực sự được thanh toán, nên giỏ hàng bỏ dở
+        // hay giữ chỗ hết hạn không làm hao lượt. Nếu mã vừa hết lượt do người khác
+        // thanh toán trước thì bỏ qua: khách đã trả tiền theo giá đã giảm rồi.
+        if (booking.promotion_id is not null)
+            await _promotions.TryConsumeUsageAsync(booking.promotion_id.Value, ct);
+
         try
         {
             var formattedTime = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy");
@@ -382,6 +436,21 @@ public class BookingService : IBookingService
             await RefundToWalletAsync(userId, booking.total_price, ct);
 
         await _repo.SaveChangesAsync(ct);
+
+        // Fire-and-forget admin alert
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _adminAlerts.PublishAsync(new Models.DTOs.AdminOps.AlertItem
+                {
+                    Severity = eligibleForRefund ? "warning" : "info",
+                    Title = $"Booking #{bookingId.ToString().Substring(0, 8).ToUpper()} vừa bị huỷ",
+                    Detail = $"Giá trị {booking.total_price:N0}đ · {(eligibleForRefund ? "hoàn tiền" : "không hoàn tiền")}",
+                });
+            }
+            catch { /* best-effort */ }
+        });
 
         return new CancelBookingResult
         {

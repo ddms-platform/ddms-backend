@@ -56,6 +56,12 @@ public static class ErrorCode
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
     public const int PromotionNotFound = 1602;
+    public const int PromotionInactive = 1603;
+    public const int PromotionNotStarted = 1604;
+    public const int PromotionExpired = 1605;
+    public const int PromotionUsageExhausted = 1606;
+    public const int PromotionMinOrderNotMet = 1607;
+    public const int PromotionNotApplicableToTour = 1608;
 
     public const int WithdrawalNotFound = 1700;
     public const int WithdrawalAlreadyProcessed = 1701;
@@ -100,6 +106,8 @@ public static class ErrorCode
     public const int DockScheduleDockCapacityExceeded = 2603;
     public const int DockScheduleBoatNotFound = 2604;
     public const int DockScheduleDockNotFound = 2605;
+
+    public const int ChatValidationFailed = 2700;
 
     public const int UncategorizedError = 9999;
 
@@ -187,6 +195,12 @@ public static class ErrorCode
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";
         public const string PromotionNotFound = "Không tìm thấy mã giảm giá.";
+        public const string PromotionInactive = "Mã giảm giá này hiện không còn hiệu lực.";
+        public const string PromotionNotStarted = "Mã giảm giá này chưa đến ngày áp dụng.";
+        public const string PromotionExpired = "Mã giảm giá này đã hết hạn.";
+        public const string PromotionUsageExhausted = "Mã giảm giá này đã hết lượt sử dụng.";
+        public const string PromotionMinOrderNotMet = "Đơn hàng chưa đạt giá trị tối thiểu để dùng mã này.";
+        public const string PromotionNotApplicableToTour = "Mã giảm giá này không áp dụng cho tour đã chọn.";
 
         public const string WithdrawalNotFound = "Không tìm thấy yêu cầu rút tiền.";
         public const string WithdrawalAlreadyProcessed = "Yêu cầu rút tiền này đã được xử lý trước đó.";

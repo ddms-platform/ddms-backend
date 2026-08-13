@@ -899,4 +899,53 @@ public class EmailSender : IEmailSender
 
         await SendHtmlEmailAsync(toEmail, subject, body, "Schedule Change Notice", "");
     }
+
+    public async Task SendAdminOpsBriefingEmailAsync(
+        string toEmail,
+        string adminName,
+        DateTime dayVn,
+        string narrative,
+        int toursToday,
+        int guestsExpected,
+        decimal revenueForecast)
+    {
+        var subject = $"☀️ DDMS Ops Briefing — {dayVn:dd/MM/yyyy}";
+        var narrativeHtml = System.Net.WebUtility.HtmlEncode(narrative).Replace("\n", "<br/>");
+        var body = $@"<!DOCTYPE html>
+<html lang=""vi""><head><meta charset=""utf-8""/></head>
+<body style=""margin:0;padding:0;background:#f4f6fb;font-family:Segoe UI,Roboto,Arial,sans-serif;"">
+  <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background:#f4f6fb;padding:32px 0;"">
+    <tr><td align=""center"">
+      <table role=""presentation"" width=""620"" cellpadding=""0"" cellspacing=""0"" style=""background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,25,47,0.08);"">
+        <tr><td style=""background:linear-gradient(135deg,#0A192F,#112240,#0d2847);padding:32px;text-align:center;"">
+          <h1 style=""margin:0;color:#00F0FF;font-size:22px;"">DDMS Ops Briefing</h1>
+          <p style=""margin:6px 0 0;color:#c8d0e0;font-size:13px;"">{dayVn:dddd, dd/MM/yyyy}</p>
+        </td></tr>
+        <tr><td style=""padding:32px 40px 8px;"">
+          <p style=""margin:0 0 16px;color:#0A192F;font-size:15px;"">Kính chào {adminName},</p>
+          <p style=""margin:0 0 20px;color:#3c4858;font-size:14px;line-height:1.6;"">Đây là báo cáo tình hình vận hành hôm nay do AI Analyst tổng hợp:</p>
+          <table role=""presentation"" width=""100%"" style=""margin-bottom:20px;""><tr>
+            <td style=""text-align:center;padding:12px;background:#f0f4ff;border-radius:8px;"">
+              <div style=""font-size:22px;font-weight:bold;color:#0A192F;"">{toursToday}</div>
+              <div style=""font-size:11px;color:#6b7688;"">Tour hôm nay</div></td>
+            <td style=""width:8px;""></td>
+            <td style=""text-align:center;padding:12px;background:#e0f7fa;border-radius:8px;"">
+              <div style=""font-size:22px;font-weight:bold;color:#00838f;"">{guestsExpected}</div>
+              <div style=""font-size:11px;color:#6b7688;"">Khách dự kiến</div></td>
+            <td style=""width:8px;""></td>
+            <td style=""text-align:center;padding:12px;background:#fff2e8;border-radius:8px;"">
+              <div style=""font-size:18px;font-weight:bold;color:#d4380d;"">{revenueForecast:N0}đ</div>
+              <div style=""font-size:11px;color:#6b7688;"">Doanh thu forecast</div></td>
+          </tr></table>
+          <div style=""background:#fafbfd;border-left:3px solid #00F0FF;padding:16px;border-radius:6px;color:#3c4858;font-size:14px;line-height:1.7;"">{narrativeHtml}</div>
+        </td></tr>
+        <tr><td style=""padding:28px 40px 40px;"">
+          <p style=""margin:0;color:#8892a0;font-size:12px;"">— Ops Command Center · DDMS AI Analyst</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>";
+        await SendHtmlEmailAsync(toEmail, subject, body, "Ops Briefing", "");
+    }
 }

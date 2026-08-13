@@ -73,7 +73,10 @@ public class CheckInTests
         }
 
         var service = new DDMS.Backend.Services.Implementations.BookingService(
-            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions);
+            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
+            AdminAlertPublisherMockFactory.Create().Object,
+            BookingPricingServiceMockFactory.Create().Object,
+            PromotionsRepositoryMockFactory.Create().Object);
 
         var request = new CheckInBookingRequest { BookingCode = actualCode! };
         var act = async () => await service.CheckInAsync(request, CancellationToken.None);

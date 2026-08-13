@@ -38,6 +38,38 @@ public class AiController : ControllerBase
     }
 
     /// <summary>
+    /// Streaming version — Server-Sent Events (SSE) that yields text chunks as they arrive.
+    /// </summary>
+    [HttpPost("chat/stream")]
+    public async Task ChatStream([FromBody] AiChatRequestDto request, CancellationToken ct)
+    {
+        Response.Headers.Append("Content-Type", "text/event-stream");
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("X-Accel-Buffering", "no");
+
+        var userId = _currentUser.IdOrNull ?? GuestUserId;
+        var jsonOpts = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        };
+
+        try
+        {
+            await foreach (var chunk in _aiService.SendMessageStreamAsync(userId, request, ct))
+            {
+                var line = "data: " + System.Text.Json.JsonSerializer.Serialize(chunk, jsonOpts) + "\n\n";
+                var bytes = System.Text.Encoding.UTF8.GetBytes(line);
+                await Response.Body.WriteAsync(bytes, ct);
+                await Response.Body.FlushAsync(ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // client aborted
+        }
+    }
+
+    /// <summary>
     /// Get conversation history for current user
     /// </summary>
     [HttpGet("conversations")]
@@ -57,6 +89,27 @@ public class AiController : ControllerBase
         var userId = _currentUser.IdOrNull ?? GuestUserId;
         var messages = await _aiService.GetConversationMessagesAsync(userId, conversationId);
         return Ok(messages);
+    }
+
+    /// <summary>
+    /// Owner Content Studio — generate tour content (name / description / faqs / price).
+    /// </summary>
+    [HttpPost("owner/generate-content")]
+    public async Task<IActionResult> GenerateOwnerContent([FromBody] OwnerContentRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Type))
+        {
+            return BadRequest(new { message = "Type is required." });
+        }
+        try
+        {
+            var result = await _aiService.GenerateOwnerContentAsync(request);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>

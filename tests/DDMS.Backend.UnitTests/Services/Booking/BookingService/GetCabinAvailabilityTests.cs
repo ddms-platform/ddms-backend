@@ -56,7 +56,10 @@ public class GetCabinAvailabilityTests
             .ReturnsAsync(new Dictionary<Guid, int> { [TestGuids.CabinId] = c.BookedRooms });
 
         var service = new DDMS.Backend.Services.Implementations.BookingService(
-            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions);
+            bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
+            AdminAlertPublisherMockFactory.Create().Object,
+            BookingPricingServiceMockFactory.Create().Object,
+            PromotionsRepositoryMockFactory.Create().Object);
 
         var act = async () => await service.GetCabinAvailabilityAsync(TestGuids.ScheduleId, CancellationToken.None);
 

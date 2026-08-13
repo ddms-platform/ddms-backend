@@ -256,7 +256,7 @@ public class BoatService : IBoatService
         status = CalculateStatus(b),
         complianceStatus = b.compliance_status,
         cabinCount = b.boat_cabins?.Count ?? 0,
-        serviceCount = b.boat_services?.Count ?? 0,
+        serviceCount = (b.tour_schedules?.Select(ts => ts.tour_id).Distinct().Count() ?? 0),
         thumbnailUrl = b.boat_images?.OrderBy(i => i.sort_order).FirstOrDefault()?.image_url,
         createdAt = b.created_at,
         updatedAt = b.updated_at,
@@ -283,28 +283,7 @@ public class BoatService : IBoatService
             createdAt = c.created_at,
             updatedAt = c.updated_at,
         }).ToList() ?? [],
-        services = (b.boat_services?.Select(s => new BoatServiceResponse
-        {
-            id = s.id,
-            boatId = s.boat_id,
-            name = s.name,
-            price = s.price,
-            description = s.description,
-            isActive = s.is_active ?? true,
-            createdAt = s.created_at,
-            updatedAt = s.updated_at,
-        }) ?? Enumerable.Empty<BoatServiceResponse>())
-        .Concat(b.tour_schedules?.Select(ts => ts.tour).Where(t => t != null).Select(t => new BoatServiceResponse
-        {
-            id = t.id,
-            boatId = b.id,
-            name = t.name,
-            price = t.price,
-            description = t.description,
-            isActive = t.status == "active",
-            createdAt = t.created_at,
-            updatedAt = t.updated_at,
-        }) ?? Enumerable.Empty<BoatServiceResponse>()).ToList(),
+        services = BuildServicesFromTours(b),
         images = b.boat_images?.OrderBy(i => i.sort_order).Select(i => new BoatImageResponse
         {
             id = i.id,
@@ -328,4 +307,70 @@ public class BoatService : IBoatService
             portMaintenanceServiceName = m.port_maintenance_service?.name
         }).ToList() ?? [],
     };
+
+    private static List<BoatServiceResponse> BuildServicesFromTours(boat b)
+    {
+        var tours = b.tour_schedules?
+            .Where(ts => ts.tour != null)
+            .Select(ts => ts.tour!)
+            .GroupBy(t => t.id)
+            .Select(g => g.First())
+            .ToList() ?? [];
+
+        // Cabins/combos are boat-scoped (shared across all tours running on this boat)
+        var sharedRooms = b.boat_cabins?.Select(c => new ServiceRoomItem
+        {
+            id = c.id,
+            name = c.name,
+            capacity = c.capacity,
+            price = c.price,
+            description = c.description,
+            imageUrl = c.image_url,
+        }).ToList() ?? [];
+
+        var sharedCombos = b.boat_services?.Select(s => new ServiceComboItem
+        {
+            id = s.id,
+            name = s.name,
+            price = s.price,
+            description = s.description,
+            imageUrl = s.image_url,
+        }).ToList() ?? [];
+
+        return tours.Select(t => new BoatServiceResponse
+        {
+            id = t.id,
+            boatId = b.id,
+            name = t.name,
+            price = t.price,
+            description = t.description,
+            imageUrl = t.tour_images?
+                .OrderBy(i => i.sort_order)
+                .Select(i => i.image_url)
+                .FirstOrDefault(),
+            isActive = t.status == "active",
+            createdAt = t.created_at,
+            updatedAt = t.updated_at,
+            routes = t.routes?
+                .OrderBy(r => r.sort_order)
+                .Select(r => new ServiceRouteItem
+                {
+                    id = r.id,
+                    name = r.name,
+                    startPoint = r.start_point,
+                    endPoint = r.end_point,
+                    description = r.description,
+                }).ToList() ?? [],
+            faqs = t.faqs?
+                .OrderBy(f => f.sort_order)
+                .Select(f => new ServiceFaqItem
+                {
+                    id = f.id,
+                    question = f.question,
+                    answer = f.answer,
+                }).ToList() ?? [],
+            rooms = sharedRooms,
+            combos = sharedCombos,
+        }).ToList();
+    }
 }

@@ -814,6 +814,9 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.sender_id, "idx_messages_sender");
 
             entity.Property(e => e.body).HasColumnType("text");
+            entity.Property(e => e.attachment_url).HasColumnType("varchar(1024)");
+            entity.Property(e => e.attachment_type).HasColumnType("varchar(32)");
+            entity.Property(e => e.attachment_name).HasColumnType("varchar(255)");
             entity.Property(e => e.created_at)
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
