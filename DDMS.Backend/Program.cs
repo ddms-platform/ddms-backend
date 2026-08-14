@@ -348,7 +348,11 @@ app.UseRequestLocalization();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 
-if (app.Environment.IsDevelopment())
+// Swagger luôn bật ở Development. Trên production phải set Swagger__Enabled=true
+// và chặn path /swagger bằng Basic Auth ở Nginx (xem docs/runbook-aws.html).
+var swaggerEnabled = app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Swagger:Enabled");
+if (swaggerEnabled)
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
@@ -370,5 +374,8 @@ app.MapHub<BillingHub>("/hub/billing");
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<SosHub>("/hub/sos");
 app.MapHub<AdminAlertsHub>("/hub/admin-alerts");
+// CI goi endpoint nay sau khi deploy. Khong co no thi buoc deploy luon xanh
+// ke ca khi container chet ngay sau `docker run -d`.
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 app.Run();
