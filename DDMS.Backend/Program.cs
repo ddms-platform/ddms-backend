@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using DDMS.Backend.Common.Constants;
@@ -57,10 +57,15 @@ builder.Services.AddOptions<BoatComplianceOptions>()
     .Bind(builder.Configuration.GetSection(BoatComplianceOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<BlogCrawlerOptions>()
+    .Bind(builder.Configuration.GetSection(BlogCrawlerOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<BookingHoldOptions>()
     .Bind(builder.Configuration.GetSection(BookingHoldOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddHostedService<BlogCrawlerBackgroundService>();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
 builder.Services.AddHostedService<SeatHoldCleanupBackgroundService>();
 builder.Services.AddHostedService<OpsBriefingEmailService>();
@@ -375,6 +380,7 @@ app.MapHub<BillingHub>("/hub/billing");
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<SosHub>("/hub/sos");
 app.MapHub<AdminAlertsHub>("/hub/admin-alerts");
+app.MapHub<BlogHub>("/hub/blog");
 // CI goi endpoint nay sau khi deploy. Khong co no thi buoc deploy luon xanh
 // ke ca khi container chet ngay sau `docker run -d`.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

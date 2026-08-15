@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DDMS.Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +38,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<booking_service> booking_services { get; set; }
 
     public virtual DbSet<booking_payment> booking_payments { get; set; }
+
+    public virtual DbSet<blog_post> blog_posts { get; set; }
 
     public virtual DbSet<conversation> conversations { get; set; }
 
@@ -1358,6 +1360,14 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.owner_id)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_owner_payments_owner");
+        });
+
+        modelBuilder.Entity<blog_post>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+            entity.HasIndex(e => e.slug).IsUnique();
+            entity.HasIndex(e => e.source_hash);
+            entity.HasIndex(e => new { e.status, e.published_at });
         });
 
         modelBuilder.Entity<booking_payment>(entity =>
