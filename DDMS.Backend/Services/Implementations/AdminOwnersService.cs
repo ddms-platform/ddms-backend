@@ -7,6 +7,8 @@ using DDMS.Backend.Models.DTOs.OwnerDocument;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
+// Cho extension IExecutionStrategy.ExecuteAsync(Func<Task>)
+using Microsoft.EntityFrameworkCore;
 
 namespace DDMS.Backend.Services.Implementations;
 
@@ -39,36 +41,49 @@ public class AdminOwnersService : IAdminOwnersService
         var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy yêu cầu xác thực.");
 
-        await using var tx = await _repo.BeginTransactionAsync(ct);
-
-        var now = DateTime.UtcNow;
-        profile.status = OwnerProfileStatuses.Verified;
-        profile.is_verified = true;
-        profile.verified_at = now;
-        profile.updated_at = now;
-
-        var ownerRole = await _repo.FindRoleByNameAsync(RoleNames.Owner, ct);
-        if (ownerRole == null)
+        // Ham nay co hai lan SaveChanges (tao role, roi luu phan con lai) nen
+        // transaction la can that, khong bo di duoc nhu ben OwnerRegistrationService.
+        //
+        // Nhung tu khi Program.cs bat EnableRetryOnFailure, goi BeginTransaction
+        // truc tiep se nem:
+        //   The configured execution strategy 'MySqlRetryingExecutionStrategy'
+        //   does not support user-initiated transactions.
+        // Phai chay ca khoi qua CreateExecutionStrategy de no coi transaction la
+        // mot don vi co the thu lai.
+        var strategy = _repo.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            ownerRole = new role { name = RoleNames.Owner, description = RoleNames.OwnerDescription };
-            _repo.AddRole(ownerRole);
-            await _repo.SaveChangesAsync(ct);
-        }
+            await using var tx = await _repo.BeginTransactionAsync(ct);
 
-        if (!await _repo.UserHasRoleAsync(profile.user_id, ownerRole.id, ct))
-        {
-            _repo.AddUserRole(new user_role
+            var now = DateTime.UtcNow;
+            profile.status = OwnerProfileStatuses.Verified;
+            profile.is_verified = true;
+            profile.verified_at = now;
+            profile.updated_at = now;
+
+            var ownerRole = await _repo.FindRoleByNameAsync(RoleNames.Owner, ct);
+            if (ownerRole == null)
             {
-                user_id = profile.user_id,
-                role_id = ownerRole.id,
-                assigned_at = now
-            });
-        }
+                ownerRole = new role { name = RoleNames.Owner, description = RoleNames.OwnerDescription };
+                _repo.AddRole(ownerRole);
+                await _repo.SaveChangesAsync(ct);
+            }
 
-        await UpdatePendingBoatsAsync(profile.user_id, BoatStatuses.Idle, ct);
+            if (!await _repo.UserHasRoleAsync(profile.user_id, ownerRole.id, ct))
+            {
+                _repo.AddUserRole(new user_role
+                {
+                    user_id = profile.user_id,
+                    role_id = ownerRole.id,
+                    assigned_at = now
+                });
+            }
 
-        await _repo.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+            await UpdatePendingBoatsAsync(profile.user_id, BoatStatuses.Idle, ct);
+
+            await _repo.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        });
 
         await TrySendApprovalEmailAsync(profile);
         return "Xác thực chủ thuyền thành công.";

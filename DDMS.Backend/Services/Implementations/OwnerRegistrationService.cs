@@ -56,152 +56,150 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         // Owner documents are optional at registration; upload later via Owner Documents page.
         request.OwnerDocuments ??= new List<OwnerDocumentUploadDto>();
 
-        using var transaction = await _dbContext.Database.BeginTransactionAsync();
-        try
+        // Ca luong chi co dung mot SaveChangesAsync o cuoi (OwnerDocumentService
+        // chi Add vao change tracker, khong tu luu), ma EF Core von da boc
+        // SaveChanges trong transaction cua no. Nen transaction thu cong o day
+        // thua ngay tu dau.
+        //
+        // Tu khi Program.cs bat EnableRetryOnFailure, no con lam request 500:
+        //   The configured execution strategy 'MySqlRetryingExecutionStrategy'
+        //   does not support user-initiated transactions.
+        // 1. Create Owner Profile
+        var profile = new owner_profile
         {
-            // 1. Create Owner Profile
-            var profile = new owner_profile
+            id = Guid.NewGuid(),
+            user_id = userId,
+            business_name = request.FullName,
+            license_number = request.LicenseNumber,
+            phone_business = request.Phone,
+            address = request.Address,
+            entity_type = entityType,
+            is_verified = false,
+            status = "Pending",
+            created_at = DateTime.UtcNow,
+            updated_at = DateTime.UtcNow
+        };
+        _dbContext.owner_profiles.Add(profile);
+
+        var nationalIdUrl = await _ownerDocuments.AddDocumentsOnRegisterAsync(
+            profile.id, request.OwnerDocuments);
+        if (!string.IsNullOrWhiteSpace(nationalIdUrl))
+            profile.license_image = nationalIdUrl;
+
+        // 2. Create Boats
+        foreach (var vessel in request.Vessels)
+        {
+            var boatId = Guid.NewGuid();
+            var imageUrls = new List<string>();
+            if (vessel.ImageFiles != null && vessel.ImageFiles.Any())
             {
-                id = Guid.NewGuid(),
-                user_id = userId,
-                business_name = request.FullName,
-                license_number = request.LicenseNumber,
-                phone_business = request.Phone,
-                address = request.Address,
-                entity_type = entityType,
-                is_verified = false,
-                status = "Pending",
-                created_at = DateTime.UtcNow,
-                updated_at = DateTime.UtcNow
-            };
-            _dbContext.owner_profiles.Add(profile);
-
-            var nationalIdUrl = await _ownerDocuments.AddDocumentsOnRegisterAsync(
-                profile.id, request.OwnerDocuments);
-            if (!string.IsNullOrWhiteSpace(nationalIdUrl))
-                profile.license_image = nationalIdUrl;
-
-            // 2. Create Boats
-            foreach (var vessel in request.Vessels)
-            {
-                var boatId = Guid.NewGuid();
-                var imageUrls = new List<string>();
-                if (vessel.ImageFiles != null && vessel.ImageFiles.Any())
+                foreach (var file in vessel.ImageFiles)
                 {
-                    foreach (var file in vessel.ImageFiles)
-                    {
-                        using var stream = file.OpenReadStream();
-                        var uploadResult = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
-                        imageUrls.Add(uploadResult.ImageUrl);
-                    }
-                }
-
-                var documentUrls = new List<string>();
-                if (vessel.DocumentFiles != null && vessel.DocumentFiles.Any())
-                {
-                    foreach (var file in vessel.DocumentFiles)
-                    {
-                        using var stream = file.OpenReadStream();
-                        var uploadResult = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
-                        documentUrls.Add(uploadResult.ImageUrl);
-                    }
-                }
-
-                var boat = new boat
-                {
-                    id = boatId,
-                    owner_id = userId,
-                    name = vessel.Name,
-                    type = vessel.Type,
-                    length = vessel.Length,
-                    beam = vessel.Beam,
-                    registration_number = vessel.RegistrationNumber,
-                    mooring_type = vessel.MooringType,
-                    expected_docking_date = vessel.ExpectedDockingDate,
-                    required_services = JsonSerializer.Serialize(vessel.RequiredServices ?? new List<string>()),
-                    document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
-                    max_passengers = 1, // Default value, will be updated by admin later
-                    status = "Pending",
-                    compliance_status = BoatComplianceStatuses.Valid,
-                    created_at = DateTime.UtcNow,
-                    updated_at = DateTime.UtcNow
-                };
-
-                _dbContext.boats.Add(boat);
-
-                if (vessel.Certificates != null && vessel.Certificates.Count > 0)
-                {
-                    var certNow = DateTime.UtcNow;
-                    foreach (var cert in vessel.Certificates)
-                    {
-                        if (cert.File is null || cert.File.Length == 0
-                            || string.IsNullOrWhiteSpace(cert.CertificateType))
-                        {
-                            continue;
-                        }
-
-                        var certType = cert.CertificateType.Trim();
-                        if (BoatCertificateTypes.IsDeprecated(certType))
-                        {
-                            throw new AppException(ErrorCode.CertificateTypeRequired,
-                                "Giấy phép KD vận tải thủy thuộc hồ sơ chủ thuyền (transport_license), không upload trên tàu.");
-                        }
-
-                        await _certificateTypes.EnsureActiveCodeAsync(certType, CertificateScopes.Boat);
-
-                        using var certStream = cert.File.OpenReadStream();
-                        var certUpload = await _cloudinaryService.UploadImageAsync(certStream, cert.File.FileName);
-                        documentUrls.Add(certUpload.ImageUrl);
-
-                        _dbContext.boat_certificates.Add(new boat_certificate
-                        {
-                            id = Guid.NewGuid(),
-                            boat_id = boatId,
-                            certificate_type = certType,
-                            document_url = certUpload.ImageUrl,
-                            public_id = certUpload.PublicId,
-                            expiry_date = cert.ExpiryDate,
-                            status = BoatCertificateStatuses.Pending,
-                            created_at = certNow,
-                            updated_at = certNow
-                        });
-                    }
-
-                    if (documentUrls.Any())
-                    {
-                        boat.document_url = JsonSerializer.Serialize(documentUrls);
-                    }
-                }
-
-                if (imageUrls.Any())
-                {
-                    int sortOrder = 0;
-                    foreach (var url in imageUrls)
-                    {
-                        _dbContext.boat_images.Add(new boat_image
-                        {
-                            id = Guid.NewGuid(),
-                            boat_id = boatId,
-                            image_url = url,
-                            sort_order = sortOrder++,
-                            created_at = DateTime.UtcNow
-                        });
-                    }
+                    using var stream = file.OpenReadStream();
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
+                    imageUrls.Add(uploadResult.ImageUrl);
                 }
             }
 
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
+            var documentUrls = new List<string>();
+            if (vessel.DocumentFiles != null && vessel.DocumentFiles.Any())
+            {
+                foreach (var file in vessel.DocumentFiles)
+                {
+                    using var stream = file.OpenReadStream();
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
+                    documentUrls.Add(uploadResult.ImageUrl);
+                }
+            }
 
-            // 3. Send Email
-            await _emailSender.SendOwnerRegistrationSuccessEmailAsync(user.email, request.FullName, request, language);
+            var boat = new boat
+            {
+                id = boatId,
+                owner_id = userId,
+                name = vessel.Name,
+                type = vessel.Type,
+                length = vessel.Length,
+                beam = vessel.Beam,
+                registration_number = vessel.RegistrationNumber,
+                mooring_type = vessel.MooringType,
+                expected_docking_date = vessel.ExpectedDockingDate,
+                required_services = JsonSerializer.Serialize(vessel.RequiredServices ?? new List<string>()),
+                document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
+                max_passengers = 1, // Default value, will be updated by admin later
+                status = "Pending",
+                compliance_status = BoatComplianceStatuses.Valid,
+                created_at = DateTime.UtcNow,
+                updated_at = DateTime.UtcNow
+            };
 
-            return new MessageResponse { message = "Gửi yêu cầu đăng ký chủ thuyền thành công. Vui lòng chờ Admin duyệt." };
+            _dbContext.boats.Add(boat);
+
+            if (vessel.Certificates != null && vessel.Certificates.Count > 0)
+            {
+                var certNow = DateTime.UtcNow;
+                foreach (var cert in vessel.Certificates)
+                {
+                    if (cert.File is null || cert.File.Length == 0
+                        || string.IsNullOrWhiteSpace(cert.CertificateType))
+                    {
+                        continue;
+                    }
+
+                    var certType = cert.CertificateType.Trim();
+                    if (BoatCertificateTypes.IsDeprecated(certType))
+                    {
+                        throw new AppException(ErrorCode.CertificateTypeRequired,
+                            "Giấy phép KD vận tải thủy thuộc hồ sơ chủ thuyền (transport_license), không upload trên tàu.");
+                    }
+
+                    await _certificateTypes.EnsureActiveCodeAsync(certType, CertificateScopes.Boat);
+
+                    using var certStream = cert.File.OpenReadStream();
+                    var certUpload = await _cloudinaryService.UploadImageAsync(certStream, cert.File.FileName);
+                    documentUrls.Add(certUpload.ImageUrl);
+
+                    _dbContext.boat_certificates.Add(new boat_certificate
+                    {
+                        id = Guid.NewGuid(),
+                        boat_id = boatId,
+                        certificate_type = certType,
+                        document_url = certUpload.ImageUrl,
+                        public_id = certUpload.PublicId,
+                        expiry_date = cert.ExpiryDate,
+                        status = BoatCertificateStatuses.Pending,
+                        created_at = certNow,
+                        updated_at = certNow
+                    });
+                }
+
+                if (documentUrls.Any())
+                {
+                    boat.document_url = JsonSerializer.Serialize(documentUrls);
+                }
+            }
+
+            if (imageUrls.Any())
+            {
+                int sortOrder = 0;
+                foreach (var url in imageUrls)
+                {
+                    _dbContext.boat_images.Add(new boat_image
+                    {
+                        id = Guid.NewGuid(),
+                        boat_id = boatId,
+                        image_url = url,
+                        sort_order = sortOrder++,
+                        created_at = DateTime.UtcNow
+                    });
+                }
+            }
         }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+
+        await _dbContext.SaveChangesAsync();
+
+        // 3. Send Email
+        await _emailSender.SendOwnerRegistrationSuccessEmailAsync(user.email, request.FullName, request, language);
+
+        return new MessageResponse { message = "Gửi yêu cầu đăng ký chủ thuyền thành công. Vui lòng chờ Admin duyệt." };
     }
 }
