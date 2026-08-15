@@ -38,6 +38,8 @@ public class CrawlResult
     public int Fetched { get; set; }
     public int Skipped { get; set; }
     public int Created { get; set; }
+    /// <summary>Trong số Created, bao nhiêu bài đạt ngưỡng và lên trang ngay.</summary>
+    public int Published { get; set; }
     public List<string> Errors { get; set; } = new();
 }
 
