@@ -396,6 +396,7 @@ public class GeminiAiService : IAiService
         var prompt = type switch
         {
             "name" => BuildNamePrompt(keywords, request.ServiceType, request.TourName),
+            "vessel_name" => BuildVesselNamePrompt(keywords, request.ServiceType, request.TourName),
             "description" => BuildDescriptionPrompt(keywords, request.ServiceType, request.TourName, request.DurationMinutes),
             "faqs" => BuildFaqPrompt(request.TourName, request.Description, keywords),
             "price" => await BuildPricePromptAsync(keywords, request.ServiceType, request.DurationMinutes),
@@ -408,6 +409,14 @@ public class GeminiAiService : IAiService
 
         return type switch
         {
+            "vessel_name" => new OwnerContentResponseDto
+            {
+                Type = type,
+                Options = ParseNameOptions(raw).Count > 0
+                    ? ParseNameOptions(raw)
+                    : GenerateFallbackVesselNames(keywords, request.ServiceType),
+                Text = raw?.Trim(),
+            },
             "name" => new OwnerContentResponseDto
             {
                 Type = "name",
@@ -432,6 +441,100 @@ public class GeminiAiService : IAiService
             },
             _ => new OwnerContentResponseDto { Type = type, Text = raw }
         };
+    }
+
+    private static List<string> GenerateFallbackVesselNames(string keywords, string? serviceType)
+    {
+        var type = (serviceType ?? string.Empty).ToLowerInvariant();
+        var kw = string.IsNullOrWhiteSpace(keywords) || keywords.Contains("du thuyền") || keywords.Contains("thuyền")
+            ? "ĐÀ NẴNG"
+            : keywords.Trim().ToUpperInvariant();
+
+        if (type.Contains("fishing") || type.Contains("đánh cá") || type.Contains("câu cá"))
+        {
+            return new List<string>
+            {
+                $"{kw} FISHING 01",
+                $"SƠN TRÀ {kw} ANGLER 01",
+                $"{kw} BIỂN BẠC 01",
+                $"BIỂN ĐÔNG {kw} FISHING 02",
+                $"{kw} CÂU CÁ 01"
+            };
+        }
+
+        if (type.Contains("catamaran") || type.Contains("hai thân"))
+        {
+            return new List<string>
+            {
+                $"{kw} CATAMARAN 01",
+                $"POSEIDON {kw} CAT 01",
+                $"BLUE OCEAN {kw} CATAMARAN 02",
+                $"{kw} ROYAL CAT 01",
+                $"ĐÀ THÀNH {kw} CATAMARAN 01"
+            };
+        }
+
+        if (type.Contains("speed") || type.Contains("cano") || type.Contains("ca nô") || type.Contains("cao tốc"))
+        {
+            return new List<string>
+            {
+                $"{kw} EXPRESS 01",
+                $"CHAM ISLAND {kw} EXPRESS 02",
+                $"{kw} SPEEDY 01",
+                $"SƠN TRÀ {kw} SPEEDBOAT 01",
+                $"{kw} SPEEDY OCEAN 09"
+            };
+        }
+
+        if (type.Contains("cruiser") || type.Contains("cỡ vừa") || type.Contains("tour") || type.Contains("du lịch"))
+        {
+            return new List<string>
+            {
+                $"{kw} TOURIST 01",
+                $"SÔNG HÀN {kw} CRUISER 01",
+                $"{kw} DRAGON TOURIST 02",
+                $"RỒNG ĐÀ THÀNH {kw} 01",
+                $"{kw} SÔNG HÀN CRUISER 02"
+            };
+        }
+
+        return new List<string>
+        {
+            $"POSEIDON {kw} CRUISE",
+            $"{kw} PRINCESS CRUISE 01",
+            $"ROYAL {kw} YACHT 01",
+            $"{kw} LUXURY CRUISE 02",
+            $"DANANG {kw} YACHT 01"
+        };
+    }
+
+    private static string BuildVesselNamePrompt(string keywords, string? serviceType, string? boatName)
+    {
+        var kw = string.IsNullOrWhiteSpace(keywords)
+            ? (string.IsNullOrWhiteSpace(boatName) ? "(chưa có từ khóa)" : boatName)
+            : keywords;
+        return $@"Bạn là chuyên gia tư vấn thương hiệu và đăng kiểm hàng hải du lịch Đà Nẵng.
+Nhiệm vụ: Gợi ý **5 tên phương tiện / du thuyền / tàu** chuẩn quốc tế và đăng kiểm hàng hải, theo định dạng: `[TÊN RIÊNG/THƯƠNG HIỆU] + [HẬU TỐ THEO LOẠI TÀU] + [SỐ HIỆU]`.
+
+Loại phương tiện: {serviceType ?? "du thuyền"}
+Ý tưởng / Từ khóa của chủ tàu: {kw}
+
+QUY TẮC ĐẶT TÊN BẮT BUỘC:
+- Tất cả tên phải viết IN HOA (UPPERCASE).
+- Tên phải phù hợp với loại phương tiện đã chọn:
+  * Du thuyền (yacht / cruise): Sang trọng, đẳng cấp (VD: POSEIDON CRUISE DANANG, DANANG PRINCESS 01, ROYAL YACHT 01).
+  * Thuyền hai thân (catamaran): Hiện đại, vững chãi (VD: BLUE OCEAN CATAMARAN 01, POSEIDON CAT 02).
+  * Cano cao tốc (speedboat): Nhanh nhẹn, thể thao (VD: CHAM ISLAND EXPRESS 02, SPEEDY OCEAN 09, SƠN TRÀ SPEEDBOAT 01).
+  * Thuyền đánh cá / câu cá (fishing_boat): Hùng vĩ, đậm chất biển (VD: SƠN TRÀ FISHING 01, BIỂN ĐÔNG ANGLER 02, NGƯ DÂN SÔNG HÀN 01).
+  * Tàu ngắm cảnh (cruiser / tour boat): Văn hoá, thanh lịch (VD: SÔNG HÀN TOURIST 01, RỒNG ĐÀ THÀNH CRUISER 02).
+- Độ dài mỗi tên từ 2 đến 6 từ. Không chèn emoji hay ký tự đặc biệt lạ.
+
+FORMAT OUTPUT BẮT BUỘC — đúng 5 dòng, mỗi dòng 1 tên, đánh số 1-5, KHÔNG bold, KHÔNG giải thích thêm:
+1. TÊN THỨ NHẤT
+2. TÊN THỨ HAI
+3. TÊN THỨ BA
+4. TÊN THỨ TƯ
+5. TÊN THỨ NĂM";
     }
 
     private static string BuildNamePrompt(string keywords, string? serviceType, string? tourName)
@@ -524,7 +627,7 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
     {
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            return "AI chưa được cấu hình. Vui lòng thử lại sau.";
+            return string.Empty;
         }
 
         var requestBody = new
@@ -589,8 +692,8 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             var trimmed = line.Trim();
             if (string.IsNullOrEmpty(trimmed)) continue;
 
-            // Skip lines that are pure meta text (headings, intros)
-            if (Regex.IsMatch(trimmed, @"^(Dưới đây|Sau đây|Xin gợi ý|Gợi ý|Chào|Đây là|Note:|Ghi chú)", RegexOptions.IgnoreCase))
+            // Skip lines that are pure meta text (headings, intros, error strings)
+            if (Regex.IsMatch(trimmed, @"^(Dưới đây|Sau đây|Xin gợi ý|Gợi ý|Chào|Đây là|Note:|Ghi chú|AI chưa|Xin lỗi|Không thể)", RegexOptions.IgnoreCase))
                 continue;
 
             // Strip leading list markers: "1.", "1)", "1 -", "- ", "* ", "• "

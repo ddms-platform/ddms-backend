@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Boat;
 using DDMS.Backend.Models.Entities;
@@ -65,7 +65,7 @@ public class BoatService : IBoatService
         var boat = new boat
         {
             id = Guid.NewGuid(),
-            name = request.name.Trim(),
+            name = NormalizeVesselName(request.name),
             type = string.IsNullOrWhiteSpace(request.type) ? null : request.type.Trim().ToLowerInvariant(),
             max_passengers = request.maxPassengers,
             status = string.IsNullOrWhiteSpace(request.status) ? "idle" : request.status.Trim().ToLowerInvariant(),
@@ -87,7 +87,7 @@ public class BoatService : IBoatService
 
         ValidateBoatRequest(request.name, request.maxPassengers, request.status, request.type);
 
-        boat.name = request.name.Trim();
+        boat.name = NormalizeVesselName(request.name);
         boat.type = string.IsNullOrWhiteSpace(request.type) ? null : request.type.Trim().ToLowerInvariant();
         boat.max_passengers = request.maxPassengers;
         boat.status = string.IsNullOrWhiteSpace(request.status) ? "idle" : request.status.Trim().ToLowerInvariant();
@@ -372,5 +372,13 @@ public class BoatService : IBoatService
             rooms = sharedRooms,
             combos = sharedCombos,
         }).ToList();
+    }
+
+    private static string NormalizeVesselName(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "VESSEL";
+        var clean = System.Text.RegularExpressions.Regex.Replace(raw.Trim(), @"\s+", " ");
+        clean = System.Text.RegularExpressions.Regex.Replace(clean, @"[^\p{L}\p{N}\s\-_]", "");
+        return string.IsNullOrWhiteSpace(clean) ? "VESSEL" : clean.ToUpperInvariant();
     }
 }
