@@ -81,5 +81,17 @@ namespace DDMS.Backend.Repositories.Implementations
         {
             return await _context.reviews.AnyAsync(r => r.booking_id == bookingId);
         }
+
+        public async Task<(Guid? ownerId, string tourName, string customerName)> GetBookingReviewContextAsync(Guid bookingId, Guid userId)
+        {
+            var b = await _context.bookings
+                .Include(x => x.user)
+                .Include(x => x.schedule).ThenInclude(s => s.tour)
+                .Include(x => x.schedule).ThenInclude(s => s.boat)
+                .FirstOrDefaultAsync(x => x.id == bookingId);
+
+            if (b == null) return (null, "Tour", "Khách hàng");
+            return (b.schedule?.boat?.owner_id, b.schedule?.tour?.name ?? "Tour", b.user?.full_name ?? "Khách hàng");
+        }
     }
 }

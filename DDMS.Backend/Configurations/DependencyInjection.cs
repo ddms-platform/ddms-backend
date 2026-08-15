@@ -67,7 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IBoatCertificateRepository, BoatCertificateRepository>();
         services.AddScoped<IBoatCertificateService, BoatCertificateService>();
         services.AddScoped<IBoatComplianceService, BoatComplianceService>();
-        services.AddScoped<IBoatComplianceNotifier, NoOpBoatComplianceNotifier>();
+        services.AddScoped<IBoatComplianceNotifier, BoatComplianceNotifier>();
         services.AddScoped<ICertificateTypeRepository, CertificateTypeRepository>();
         services.AddScoped<ICertificateTypeService, CertificateTypeService>();
         services.AddScoped<IOwnerDocumentRepository, OwnerDocumentRepository>();

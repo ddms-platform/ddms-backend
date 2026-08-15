@@ -62,7 +62,7 @@ public class NotificationService : INotificationService
                     id = recipient.id,
                     title = notif.title,
                     content = notif.body,
-                    createdAt = recipient.created_at.ToString("o"), // ISO 8601
+                    createdAt = DateTime.SpecifyKind(recipient.created_at, DateTimeKind.Utc).ToString("o"), // ISO 8601 with Z
                     isRead = recipient.is_read
                 });
             }
@@ -70,6 +70,15 @@ public class NotificationService : INotificationService
             {
                 // Suppress SignalR delivery errors so the DB transaction remains robust
             }
+        }
+    }
+
+    public async Task CreateNotificationForAdminsAsync(Guid? senderId, string type, string title, string body, string? data, CancellationToken ct)
+    {
+        var adminIds = await _repo.GetAdminUserIdsAsync(ct);
+        if (adminIds.Any())
+        {
+            await CreateNotificationAsync(senderId, type, title, body, adminIds, data, ct);
         }
     }
 

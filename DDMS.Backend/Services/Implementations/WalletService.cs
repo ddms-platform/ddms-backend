@@ -11,11 +11,16 @@ public class WalletService : IWalletService
 {
     private readonly IWalletRepository _wallets;
     private readonly IWithdrawalsRepository _withdrawals;
+    private readonly INotificationService _notificationService;
 
-    public WalletService(IWalletRepository wallets, IWithdrawalsRepository withdrawals)
+    public WalletService(
+        IWalletRepository wallets,
+        IWithdrawalsRepository withdrawals,
+        INotificationService notificationService)
     {
         _wallets = wallets;
         _withdrawals = withdrawals;
+        _notificationService = notificationService;
     }
 
     public async Task<WalletBalanceResponse> GetBalanceAsync(Guid userId, CancellationToken ct)
@@ -45,7 +50,7 @@ public class WalletService : IWalletService
         wallet.balance -= req.Amount;
         wallet.updated_at = now;
 
-        _withdrawals.Add(new wallet_withdrawal
+        var withdrawal = new wallet_withdrawal
         {
             id = Guid.NewGuid(),
             user_id = userId,
@@ -55,9 +60,24 @@ public class WalletService : IWalletService
             account_name = req.AccountName.Trim(),
             status = WithdrawalStatuses.Pending,
             created_at = now
-        });
+        };
+        _withdrawals.Add(withdrawal);
 
         await _withdrawals.SaveChangesAsync(ct);
+
+        try
+        {
+            await _notificationService.CreateNotificationForAdminsAsync(
+                senderId: userId,
+                type: "admin",
+                title: "Yêu cầu rút tiền mới 💸",
+                body: $"Đối tác vừa gửi yêu cầu rút {req.Amount:N0} đ về tài khoản {req.BankName} ({req.AccountNumber}).",
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best-effort */ }
+
         return new WithdrawResult { NewBalance = wallet.balance };
     }
 }

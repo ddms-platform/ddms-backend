@@ -52,5 +52,14 @@ public class NotificationRepository : INotificationRepository
             .ToListAsync(ct);
     }
 
+    public Task<List<Guid>> GetAdminUserIdsAsync(CancellationToken ct)
+    {
+        return _db.user_roles
+            .Where(ur => ur.role.name.ToLower() == "admin" && ur.user.is_active)
+            .Select(ur => ur.user_id)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }

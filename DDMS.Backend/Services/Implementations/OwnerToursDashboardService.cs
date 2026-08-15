@@ -23,15 +23,18 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
     private readonly IOwnerToursDashboardRepository _repo;
     private readonly IWalletRepository _wallets;
     private readonly IEmailSender _email;
+    private readonly INotificationService _notificationService;
 
     public OwnerToursDashboardService(
         IOwnerToursDashboardRepository repo,
         IWalletRepository wallets,
-        IEmailSender email)
+        IEmailSender email,
+        INotificationService notificationService)
     {
         _repo = repo;
         _wallets = wallets;
         _email = email;
+        _notificationService = notificationService;
     }
 
     public Task<List<TourStatsItem>> GetStatsAsync(Guid ownerId, CancellationToken ct) =>
@@ -101,6 +104,43 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
             booking.cancelled_at = now;
             booking.cancel_reason = req.CancelReason ?? BookingStatuses.CancelReasonOwnerCancelled;
             if (wasPaid) await RefundToWalletAsync(booking.user_id, booking.total_price, ct);
+
+            try
+            {
+                var tourName = booking.schedule.tour.name;
+                var bookingCode = booking.id.ToString().Substring(0, 8).ToUpper();
+                var reason = req.CancelReason ?? "Lý do kỹ thuật/thời tiết";
+                var refundText = wasPaid ? $" Tiền vé {booking.total_price:N0} đ đã được hoàn về ví của bạn." : "";
+                var body = $"Rất tiếc, tour {tourName} (Mã: {bookingCode}) phải hủy do: {reason}.{refundText}";
+
+                await _notificationService.CreateNotificationAsync(
+                    senderId: null,
+                    type: "system",
+                    title: "Chuyến đi bị hủy 🔴",
+                    body: body,
+                    recipientIds: new List<Guid> { booking.user_id },
+                    data: null,
+                    ct: ct
+                );
+            }
+            catch { /* best-effort */ }
+        }
+        else if (string.Equals(req.Status, BookingStatuses.Completed, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var tourName = booking.schedule.tour.name;
+                await _notificationService.CreateNotificationAsync(
+                    senderId: null,
+                    type: "system",
+                    title: "Chia sẻ trải nghiệm của bạn ⭐",
+                    body: $"Chuyến đi {tourName} đã kết thúc. Hãy dành 1 phút để đánh giá chất lượng tàu và dịch vụ nhé!",
+                    recipientIds: new List<Guid> { booking.user_id },
+                    data: null,
+                    ct: ct
+                );
+            }
+            catch { /* best-effort */ }
         }
 
         await _repo.SaveChangesAsync(ct);
