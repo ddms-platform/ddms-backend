@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Auth;
 using DDMS.Backend.Models.Entities;
@@ -325,7 +325,8 @@ public class AuthService : IAuthService
             phone = user.phone,
             address = user.address,
             avatarUrl = user.avatar_url,
-            hasOwnerProfile = user.owner_profile != null
+            hasOwnerProfile = user.owner_profile != null && user.owner_profile.status != OwnerProfileStatuses.Rejected,
+            ownerProfileStatus = user.owner_profile?.status?.ToLowerInvariant()
         };
     }
 

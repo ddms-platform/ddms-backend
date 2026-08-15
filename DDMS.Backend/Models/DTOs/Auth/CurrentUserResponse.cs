@@ -11,4 +11,5 @@ public class CurrentUserResponse
     public string? address { get; set; }
     public string? avatarUrl { get; set; }
     public bool hasOwnerProfile { get; set; }
+    public string? ownerProfileStatus { get; set; }
 }

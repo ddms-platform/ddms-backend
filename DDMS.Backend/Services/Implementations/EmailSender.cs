@@ -540,6 +540,63 @@ public class EmailSender : IEmailSender
         await SendHtmlEmailAsync(toEmail, subject, body, "Owner Verification Approved", "");
     }
 
+    public async Task SendOwnerVerificationRejectedEmailAsync(string toEmail, string ownerName, string? reason)
+    {
+        var subject = "DDMS - Thông báo kết quả xét duyệt hồ sơ chủ thuyền";
+        var safeReason = string.IsNullOrWhiteSpace(reason)
+            ? "Hồ sơ chưa đáp ứng đầy đủ quy chuẩn hoạt động hoặc thông tin cung cấp chưa chính xác/đầy đủ."
+            : System.Net.WebUtility.HtmlEncode(reason);
+
+        var body = $@"<!DOCTYPE html>
+<html lang=""vi"">
+<head>
+  <meta charset=""utf-8"" />
+</head>
+<body style=""margin:0;padding:0;background-color:#f4f6fb;font-family:Segoe UI,Roboto,Arial,sans-serif;"">
+  <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#f4f6fb;padding:32px 0;"">
+    <tr>
+      <td align=""center"">
+        <table role=""presentation"" width=""560"" cellpadding=""0"" cellspacing=""0"" style=""background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,25,47,0.08);"">
+          <tr>
+            <td style=""background:linear-gradient(135deg,#0A192F 0%,#112240 60%,#0d2847 100%);padding:32px;text-align:center;"">
+              <h1 style=""margin:0;color:#00F0FF;font-size:22px;letter-spacing:-0.3px;"">DDMS</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style=""padding:36px 40px 8px;"">
+              <p style=""margin:0 0 16px;color:#0A192F;font-size:16px;"">Kính chào {System.Net.WebUtility.HtmlEncode(ownerName)},</p>
+              <p style=""margin:0 0 16px;color:#3c4858;font-size:15px;line-height:1.6;"">
+                Cảm ơn bạn đã quan tâm và nộp hồ sơ đăng ký trở thành Đối tác Chủ thuyền tại hệ thống DDMS.
+              </p>
+              <p style=""margin:0 0 16px;color:#e53e3e;font-size:15px;line-height:1.6;font-weight:600;"">
+                Rất tiếc, yêu cầu đăng ký của bạn hiện chưa được phê duyệt.
+              </p>
+              <div style=""background-color:#fff5f5;border-left:4px solid #e53e3e;padding:14px 18px;border-radius:6px;margin:16px 0 24px;"">
+                <p style=""margin:0 0 6px;color:#c53030;font-size:13px;font-weight:700;"">Lý do từ chối:</p>
+                <p style=""margin:0;color:#4a5568;font-size:14px;line-height:1.5;"">{safeReason}</p>
+              </div>
+              <p style=""margin:0 0 24px;color:#3c4858;font-size:14px;line-height:1.6;"">
+                Bạn có thể kiểm tra lại các giấy tờ, bổ sung đầy đủ thông tin phương tiện và nộp lại hồ sơ mới bất cứ lúc nào trên trang <strong>Trở thành chủ thuyền</strong>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style=""background-color:#f8fafc;padding:24px 40px;text-align:center;"">
+              <p style=""margin:0;color:#8a94a6;font-size:13px;line-height:1.6;"">
+                Trân trọng,<br />Ban Quản Trị Hệ Thống DDMS
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>";
+
+        await SendHtmlEmailAsync(toEmail, subject, body, "Owner Verification Rejected", "");
+    }
+
     public async Task SendBoatDockAssignmentEmailAsync(
         string toEmail,
         string ownerName,

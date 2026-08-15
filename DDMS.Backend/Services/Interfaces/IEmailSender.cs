@@ -23,6 +23,7 @@ public interface IEmailSender
         string boatName, 
         decimal basePrice);
     Task SendOwnerVerificationApprovedEmailAsync(string toEmail, string ownerName);
+    Task SendOwnerVerificationRejectedEmailAsync(string toEmail, string ownerName, string? reason);
     Task SendBoatDockAssignmentEmailAsync(
         string toEmail, 
         string ownerName, 
