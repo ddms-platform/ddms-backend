@@ -45,10 +45,6 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         if (user == null)
             throw new UnauthorizedException();
 
-        var existingProfile = await _dbContext.owner_profiles.FirstOrDefaultAsync(p => p.user_id == userId);
-        if (existingProfile != null)
-            throw new AppException(ErrorCode.AuthValidationFailed, "Bạn đã gửi yêu cầu đăng ký chủ thuyền hoặc đã là chủ thuyền.");
-
         var entityType = string.IsNullOrWhiteSpace(request.EntityType)
             ? OwnerEntityTypes.Individual
             : request.EntityType.Trim().ToLowerInvariant();
@@ -59,30 +55,51 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         // Owner documents are optional at registration; upload later via Owner Documents page.
         request.OwnerDocuments ??= new List<OwnerDocumentUploadDto>();
 
-        // Ca luong chi co dung mot SaveChangesAsync o cuoi (OwnerDocumentService
-        // chi Add vao change tracker, khong tu luu), ma EF Core von da boc
-        // SaveChanges trong transaction cua no. Nen transaction thu cong o day
-        // thua ngay tu dau.
-        //
-        // Tu khi Program.cs bat EnableRetryOnFailure, no con lam request 500:
-        //   The configured execution strategy 'MySqlRetryingExecutionStrategy'
-        //   does not support user-initiated transactions.
-        // 1. Create Owner Profile
-        var profile = new owner_profile
+        var existingProfile = await _dbContext.owner_profiles
+            .Include(p => p.owner_documents)
+            .FirstOrDefaultAsync(p => p.user_id == userId);
+
+        owner_profile profile;
+        if (existingProfile != null)
         {
-            id = Guid.NewGuid(),
-            user_id = userId,
-            business_name = request.FullName,
-            license_number = request.LicenseNumber,
-            phone_business = request.Phone,
-            address = request.Address,
-            entity_type = entityType,
-            is_verified = false,
-            status = "Pending",
-            created_at = DateTime.UtcNow,
-            updated_at = DateTime.UtcNow
-        };
-        _dbContext.owner_profiles.Add(profile);
+            if (existingProfile.status == OwnerProfileStatuses.Verified || existingProfile.is_verified)
+            {
+                throw new AppException(ErrorCode.AuthValidationFailed, "Bạn đã là đối tác chủ thuyền trên hệ thống.");
+            }
+            if (existingProfile.status == OwnerProfileStatuses.Pending)
+            {
+                throw new AppException(ErrorCode.AuthValidationFailed, "Yêu cầu đăng ký chủ thuyền của bạn đang chờ phê duyệt.");
+            }
+
+            // Nếu từng bị Rejected thì cập nhật và cho phép nộp lại
+            existingProfile.business_name = request.FullName;
+            existingProfile.license_number = request.LicenseNumber;
+            existingProfile.phone_business = request.Phone;
+            existingProfile.address = request.Address;
+            existingProfile.entity_type = entityType;
+            existingProfile.status = OwnerProfileStatuses.Pending;
+            existingProfile.is_verified = false;
+            existingProfile.updated_at = DateTime.UtcNow;
+            profile = existingProfile;
+        }
+        else
+        {
+            profile = new owner_profile
+            {
+                id = Guid.NewGuid(),
+                user_id = userId,
+                business_name = request.FullName,
+                license_number = request.LicenseNumber,
+                phone_business = request.Phone,
+                address = request.Address,
+                entity_type = entityType,
+                is_verified = false,
+                status = OwnerProfileStatuses.Pending,
+                created_at = DateTime.UtcNow,
+                updated_at = DateTime.UtcNow
+            };
+            _dbContext.owner_profiles.Add(profile);
+        }
 
         var nationalIdUrl = await _ownerDocuments.AddDocumentsOnRegisterAsync(
             profile.id, request.OwnerDocuments);

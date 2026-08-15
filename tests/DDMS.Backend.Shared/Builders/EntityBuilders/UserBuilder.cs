@@ -69,6 +69,7 @@ public class UserBuilder
                 id = Guid.NewGuid(),
                 user_id = _id,
                 entity_type = "individual",
+                status = "Verified",
                 is_verified = true,
                 created_at = DateTime.UtcNow.AddDays(-10),
                 updated_at = DateTime.UtcNow.AddDays(-10)

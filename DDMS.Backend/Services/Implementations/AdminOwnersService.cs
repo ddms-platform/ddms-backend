@@ -16,11 +16,16 @@ public class AdminOwnersService : IAdminOwnersService
 {
     private readonly IAdminOwnersRepository _repo;
     private readonly IEmailSender _email;
+    private readonly INotificationService _notificationService;
 
-    public AdminOwnersService(IAdminOwnersRepository repo, IEmailSender email)
+    public AdminOwnersService(
+        IAdminOwnersRepository repo,
+        IEmailSender email,
+        INotificationService notificationService)
     {
         _repo = repo;
         _email = email;
+        _notificationService = notificationService;
     }
 
     public async Task<List<VerificationItem>> GetVerificationsAsync(CancellationToken ct)
@@ -86,12 +91,29 @@ public class AdminOwnersService : IAdminOwnersService
         });
 
         await TrySendApprovalEmailAsync(profile);
+
+        // Gui In-App Notification den user duoc duyet
+        try
+        {
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Hồ sơ Chủ thuyền đã được duyệt thành công 🎉",
+                body: "Chúc mừng! Bạn đã chính thức trở thành Đối tác Chủ thuyền trên DDMS. Hãy truy cập Bảng điều khiển để bắt đầu quản lý đội tàu của mình.",
+                recipientIds: new List<Guid> { profile.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best effort */ }
+
         return "Xác thực chủ thuyền thành công.";
     }
 
     public async Task<string> RejectVerificationAsync(Guid profileId, CancellationToken ct)
     {
-        var profile = await _repo.FindProfileAsync(profileId, ct)
+        var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
+            ?? await _repo.FindProfileAsync(profileId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy yêu cầu xác thực.");
 
         var now = DateTime.UtcNow;
@@ -102,6 +124,25 @@ public class AdminOwnersService : IAdminOwnersService
         await UpdatePendingBoatsAsync(profile.user_id, BoatStatuses.Rejected, ct);
 
         await _repo.SaveChangesAsync(ct);
+
+        // Gui In-App Notification den user bi tu choi
+        try
+        {
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Hồ sơ đăng ký Chủ thuyền bị từ chối ❌",
+                body: "Rất tiếc, hồ sơ đăng ký đối tác Chủ thuyền của bạn chưa được duyệt. Bạn có thể kiểm tra lại thông tin và nộp lại hồ sơ mới trên trang 'Trở thành chủ thuyền'.",
+                recipientIds: new List<Guid> { profile.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best effort */ }
+
+        // Gui email tu choi
+        await TrySendRejectionEmailAsync(profile);
+
         return "Đã từ chối yêu cầu xác thực.";
     }
 
@@ -128,6 +169,22 @@ public class AdminOwnersService : IAdminOwnersService
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending verification approval email: {ex.Message}");
+        }
+    }
+
+    private async Task TrySendRejectionEmailAsync(owner_profile profile)
+    {
+        if (profile.user == null || string.IsNullOrEmpty(profile.user.email)) return;
+        try
+        {
+            await _email.SendOwnerVerificationRejectedEmailAsync(
+                profile.user.email,
+                profile.business_name ?? profile.user.full_name ?? "Chủ thuyền",
+                null);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending verification rejection email: {ex.Message}");
         }
     }
 

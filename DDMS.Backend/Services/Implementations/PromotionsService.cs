@@ -46,7 +46,15 @@ public class OwnerPromotionsService : IOwnerPromotionsService
 public class AdminPromotionsService : IAdminPromotionsService
 {
     private readonly IPromotionsRepository _repo;
-    public AdminPromotionsService(IPromotionsRepository repo) => _repo = repo;
+    private readonly INotificationService _notificationService;
+
+    public AdminPromotionsService(
+        IPromotionsRepository repo,
+        INotificationService notificationService)
+    {
+        _repo = repo;
+        _notificationService = notificationService;
+    }
 
     public async Task<List<AdminPromotionItem>> GetAllAsync(CancellationToken ct)
     {
@@ -110,6 +118,38 @@ public class AdminPromotionsService : IAdminPromotionsService
         promo.status = status;
         promo.updated_at = DateTime.UtcNow;
         await _repo.SaveChangesAsync(ct);
+
+        if (promo.created_by.HasValue && promo.created_by.Value != Guid.Empty)
+        {
+            try
+            {
+                if (status == PromotionStatuses.Approved)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: null,
+                        type: "system",
+                        title: "Khuyến mãi đã được phê duyệt 🏷️",
+                        body: $"Mã khuyến mãi '{promo.code}' của bạn đã được Admin phê duyệt và kích hoạt trên hệ thống.",
+                        recipientIds: new List<Guid> { promo.created_by.Value },
+                        data: null,
+                        ct: ct
+                    );
+                }
+                else if (status == PromotionStatuses.Rejected)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: null,
+                        type: "system",
+                        title: "Khuyến mãi bị từ chối ❌",
+                        body: $"Mã khuyến mãi '{promo.code}' của bạn chưa được duyệt do chưa phù hợp với chính sách của hệ thống.",
+                        recipientIds: new List<Guid> { promo.created_by.Value },
+                        data: null,
+                        ct: ct
+                    );
+                }
+            }
+            catch { /* best effort */ }
+        }
     }
 }
 
