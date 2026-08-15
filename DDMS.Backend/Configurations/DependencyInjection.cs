@@ -1,4 +1,4 @@
-using DDMS.Backend.Repositories.Implementations;
+﻿using DDMS.Backend.Repositories.Implementations;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Implementations;
 using DDMS.Backend.Services.Interfaces;
@@ -23,6 +23,9 @@ public static class DependencyInjection
 
         services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<IBillingService, BillingService>();
+
+        services.AddScoped<IPublicOwnersRepository, PublicOwnersRepository>();
+        services.AddScoped<IPublicOwnersService, PublicOwnersService>();
 
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IBookingService, BookingService>();
