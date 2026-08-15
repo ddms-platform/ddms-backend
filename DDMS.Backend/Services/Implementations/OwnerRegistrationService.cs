@@ -232,7 +232,20 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         catch { /* best-effort */ }
 
         // 4. Send Email
-        await _emailSender.SendOwnerRegistrationSuccessEmailAsync(user.email, request.FullName, request, language);
+        //
+        // Hồ sơ đã lưu ở trên rồi. Nếu để lỗi gửi mail ném ra ngoài thì client
+        // nhận 500 dù đăng ký đã thành công, khách bấm lại sẽ dính "Bạn đã gửi
+        // yêu cầu đăng ký chủ thuyền hoặc đã là chủ thuyền" và tưởng hệ thống hỏng.
+        // Mail chỉ là thông báo, không phải một phần của giao dịch.
+        try
+        {
+            await _emailSender.SendOwnerRegistrationSuccessEmailAsync(
+                user.email, request.FullName, request, language);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Gửi email xác nhận đăng ký chủ thuyền thất bại: {ex.Message}");
+        }
 
         return new MessageResponse { message = "Gửi yêu cầu đăng ký chủ thuyền thành công. Vui lòng chờ Admin duyệt." };
     }
