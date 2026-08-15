@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Models.DTOs.Admin.Users;
+using DDMS.Backend.Models.DTOs.Admin.Users;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Data;
@@ -18,7 +18,7 @@ public class AdminUserRepository : IAdminUserRepository
     public async Task<(List<user> items, int total)> GetPagedAsync(AdminUserListQuery query)
     {
         var page = query.page < 1 ? 1 : query.page;
-        var pageSize = query.pageSize is < 1 or > 100 ? 10 : query.pageSize;
+        var pageSize = query.pageSize is < 1 or > 1000 ? 50 : query.pageSize;
 
         var usersQuery = _dbContext.users
             .Include(x => x.user_roles)
