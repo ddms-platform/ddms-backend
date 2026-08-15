@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IPublicOwnersService, PublicOwnersService>();
 
         services.AddScoped<IBlogRepository, BlogRepository>();
+        services.AddScoped<IBlogRealtimePublisher, BlogRealtimePublisher>();
         services.AddScoped<IBlogService, BlogService>();
         services.AddHttpClient<IGeminiTextGenerator, GeminiTextGenerator>();
         services.AddHttpClient<IBlogCrawlerService, BlogCrawlerService>();

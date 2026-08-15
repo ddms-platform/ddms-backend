@@ -1362,6 +1362,14 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fk_owner_payments_owner");
         });
 
+        modelBuilder.Entity<blog_post>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+            entity.HasIndex(e => e.slug).IsUnique();
+            entity.HasIndex(e => e.source_hash);
+            entity.HasIndex(e => new { e.status, e.published_at });
+        });
+
         modelBuilder.Entity<booking_payment>(entity =>
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");

@@ -65,6 +65,7 @@ builder.Services.AddOptions<BookingHoldOptions>()
     .Bind(builder.Configuration.GetSection(BookingHoldOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddHostedService<BlogCrawlerBackgroundService>();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
 builder.Services.AddHostedService<SeatHoldCleanupBackgroundService>();
 builder.Services.AddHostedService<OpsBriefingEmailService>();
@@ -379,6 +380,7 @@ app.MapHub<BillingHub>("/hub/billing");
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<SosHub>("/hub/sos");
 app.MapHub<AdminAlertsHub>("/hub/admin-alerts");
+app.MapHub<BlogHub>("/hub/blog");
 // CI goi endpoint nay sau khi deploy. Khong co no thi buoc deploy luon xanh
 // ke ca khi container chet ngay sau `docker run -d`.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

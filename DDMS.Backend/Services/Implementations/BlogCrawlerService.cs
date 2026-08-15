@@ -29,6 +29,7 @@ public class BlogCrawlerService : IBlogCrawlerService
     private readonly IGeminiTextGenerator _gemini;
     private readonly BlogCrawlerOptions _options;
     private readonly HttpClient _http;
+    private readonly IBlogRealtimePublisher _realtime;
     private readonly ILogger<BlogCrawlerService> _logger;
 
     public BlogCrawlerService(
@@ -36,12 +37,14 @@ public class BlogCrawlerService : IBlogCrawlerService
         IGeminiTextGenerator gemini,
         IOptions<BlogCrawlerOptions> options,
         HttpClient http,
+        IBlogRealtimePublisher realtime,
         ILogger<BlogCrawlerService> logger)
     {
         _repo = repo;
         _gemini = gemini;
         _options = options.Value;
         _http = http;
+        _realtime = realtime;
         _logger = logger;
     }
 
@@ -89,9 +92,30 @@ public class BlogCrawlerService : IBlogCrawlerService
                     var post = await BuildPostAsync(item, hash, ct);
                     if (post == null) { result.Skipped++; continue; }
 
+                    // Tự đăng nếu bài đạt ngưỡng chất lượng. Đây là chỗ thay cho
+                    // bước người duyệt: không có ai đọc lại thì ít nhất phải chặn
+                    // được bài rỗng ruột do Gemini trả về thiếu.
+                    var reject = QualityIssue(post);
+                    if (_options.AutoPublish && reject == null)
+                    {
+                        post.status = "published";
+                        post.published_at = DateTime.UtcNow;
+                    }
+                    else if (_options.AutoPublish)
+                    {
+                        _logger.LogInformation(
+                            "Giữ bài {Title} ở nháp: {Reason}", Trim(post.title, 50), reject);
+                    }
+
                     _repo.Add(post);
                     await _repo.SaveChangesAsync(ct);
                     result.Created++;
+
+                    if (post.status == "published")
+                    {
+                        result.Published++;
+                        await _realtime.PublishNewPostAsync(post, ct);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -102,6 +126,31 @@ public class BlogCrawlerService : IBlogCrawlerService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Trả về lý do KHÔNG nên tự đăng, null nghĩa là đạt.
+    /// Không chấm được văn hay dở, chỉ chặn được bài thiếu phần.
+    /// </summary>
+    private string? QualityIssue(blog_post post)
+    {
+        if (string.IsNullOrWhiteSpace(post.source_url)) return "thiếu liên kết nguồn";
+        if (string.IsNullOrWhiteSpace(post.summary)) return "thiếu tóm tắt";
+
+        var content = post.content ?? string.Empty;
+        if (content.Length < _options.MinContentLength)
+            return $"nội dung quá ngắn ({content.Length}/{_options.MinContentLength} ký tự)";
+
+        var scenes = 0;
+        if (!string.IsNullOrWhiteSpace(post.video_script))
+        {
+            try { scenes = JsonSerializer.Deserialize<List<VideoScene>>(post.video_script!)?.Count ?? 0; }
+            catch { scenes = 0; }
+        }
+        if (scenes < _options.MinVideoScenes)
+            return $"thiếu cảnh video ({scenes}/{_options.MinVideoScenes})";
+
+        return null;
     }
 
     // ------------------------------------------------------------------ RSS
