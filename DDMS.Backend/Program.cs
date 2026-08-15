@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using DDMS.Backend.Common.Constants;
@@ -55,6 +55,10 @@ builder.Services.AddOptions<BillingOptions>()
     .ValidateOnStart();
 builder.Services.AddOptions<BoatComplianceOptions>()
     .Bind(builder.Configuration.GetSection(BoatComplianceOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<BlogCrawlerOptions>()
+    .Bind(builder.Configuration.GetSection(BlogCrawlerOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddOptions<BookingHoldOptions>()

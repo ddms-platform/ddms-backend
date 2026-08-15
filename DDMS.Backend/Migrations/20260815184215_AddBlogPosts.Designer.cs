@@ -4,6 +4,7 @@ using DDMS.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DDMS.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815184215_AddBlogPosts")]
+    partial class AddBlogPosts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -766,54 +769,6 @@ namespace DDMS.Backend.Migrations
                     b.HasIndex(new[] { "booking_id" }, "idx_bk_cabins");
 
                     b.ToTable("booking_cabins");
-                });
-
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.booking_payment", b =>
-                {
-                    b.Property<Guid>("id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<decimal>("amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("amount_paid")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("booking_id")
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("checkout_url")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<DateTime>("created_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("description")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime?>("paid_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long>("payos_order_code")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.HasKey("id")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("booking_id");
-
-                    b.HasIndex("payos_order_code")
-                        .IsUnique();
-
-                    b.ToTable("booking_payment");
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.booking_service", b =>
@@ -2803,18 +2758,6 @@ namespace DDMS.Backend.Migrations
                     b.Navigation("booking");
 
                     b.Navigation("cabin");
-                });
-
-            modelBuilder.Entity("DDMS.Backend.Models.Entities.booking_payment", b =>
-                {
-                    b.HasOne("DDMS.Backend.Models.Entities.booking", "booking")
-                        .WithMany()
-                        .HasForeignKey("booking_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_booking_payments_booking");
-
-                    b.Navigation("booking");
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.booking_service", b =>
