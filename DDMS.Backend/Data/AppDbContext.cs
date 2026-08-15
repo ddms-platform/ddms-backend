@@ -1374,6 +1374,13 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");
 
+            // bookings.id la char(36) utf8mb4_unicode_ci (bang tao tu file SQL goc),
+            // trong khi EF mac dinh sinh char(36) ascii cho Guid. MySQL bat buoc hai
+            // cot trong khoa ngoai phai cung charset, lech la migration chet voi
+            // "Referencing column ... are incompatible".
+            entity.Property(e => e.id).HasColumnType("char(36)").UseCollation("utf8mb4_unicode_ci");
+            entity.Property(e => e.booking_id).HasColumnType("char(36)").UseCollation("utf8mb4_unicode_ci");
+
             // Mã đơn PayOS phải là duy nhất: webhook tra bản ghi theo mã này,
             // trùng mã đồng nghĩa với xác nhận nhầm booking.
             entity.HasIndex(e => e.payos_order_code).IsUnique();
