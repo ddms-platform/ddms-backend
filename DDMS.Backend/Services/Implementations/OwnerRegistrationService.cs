@@ -119,7 +119,7 @@ public class OwnerRegistrationService : IOwnerRegistrationService
             {
                 id = boatId,
                 owner_id = userId,
-                name = vessel.Name,
+                name = NormalizeVesselName(vessel.Name),
                 type = vessel.Type,
                 length = vessel.Length,
                 beam = vessel.Beam,
@@ -218,5 +218,13 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         await _emailSender.SendOwnerRegistrationSuccessEmailAsync(user.email, request.FullName, request, language);
 
         return new MessageResponse { message = "Gửi yêu cầu đăng ký chủ thuyền thành công. Vui lòng chờ Admin duyệt." };
+    }
+
+    private static string NormalizeVesselName(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "VESSEL";
+        var clean = System.Text.RegularExpressions.Regex.Replace(raw.Trim(), @"\s+", " ");
+        clean = System.Text.RegularExpressions.Regex.Replace(clean, @"[^\p{L}\p{N}\s\-_]", "");
+        return string.IsNullOrWhiteSpace(clean) ? "VESSEL" : clean.ToUpperInvariant();
     }
 }
