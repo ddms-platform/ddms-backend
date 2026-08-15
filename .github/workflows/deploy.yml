@@ -55,23 +55,18 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
-      # deploy.sh chay `docker build` ngay tren VM. Moi lan build de ra mot bo
-      # layer moi, image cu thanh dangling nhung khong ai xoa, build cache cung
-      # tich lai. EBS mac dinh 8 GB nen chi vai lan deploy la day - tu 05/08 den
-      # 15/08 co 6 luot deploy lien tiep chet o `git fetch` voi loi
-      # "No space left on device", tren ca hai server.
+      # deploy.sh da tu chay `docker image prune -f` sau moi lan build, nhung
+      # build cache thi khong ai don. In df ra de neu co ngay dia gan day thi
+      # doc duoc ngay trong log, thay vi de deploy chet o `git fetch` voi loi
+      # "No space left on device" nhu tung xay ra 6 lan lien tiep tren VM cu.
       #
-      # Loc `until=24h` giu lai image vua dung, va docker khong bao gio xoa image
-      # cua container dang chay.
-      - name: Don dia truoc khi build
+      # Loc `until=168h` chi cat cache cu hon 7 ngay, giu lai cache gan day de
+      # build khong phai lam lai tu dau.
+      - name: Kiem tra dia va cat build cache cu
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '
-            echo "=== Truoc khi don ==="
             df -h / | tail -1
-            docker system prune -af --filter "until=24h" >/dev/null 2>&1 || true
-            docker builder prune -af --filter "until=24h" >/dev/null 2>&1 || true
-            echo "=== Sau khi don ==="
-            df -h / | tail -1
+            docker builder prune -f --filter "until=168h" >/dev/null 2>&1 || true
           '
 
       - name: Run deploy script on VM
