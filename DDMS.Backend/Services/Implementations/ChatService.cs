@@ -73,10 +73,25 @@ public class ChatService : IChatService
             throw new NotFoundException("Không tìm thấy đơn đặt lịch này.");
         }
 
-        var ownerId = booking.schedule.tour.created_by;
+        // Owner duoc xac dinh giong PublicTourCatalogService: uu tien chu tau cua
+        // lich trinh, tour.created_by chi la phuong an du phong. Truoc day cho nay
+        // chi dung tour.created_by, ma TourService.CreateAsync (api/legacy/tours)
+        // khong bao gio gan truong do, nen ownerId = null -> owner bi bo qua im
+        // lang o nhanh `if (ownerId.HasValue)` ben duoi va cuoc hoi thoai chi co
+        // mot thanh vien la khach. Owner khong nhan duoc tin nhan nao, ke ca khi
+        // tai lai trang, vi danh sach hoi thoai loc theo conversation_members.
+        var ownerId = booking.schedule.boat?.owner_id ?? booking.schedule.tour.created_by;
         if (booking.user_id != userId && ownerId != userId)
         {
             throw new ForbiddenException("Bạn không có quyền bắt đầu cuộc hội thoại cho đơn đặt lịch này.");
+        }
+
+        // Bao loi ro thay vi tao ra mot cuoc hoi thoai chi co mot nguoi.
+        if (!ownerId.HasValue)
+        {
+            throw new AppException(
+                ErrorCode.ChatValidationFailed,
+                "Tour này chưa có chủ tàu phụ trách nên chưa thể bắt đầu trò chuyện.");
         }
 
         var existingConv = await _repo.GetConversationByBookingIdAsync(bookingId, ct);
