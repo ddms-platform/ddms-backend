@@ -30,6 +30,9 @@ public interface IBookingRepository
     Task<booking?> FindUserBookingWithScheduleAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindUserBookingWithDetailsAsync(Guid id, Guid userId, CancellationToken ct);
 
+    /// <summary>Booking theo id, không ràng buộc chủ đơn — webhook PayOS không có ngữ cảnh người dùng.</summary>
+    Task<booking?> FindBookingWithDetailsAsync(Guid id, CancellationToken ct);
+
     /// <summary>Booking kèm các dòng cabin/dịch vụ — cần để tính lại giá khi áp mã giảm giá.</summary>
     Task<booking?> FindUserBookingWithLinesAsync(Guid id, Guid userId, CancellationToken ct);
     Task<booking?> FindBookingForCheckInByIdAsync(Guid id, CancellationToken ct);

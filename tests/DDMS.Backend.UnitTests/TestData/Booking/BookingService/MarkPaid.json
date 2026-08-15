@@ -4,11 +4,13 @@
     "bookingFound": false,
     "status": "pending",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": false,
     "fullNamePresent": true,
     "expectedException": "NotFound",
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": false
   },
   {
@@ -16,11 +18,13 @@
     "bookingFound": true,
     "status": "confirmed",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": false,
     "fullNamePresent": true,
     "expectedException": null,
     "expectNoOp": true,
+    "expectRefund": false,
     "expectOwnerNotification": false
   },
   {
@@ -28,11 +32,13 @@
     "bookingFound": true,
     "status": "pending",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": true,
     "fullNamePresent": true,
     "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": true
   },
   {
@@ -40,11 +46,13 @@
     "bookingFound": true,
     "status": "pending",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": true,
     "fullNamePresent": false,
     "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": true
   },
   {
@@ -52,11 +60,13 @@
     "bookingFound": true,
     "status": "pending",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": false,
     "fullNamePresent": true,
     "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": false
   },
   {
@@ -64,11 +74,13 @@
     "bookingFound": true,
     "status": "holding",
     "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": true,
     "fullNamePresent": true,
     "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": true
   },
   {
@@ -76,23 +88,55 @@
     "bookingFound": true,
     "status": "holding",
     "holdExpiredAtOffsetHours": 2,
+    "paidAmount": 0,
     "boatExists": false,
     "ownerIdPresent": false,
     "fullNamePresent": false,
     "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
     "expectOwnerNotification": false
   },
   {
-    "caseName": "Holding_Expired_ThrowsHoldExpired",
+    "caseName": "Holding_Expired_StillConfirms_TienDaVaoKhongBatKhachChiu",
     "bookingFound": true,
     "status": "holding",
     "holdExpiredAtOffsetHours": -2,
+    "paidAmount": 0,
     "boatExists": true,
     "ownerIdPresent": false,
     "fullNamePresent": true,
-    "expectedException": "HoldExpired",
+    "expectedException": null,
     "expectNoOp": false,
+    "expectRefund": false,
+    "expectOwnerNotification": false
+  },
+  {
+    "caseName": "Cancelled_CoTienDaVao_HoanVaoViKhach",
+    "bookingFound": true,
+    "status": "cancelled",
+    "holdExpiredAtOffsetHours": null,
+    "paidAmount": 500000,
+    "boatExists": true,
+    "ownerIdPresent": false,
+    "fullNamePresent": true,
+    "expectedException": null,
+    "expectNoOp": false,
+    "expectRefund": true,
+    "expectOwnerNotification": false
+  },
+  {
+    "caseName": "Cancelled_KhongCoTien_KhongLamGi",
+    "bookingFound": true,
+    "status": "cancelled",
+    "holdExpiredAtOffsetHours": null,
+    "paidAmount": 0,
+    "boatExists": true,
+    "ownerIdPresent": false,
+    "fullNamePresent": true,
+    "expectedException": null,
+    "expectNoOp": true,
+    "expectRefund": false,
     "expectOwnerNotification": false
   }
 ]

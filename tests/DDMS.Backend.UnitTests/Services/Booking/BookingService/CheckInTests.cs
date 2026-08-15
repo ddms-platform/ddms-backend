@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Exceptions;
+﻿using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Shared.Assertions;
 using DDMS.Backend.Shared.Builders.EntityBuilders;
@@ -76,7 +76,8 @@ public class CheckInTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var request = new CheckInBookingRequest { BookingCode = actualCode! };
         var act = async () => await service.CheckInAsync(request, CancellationToken.None);

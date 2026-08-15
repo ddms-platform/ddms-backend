@@ -21,6 +21,7 @@ public class BookingService : IBookingService
     private readonly IAdminAlertPublisher _adminAlerts;
     private readonly IBookingPricingService _pricing;
     private readonly IPromotionsRepository _promotions;
+    private readonly IBookingPaymentRepository _payments;
 
     public BookingService(
         IBookingRepository repo,
@@ -30,7 +31,8 @@ public class BookingService : IBookingService
         IOptions<BookingHoldOptions> holdOptions,
         IAdminAlertPublisher adminAlerts,
         IBookingPricingService pricing,
-        IPromotionsRepository promotions)
+        IPromotionsRepository promotions,
+        IBookingPaymentRepository payments)
     {
         _repo = repo;
         _wallets = wallets;
@@ -40,6 +42,26 @@ public class BookingService : IBookingService
         _adminAlerts = adminAlerts;
         _pricing = pricing;
         _promotions = promotions;
+        _payments = payments;
+    }
+
+    /// <summary>Báo admin khi có tiền vào cho một đơn đã huỷ — cần người đối chiếu.</summary>
+    private Task AlertStrandedPaymentAsync(Guid bookingId, decimal amount)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _adminAlerts.PublishAsync(new Models.DTOs.AdminOps.AlertItem
+                {
+                    Severity = "warning",
+                    Title = $"Tiền vào sau khi đơn #{BookingStatuses.ToBookingCode(bookingId)} đã huỷ",
+                    Detail = $"Đã hoàn {amount:N0}đ vào ví khách. Cần đối chiếu lại với sao kê PayOS.",
+                });
+            }
+            catch { /* best-effort */ }
+        });
+        return Task.CompletedTask;
     }
 
     /// <summary>Tính giá bằng service dùng chung với endpoint áp mã, nên hai đường luôn ra cùng con số.</summary>
@@ -333,21 +355,31 @@ public class BookingService : IBookingService
         return bookings.Select(MapListItem).ToList();
     }
 
-    public async Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct)
+    public async Task MarkPaidAsync(Guid bookingId, CancellationToken ct)
     {
-        var booking = await _repo.FindUserBookingWithDetailsAsync(bookingId, userId, ct)
+        var booking = await _repo.FindBookingWithDetailsAsync(bookingId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
-        // Cho phép xác nhận từ pending hoặc holding (còn hạn). Trạng thái khác thì bỏ qua.
+        // Tiền vào sau khi đơn đã bị huỷ (worker dọn hold chạy trước khi PayOS báo về).
+        // Không còn chỗ để giao, nên trả tiền vào ví khách thay vì im lặng nuốt.
+        if (string.Equals(booking.status, BookingStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+        {
+            var strandedAmount = await _payments.GetPaidAmountAsync(bookingId, ct);
+            if (strandedAmount > 0)
+            {
+                await RefundToWalletAsync(booking.user_id, strandedAmount, ct);
+                await _repo.SaveChangesAsync(ct);
+                await AlertStrandedPaymentAsync(bookingId, strandedAmount);
+            }
+            return;
+        }
+
+        // Cho phép xác nhận từ pending hoặc holding. Trạng thái khác nghĩa là đã xử lý rồi.
         if (booking.status != BookingStatuses.Pending && booking.status != BookingStatuses.Holding)
             return;
 
-        // Giữ chỗ đã quá hạn -> không cho thanh toán (worker sẽ/đã tự huỷ).
-        if (booking.status == BookingStatuses.Holding
-            && booking.hold_expired_at != null
-            && booking.hold_expired_at <= DateTime.UtcNow)
-            throw new AppException(ErrorCode.HoldExpired, ErrorCode.Messages.HoldExpired);
-
+        // Giữ chỗ quá hạn nhưng chưa bị worker huỷ: tiền đã vào nên vẫn xác nhận,
+        // không bắt khách chịu độ trễ của hệ thống.
         booking.status = BookingStatuses.Confirmed;
         booking.hold_expired_at = null; // đã xác nhận, không còn thời hạn giữ
         booking.updated_at = DateTime.UtcNow;
@@ -421,7 +453,17 @@ public class BookingService : IBookingService
             throw new AppException(ErrorCode.UncategorizedError, "Đặt tour này đã được hủy trước đó.");
 
         var isPaid = BookingStatuses.IsPaidLike(booking.status);
+
+        // Chỉ hoàn đúng số tiền PayOS xác nhận đã nhận, không hoàn theo total_price.
+        // Đơn cũ tạo trước khi có bảng booking_payment thì không có bản ghi nào,
+        // với các đơn đó giữ nguyên cách tính cũ để không cắt quyền hoàn tiền của khách.
+        var hasPaymentRecord = await _payments.HasAnyPaymentAsync(booking.id, ct);
+        var refundableAmount = hasPaymentRecord
+            ? await _payments.GetPaidAmountAsync(booking.id, ct)
+            : booking.total_price;
+
         var eligibleForRefund = isPaid
+            && refundableAmount > 0
             && booking.schedule.start_time - DateTime.UtcNow >= BookingStatuses.RefundWindow;
 
         var now = DateTime.UtcNow;
@@ -433,7 +475,7 @@ public class BookingService : IBookingService
             : BookingStatuses.CancelReasonGeneric;
 
         if (eligibleForRefund)
-            await RefundToWalletAsync(userId, booking.total_price, ct);
+            await RefundToWalletAsync(userId, refundableAmount, ct);
 
         await _repo.SaveChangesAsync(ct);
 
@@ -456,7 +498,7 @@ public class BookingService : IBookingService
         {
             Status = booking.status,
             Refunded = eligibleForRefund,
-            AmountRefunded = eligibleForRefund ? booking.total_price : 0m
+            AmountRefunded = eligibleForRefund ? refundableAmount : 0m
         };
     }
 

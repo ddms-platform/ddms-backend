@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Exceptions;
+﻿using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Shared.Assertions;
 using DDMS.Backend.Shared.Builders.EntityBuilders;
@@ -62,7 +62,8 @@ public class CancelTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var act = async () => await service.CancelAsync(TestGuids.BookingId, TestGuids.UserId, CancellationToken.None);
 

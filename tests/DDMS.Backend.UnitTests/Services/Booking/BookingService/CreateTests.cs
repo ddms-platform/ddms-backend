@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
@@ -112,7 +112,8 @@ public class CreateTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var act = async () => await service.CreateAsync(TestGuids.UserId, request, CancellationToken.None);
 

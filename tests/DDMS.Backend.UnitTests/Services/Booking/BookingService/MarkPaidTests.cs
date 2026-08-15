@@ -14,36 +14,44 @@ using Moq;
 namespace DDMS.Backend.UnitTests.Services.Booking.BookingService;
 
 /// <summary>
-/// Equivalence Partitioning cho BookingService.ConfirmPaymentAsync — xem TestData/Booking/BookingService/ConfirmPayment.json.
-/// Lớp tương đương: không tìm thấy booking, trạng thái không phải pending/holding (no-op), holding còn hạn/hết hạn/không có hạn,
-/// và nhánh gửi thông báo cho chủ tàu (owner_id có/không).
+/// Equivalence Partitioning cho BookingService.MarkPaidAsync — xem TestData/Booking/BookingService/MarkPaid.json.
+///
+/// Hàm này chỉ được gọi sau khi PayOS đã xác nhận có tiền, nên nó không tự kiểm tra tiền nữa.
+/// Lớp tương đương: không tìm thấy booking, trạng thái đã xử lý rồi (no-op),
+/// pending/holding (xác nhận + thông báo), holding hết hạn (vẫn xác nhận vì tiền đã vào),
+/// và đơn đã huỷ mà tiền vẫn vào (phải hoàn lại ví khách thay vì nuốt).
 /// </summary>
-public class ConfirmPaymentTests
+public class MarkPaidTests
 {
-    public record ConfirmPaymentTestCase(
+    public record MarkPaidTestCase(
         string CaseName,
         bool BookingFound,
         string Status,
         int? HoldExpiredAtOffsetHours,
+        decimal PaidAmount,
         bool BoatExists,
         bool OwnerIdPresent,
         bool FullNamePresent,
         string? ExpectedException,
         bool ExpectNoOp,
+        bool ExpectRefund,
         bool ExpectOwnerNotification);
 
     public static IEnumerable<object[]> Cases() =>
-        JsonDataProvider.LoadAsTheoryData<ConfirmPaymentTestCase>("TestData/Booking/BookingService/ConfirmPayment.json");
+        JsonDataProvider.LoadAsTheoryData<MarkPaidTestCase>("TestData/Booking/BookingService/MarkPaid.json");
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public async Task ConfirmPaymentAsync_EquivalencePartitions(ConfirmPaymentTestCase c)
+    public async Task MarkPaidAsync_EquivalencePartitions(MarkPaidTestCase c)
     {
         var bookingRepo = BookingRepositoryMockFactory.Create();
         var walletRepo = WalletRepositoryMockFactory.Create();
         var emailSender = EmailSenderMockFactory.Create();
         var notificationService = NotificationServiceMockFactory.Create();
         var holdOptions = OptionsFactory.CreateDefault<DDMS.Backend.Configurations.BookingHoldOptions>();
+        var paymentRepo = c.PaidAmount > 0
+            ? BookingPaymentRepositoryMockFactory.CreatePaid(c.PaidAmount)
+            : BookingPaymentRepositoryMockFactory.Create();
 
         DateTime? holdExpiredAt = c.HoldExpiredAtOffsetHours.HasValue
             ? DateTime.UtcNow.AddHours(c.HoldExpiredAtOffsetHours.Value)
@@ -56,19 +64,25 @@ public class ConfirmPaymentTests
         var user = new UserBuilder().WithId(TestGuids.UserId).Build();
         if (!c.FullNamePresent) user.full_name = null!;
         var booking = c.BookingFound
-            ? new BookingBuilder().WithSchedule(schedule).WithUser(user).WithStatus(c.Status).WithHoldExpiredAt(holdExpiredAt).Build()
+            ? new BookingBuilder()
+                .WithSchedule(schedule)
+                .WithUser(user)
+                .WithStatus(c.Status)
+                .WithHoldExpiredAt(holdExpiredAt)
+                .Build()
             : null;
 
-        bookingRepo.Setup(r => r.FindUserBookingWithDetailsAsync(TestGuids.BookingId, TestGuids.UserId, It.IsAny<CancellationToken>()))
+        bookingRepo.Setup(r => r.FindBookingWithDetailsAsync(TestGuids.BookingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(booking);
 
         var service = new DDMS.Backend.Services.Implementations.BookingService(
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            paymentRepo.Object);
 
-        var act = async () => await service.ConfirmPaymentAsync(TestGuids.BookingId, TestGuids.UserId, CancellationToken.None);
+        var act = async () => await service.MarkPaidAsync(TestGuids.BookingId, CancellationToken.None);
 
         if (c.ExpectedException == "NotFound")
         {
@@ -77,19 +91,21 @@ public class ConfirmPaymentTests
             return;
         }
 
-        if (c.ExpectedException == "HoldExpired")
+        await act.Should().NotThrowAsync();
+
+        if (c.ExpectRefund)
         {
-            var exception = await act.Should().ThrowAsync<AppException>();
-            exception.Which.ShouldBeAppException(ErrorCode.HoldExpired);
-            bookingRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            // Tiền vào sau khi đơn đã huỷ: phải cộng lại vào ví khách, không giữ im.
+            walletRepo.Verify(w => w.Add(It.Is<user_wallet>(x => x.user_id == TestGuids.UserId)), Times.Once);
+            bookingRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            booking!.status.Should().Be(BookingStatuses.Cancelled);
             return;
         }
-
-        await act.Should().NotThrowAsync();
 
         if (c.ExpectNoOp)
         {
             bookingRepo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            walletRepo.Verify(w => w.Add(It.IsAny<user_wallet>()), Times.Never);
             booking!.status.Should().Be(c.Status);
             return;
         }

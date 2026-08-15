@@ -116,6 +116,13 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.schedule).ThenInclude(s => s.boat)
             .FirstOrDefaultAsync(b => b.id == id && b.user_id == userId, ct);
 
+    public Task<booking?> FindBookingWithDetailsAsync(Guid id, CancellationToken ct) =>
+        _db.bookings
+            .Include(b => b.user)
+            .Include(b => b.schedule).ThenInclude(s => s.tour)
+            .Include(b => b.schedule).ThenInclude(s => s.boat)
+            .FirstOrDefaultAsync(b => b.id == id, ct);
+
     public Task<booking?> FindUserBookingWithLinesAsync(Guid id, Guid userId, CancellationToken ct) =>
         _db.bookings
             .Include(b => b.booking_cabins)
