@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
@@ -42,6 +42,7 @@ public class SyncStatusTests
             bookingService.Object,
             gateway.Object,
             OptionsFactory.CreateDefault<DDMS.Backend.Configurations.BillingOptions>(),
+            HostEnvironmentMockFactory.Development(),
             NullLogger<DDMS.Backend.Services.Implementations.BookingPaymentService>.Instance);
 
         return (service, bookingService);

@@ -83,6 +83,7 @@ public static class ErrorCode
     public const int BookingPaymentGatewayError = 1902;
     public const int BookingPaymentNotFound = 1903;
     public const int BookingPaymentNotPaid = 1904;
+    public const int BookingPaymentSimulateDisabled = 1905;
 
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
@@ -233,6 +234,8 @@ public static class ErrorCode
             "Đơn này chưa có yêu cầu thanh toán nào.";
         public const string BookingPaymentNotPaid =
             "Chưa nhận được thanh toán cho đơn này.";
+        public const string BookingPaymentSimulateDisabled =
+            "Giả lập thanh toán chỉ dùng được ở môi trường phát triển.";
 
         public const string DockScheduleOverlap = "Dock schedule overlap";
 

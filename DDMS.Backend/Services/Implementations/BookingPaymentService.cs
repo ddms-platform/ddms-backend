@@ -30,6 +30,7 @@ public class BookingPaymentService : IBookingPaymentService
     private readonly IBookingService _bookingService;
     private readonly IPayOSGateway _payOS;
     private readonly BillingOptions _billing;
+    private readonly IHostEnvironment _env;
     private readonly ILogger<BookingPaymentService> _logger;
 
     public BookingPaymentService(
@@ -38,6 +39,7 @@ public class BookingPaymentService : IBookingPaymentService
         IBookingService bookingService,
         IPayOSGateway payOS,
         IOptions<BillingOptions> billing,
+        IHostEnvironment env,
         ILogger<BookingPaymentService> logger)
     {
         _bookings = bookings;
@@ -45,6 +47,7 @@ public class BookingPaymentService : IBookingPaymentService
         _bookingService = bookingService;
         _payOS = payOS;
         _billing = billing.Value;
+        _env = env;
         _logger = logger;
     }
 
@@ -213,6 +216,40 @@ public class BookingPaymentService : IBookingPaymentService
             _logger.LogError(ex, "Xử lý webhook PayOS cho booking thất bại");
             return new WebhookHandleResult("99", $"Lỗi xử lý webhook: {ex.Message}", false);
         }
+    }
+
+    public async Task<BookingPaymentStatusResponse> SimulatePaidAsync(
+        Guid bookingId, Guid userId, CancellationToken ct)
+    {
+        // Chốt chặn thứ hai, độc lập với việc route có được đăng ký hay không.
+        if (!_env.IsDevelopment())
+            throw new AppException(
+                ErrorCode.BookingPaymentSimulateDisabled,
+                ErrorCode.Messages.BookingPaymentSimulateDisabled);
+
+        var booking = await _bookings.FindUserBookingAsync(bookingId, userId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
+
+        var payment = await _payments.FindLatestByBookingAsync(bookingId, ct)
+            ?? throw new AppException(
+                ErrorCode.BookingPaymentNotFound, ErrorCode.Messages.BookingPaymentNotFound);
+
+        _logger.LogWarning(
+            "[DEV] Giả lập thanh toán cho booking {BookingId}, đơn PayOS {OrderCode}",
+            bookingId, payment.payos_order_code);
+
+        // Đi qua đúng đường mà webhook thật đi, để demo phản ánh đúng hành vi production.
+        await ApplyGatewayStatusAsync(
+            payment, PaymentLinkStatus.Paid, (long)Math.Round(payment.amount), ct);
+
+        return new BookingPaymentStatusResponse
+        {
+            BookingStatus = booking.status,
+            PaymentStatus = payment.status,
+            Paid = payment.status == BookingPaymentStatuses.Paid,
+            OrderCode = payment.payos_order_code,
+            AmountPaid = payment.amount_paid,
+        };
     }
 
     /// <summary>
