@@ -46,5 +46,8 @@ public class AdminOwnersRepository : IAdminOwnersRepository
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct) =>
         _db.Database.BeginTransactionAsync(ct);
 
+    public IExecutionStrategy CreateExecutionStrategy() =>
+        _db.Database.CreateExecutionStrategy();
+
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }

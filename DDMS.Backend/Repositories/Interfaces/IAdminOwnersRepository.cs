@@ -20,5 +20,6 @@ public interface IAdminOwnersRepository
     Task<List<boat>> GetBoatsByStatusForOwnerAsync(Guid ownerId, string status, CancellationToken ct);
 
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct);
+    IExecutionStrategy CreateExecutionStrategy();
     Task SaveChangesAsync(CancellationToken ct);
 }
