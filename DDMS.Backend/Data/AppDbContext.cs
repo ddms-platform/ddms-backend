@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DDMS.Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +36,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<booking_cabin> booking_cabins { get; set; }
 
     public virtual DbSet<booking_service> booking_services { get; set; }
+
+    public virtual DbSet<blog_post> blog_posts { get; set; }
 
     public virtual DbSet<conversation> conversations { get; set; }
 

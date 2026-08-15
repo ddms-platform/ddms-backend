@@ -27,6 +27,11 @@ public static class DependencyInjection
         services.AddScoped<IPublicOwnersRepository, PublicOwnersRepository>();
         services.AddScoped<IPublicOwnersService, PublicOwnersService>();
 
+        services.AddScoped<IBlogRepository, BlogRepository>();
+        services.AddScoped<IBlogService, BlogService>();
+        services.AddHttpClient<IGeminiTextGenerator, GeminiTextGenerator>();
+        services.AddHttpClient<IBlogCrawlerService, BlogCrawlerService>();
+
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBookingPricingService, BookingPricingService>();
