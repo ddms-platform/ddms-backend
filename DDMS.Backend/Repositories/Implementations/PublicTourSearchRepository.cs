@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -40,11 +40,64 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
             toursQuery = toursQuery.Where(x => x.status.ToLower() == normalizedStatus);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.location))
+        var searchKey = !string.IsNullOrWhiteSpace(query.keyword) ? query.keyword : query.location;
+        if (!string.IsNullOrWhiteSpace(searchKey))
         {
-            var keyword = query.location.Trim().ToLowerInvariant();
+            var keyword = searchKey.Trim().ToLower();
             toursQuery = toursQuery.Where(x =>
-                x.location != null && x.location.ToLower().Contains(keyword));
+                x.name.ToLower().Contains(keyword) ||
+                (x.location != null && x.location.ToLower().Contains(keyword)) ||
+                (x.description != null && x.description.ToLower().Contains(keyword)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.category) && query.category.Trim().ToLowerInvariant() != "all")
+        {
+            var cat = query.category.Trim().ToLowerInvariant();
+            switch (cat)
+            {
+                case "cruise":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("thuyền") ||
+                        x.name.ToLower().Contains("cruise") ||
+                        x.name.ToLower().Contains("yacht") ||
+                        (x.description != null && (x.description.ToLower().Contains("thuyền") || x.description.ToLower().Contains("cruise"))));
+                    break;
+                case "sunset":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("hoàng hôn") ||
+                        x.name.ToLower().Contains("sunset") ||
+                        (x.description != null && (x.description.ToLower().Contains("hoàng hôn") || x.description.ToLower().Contains("sunset"))));
+                    break;
+                case "dinner":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("ăn") ||
+                        x.name.ToLower().Contains("dinner") ||
+                        x.name.ToLower().Contains("ẩm thực") ||
+                        x.name.ToLower().Contains("tiệc") ||
+                        (x.description != null && (x.description.ToLower().Contains("ăn") || x.description.ToLower().Contains("ẩm thực") || x.description.ToLower().Contains("dinner"))));
+                    break;
+                case "party":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("party") ||
+                        x.name.ToLower().Contains("tiệc") ||
+                        x.name.ToLower().Contains("sự kiện") ||
+                        (x.description != null && (x.description.ToLower().Contains("party") || x.description.ToLower().Contains("tiệc"))));
+                    break;
+                case "family":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("gia đình") ||
+                        x.name.ToLower().Contains("family") ||
+                        (x.description != null && (x.description.ToLower().Contains("gia đình") || x.description.ToLower().Contains("family"))));
+                    break;
+                case "sightseeing":
+                    toursQuery = toursQuery.Where(x =>
+                        x.name.ToLower().Contains("ngắm") ||
+                        x.name.ToLower().Contains("tham quan") ||
+                        x.name.ToLower().Contains("sightseeing") ||
+                        x.name.ToLower().Contains("cầu rồng") ||
+                        (x.description != null && (x.description.ToLower().Contains("ngắm") || x.description.ToLower().Contains("tham quan"))));
+                    break;
+            }
         }
 
         if (query.minPrice.HasValue)
