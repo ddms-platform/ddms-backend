@@ -55,7 +55,7 @@ public class NotificationRepository : INotificationRepository
     public Task<List<Guid>> GetAdminUserIdsAsync(CancellationToken ct)
     {
         return _db.user_roles
-            .Where(ur => ur.role.name.ToLower() == "admin" && ur.user.is_active)
+            .Where(ur => ur.role.name.ToLower() == "admin" && ur.user.is_active == true)
             .Select(ur => ur.user_id)
             .Distinct()
             .ToListAsync(ct);

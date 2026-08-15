@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Data;
+using DDMS.Backend.Data;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -62,10 +62,10 @@ public class OwnerToursRepository : IOwnerToursRepository
             .Include(x => x.faqs)
             .Include(x => x.tour_schedules)
                 .ThenInclude(ts => ts.boat)
-                .ThenInclude(b => b.boat_cabins)
+                .ThenInclude(b => b!.boat_cabins)
             .Include(x => x.tour_schedules)
                 .ThenInclude(ts => ts.boat)
-                .ThenInclude(b => b.boat_services)
+                .ThenInclude(b => b!.boat_services)
             .FirstOrDefaultAsync(x => x.id == id && x.status == TourConstants.Statuses.Active);
     }
 

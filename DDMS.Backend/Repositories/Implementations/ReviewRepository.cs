@@ -46,7 +46,7 @@ namespace DDMS.Backend.Repositories.Implementations
             return bookings;
         }
 
-        public async Task<review> GetReviewByIdAsync(Guid id)
+        public async Task<review?> GetReviewByIdAsync(Guid id)
         {
             return await _context.reviews.FirstOrDefaultAsync(r => r.id == id);
         }

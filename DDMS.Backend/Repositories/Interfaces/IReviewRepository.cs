@@ -9,7 +9,7 @@ namespace DDMS.Backend.Repositories.Interfaces
     {
         Task<(List<review> reviews, int totalCount)> GetReviewsByTourIdAsync(Guid tourId, int pageIndex, int pageSize);
         Task<List<booking>> GetUnreviewedCompletedBookingsAsync(Guid userId, Guid tourId);
-        Task<review> GetReviewByIdAsync(Guid id);
+        Task<review?> GetReviewByIdAsync(Guid id);
         Task<review> AddReviewAsync(review review);
         Task<review> UpdateReviewAsync(review review);
         Task<bool> DeleteReviewAsync(Guid id);
