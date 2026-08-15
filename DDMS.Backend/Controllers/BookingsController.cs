@@ -4,6 +4,7 @@ using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PayOS.Models.Webhooks;
 
 namespace DDMS.Backend.Controllers;
 
@@ -13,11 +14,16 @@ namespace DDMS.Backend.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookings;
+    private readonly IBookingPaymentService _payments;
     private readonly ICurrentUser _user;
 
-    public BookingsController(IBookingService bookings, ICurrentUser user)
+    public BookingsController(
+        IBookingService bookings,
+        IBookingPaymentService payments,
+        ICurrentUser user)
     {
         _bookings = bookings;
+        _payments = payments;
         _user = user;
     }
 
@@ -68,11 +74,33 @@ public class BookingsController : ControllerBase
         return Ok(ApiResponse<BookingQuote>.Ok(result));
     }
 
-    [HttpPut("{id:guid}/pay")]
-    public async Task<IActionResult> ConfirmPayment(Guid id, CancellationToken ct)
+    /// <summary>Tạo link thanh toán PayOS cho đơn. Khách trả tiền trên cổng, không tự khai báo.</summary>
+    [HttpPost("{id:guid}/payment-link")]
+    public async Task<IActionResult> CreatePaymentLink(Guid id, CancellationToken ct)
     {
-        await _bookings.ConfirmPaymentAsync(id, _user.Id, ct);
-        return Ok(ApiResponse<object>.Ok(new { success = true }));
+        var result = await _payments.CreatePaymentLinkAsync(id, _user.Id, ct);
+        return Ok(ApiResponse<BookingPaymentInitResult>.Ok(result));
+    }
+
+    /// <summary>
+    /// Đối chiếu với PayOS rồi trả về trạng thái thật của đơn.
+    /// Frontend hỏi endpoint này thay cho việc tự báo "tôi đã trả".
+    /// </summary>
+    [HttpGet("{id:guid}/payment-status")]
+    public async Task<IActionResult> GetPaymentStatus(Guid id, CancellationToken ct)
+    {
+        var result = await _payments.SyncStatusAsync(id, _user.Id, ct);
+        return Ok(ApiResponse<BookingPaymentStatusResponse>.Ok(result));
+    }
+
+    /// <summary>PayOS gọi vào đây. Chữ ký được xác minh trước khi ghi bất cứ thứ gì.</summary>
+    [AllowAnonymous]
+    [HttpPost("payments/webhook")]
+    public async Task<IActionResult> HandlePaymentWebhook([FromBody] Webhook body, CancellationToken ct)
+    {
+        var r = await _payments.HandleWebhookAsync(body, ct);
+        var payload = new { code = r.Code, desc = r.Desc };
+        return r.IsSuccess ? Ok(payload) : BadRequest(payload);
     }
 
     [HttpPut("{id:guid}/cancel")]

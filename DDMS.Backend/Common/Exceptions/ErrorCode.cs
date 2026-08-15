@@ -78,6 +78,13 @@ public static class ErrorCode
     public const int BookingCheckInOwnerCancelled = 1806;
     public const int BookingCheckInCancelled = 1807;
 
+    public const int BookingPaymentNotConfigured = 1900;
+    public const int BookingPaymentNotPayable = 1901;
+    public const int BookingPaymentGatewayError = 1902;
+    public const int BookingPaymentNotFound = 1903;
+    public const int BookingPaymentNotPaid = 1904;
+    public const int BookingPaymentSimulateDisabled = 1905;
+
     public const int TourValidationFailed = 2100;
     public const int TourStatusInvalid = 2101;
     public const int TourCancelPolicyInvalid = 2102;
@@ -216,6 +223,19 @@ public static class ErrorCode
         public const string BookingCheckInAlreadyCheckedIn = "Vé đã được check-in trước đó.";
         public const string BookingCheckInOwnerCancelled = "Vé đã bị chủ tour hủy, không thể check-in.";
         public const string BookingCheckInCancelled = "Vé đã bị hủy, không thể check-in.";
+
+        public const string BookingPaymentNotConfigured =
+            "Cổng thanh toán PayOS chưa được cấu hình trên máy chủ.";
+        public const string BookingPaymentNotPayable =
+            "Đơn này không ở trạng thái chờ thanh toán.";
+        public const string BookingPaymentGatewayError =
+            "Không tạo được yêu cầu thanh toán. Vui lòng thử lại sau ít phút.";
+        public const string BookingPaymentNotFound =
+            "Đơn này chưa có yêu cầu thanh toán nào.";
+        public const string BookingPaymentNotPaid =
+            "Chưa nhận được thanh toán cho đơn này.";
+        public const string BookingPaymentSimulateDisabled =
+            "Giả lập thanh toán chỉ dùng được ở môi trường phát triển.";
 
         public const string DockScheduleOverlap = "Dock schedule overlap";
 

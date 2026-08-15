@@ -37,6 +37,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<booking_service> booking_services { get; set; }
 
+    public virtual DbSet<booking_payment> booking_payments { get; set; }
+
     public virtual DbSet<conversation> conversations { get; set; }
 
     public virtual DbSet<conversation_member> conversation_members { get; set; }
@@ -1356,6 +1358,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.owner_id)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_owner_payments_owner");
+        });
+
+        modelBuilder.Entity<booking_payment>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            // Mã đơn PayOS phải là duy nhất: webhook tra bản ghi theo mã này,
+            // trùng mã đồng nghĩa với xác nhận nhầm booking.
+            entity.HasIndex(e => e.payos_order_code).IsUnique();
+            entity.HasIndex(e => e.booking_id);
+
+            entity.HasOne(d => d.booking)
+                .WithMany()
+                .HasForeignKey(d => d.booking_id)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_booking_payments_booking");
         });
 
         modelBuilder.Entity<user_wallet>(entity =>

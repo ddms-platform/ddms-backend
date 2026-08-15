@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Shared.Assertions;
@@ -77,7 +77,8 @@ public class HoldTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var act = async () => await service.HoldAsync(TestGuids.UserId, request, CancellationToken.None);
 

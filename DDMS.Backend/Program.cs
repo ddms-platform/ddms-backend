@@ -8,6 +8,7 @@ using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Configurations;
 using DDMS.Backend.Data;
 using DDMS.Backend.Extensions;
+using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Repositories.Implementations;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Implementations;
@@ -378,4 +379,21 @@ app.MapHub<AdminAlertsHub>("/hub/admin-alerts");
 // ke ca khi container chet ngay sau `docker run -d`.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
+
+// Giả lập thanh toán để demo/dev khi không tiện chuyển khoản thật.
+// Route này CHỈ tồn tại khi ASPNETCORE_ENVIRONMENT=Development — trên production
+// nó không được đăng ký nên trả 404, không phải ẩn đi ở giao diện.
+// BookingPaymentService.SimulatePaidAsync còn tự kiểm tra môi trường một lần nữa.
+if (app.Environment.IsDevelopment())
+{
+    app.MapPost("/api/dev/bookings/{id:guid}/simulate-payment", async (
+            Guid id,
+            IBookingPaymentService payments,
+            ICurrentUser currentUser,
+            CancellationToken ct) =>
+        Results.Ok(ApiResponse<BookingPaymentStatusResponse>.Ok(
+            await payments.SimulatePaidAsync(id, currentUser.Id, ct))))
+        .RequireAuthorization()
+        .WithTags("Dev");
+}
 app.Run();

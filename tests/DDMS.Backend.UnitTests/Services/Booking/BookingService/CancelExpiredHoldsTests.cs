@@ -1,4 +1,4 @@
-using DDMS.Backend.Shared.Mocks.Repositories;
+﻿using DDMS.Backend.Shared.Mocks.Repositories;
 using DDMS.Backend.Shared.Mocks.Services;
 using DDMS.Backend.Shared.TestUtilities;
 using FluentAssertions;
@@ -29,7 +29,8 @@ public class CancelExpiredHoldsTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var result = await service.CancelExpiredHoldsAsync(CancellationToken.None);
 

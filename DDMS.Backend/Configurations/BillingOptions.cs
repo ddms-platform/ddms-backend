@@ -25,4 +25,14 @@ public class BillingOptions
     [Required(AllowEmptyStrings = false, ErrorMessage = "Billing:PayOSCancelUrl là bắt buộc.")]
     [Url(ErrorMessage = "Billing:PayOSCancelUrl không phải URL hợp lệ.")]
     public string PayOSCancelUrl { get; set; } = null!;
+
+    /// <summary>Nơi PayOS trả khách về sau khi thanh toán tour thành công.</summary>
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Billing:PayOSBookingReturnUrl là bắt buộc.")]
+    [Url(ErrorMessage = "Billing:PayOSBookingReturnUrl không phải URL hợp lệ.")]
+    public string PayOSBookingReturnUrl { get; set; } = null!;
+
+    /// <summary>Nơi PayOS trả khách về khi khách bấm huỷ thanh toán tour.</summary>
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Billing:PayOSBookingCancelUrl là bắt buộc.")]
+    [Url(ErrorMessage = "Billing:PayOSBookingCancelUrl không phải URL hợp lệ.")]
+    public string PayOSBookingCancelUrl { get; set; } = null!;
 }

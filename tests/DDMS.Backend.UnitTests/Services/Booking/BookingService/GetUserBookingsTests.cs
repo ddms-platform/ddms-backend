@@ -1,4 +1,4 @@
-using DDMS.Backend.Models.Entities;
+﻿using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Shared.Builders.EntityBuilders;
 using DDMS.Backend.Shared.Constants;
 using DDMS.Backend.Shared.DataProviders;
@@ -69,7 +69,8 @@ public class GetUserBookingsTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         var result = await service.GetUserBookingsAsync(TestGuids.UserId, CancellationToken.None);
 

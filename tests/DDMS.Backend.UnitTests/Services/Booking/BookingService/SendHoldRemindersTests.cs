@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Shared.Builders.EntityBuilders;
 using DDMS.Backend.Shared.Constants;
@@ -34,7 +34,8 @@ public class SendHoldRemindersTests
             bookingRepo.Object, walletRepo.Object, emailSender.Object, notificationService.Object, holdOptions,
             AdminAlertPublisherMockFactory.Create().Object,
             BookingPricingServiceMockFactory.Create().Object,
-            PromotionsRepositoryMockFactory.Create().Object);
+            PromotionsRepositoryMockFactory.Create().Object,
+            BookingPaymentRepositoryMockFactory.Create().Object);
 
         return (bookingRepo, walletRepo, emailSender, notificationService, service);
     }

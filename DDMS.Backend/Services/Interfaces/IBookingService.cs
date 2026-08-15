@@ -8,7 +8,12 @@ public interface IBookingService
     Task<BookingResponse> HoldAsync(Guid userId, CreateBookingRequest request, CancellationToken ct);
     Task<List<CabinAvailabilityResponse>> GetCabinAvailabilityAsync(Guid scheduleId, CancellationToken ct);
     Task<List<UserBookingListItemResponse>> GetUserBookingsAsync(Guid userId, CancellationToken ct);
-    Task ConfirmPaymentAsync(Guid bookingId, Guid userId, CancellationToken ct);
+    /// <summary>
+    /// Chuyển booking sang đã thanh toán: trừ lượt mã giảm giá, bắn thông báo, gửi mail.
+    /// Hàm này KHÔNG tự kiểm tra tiền — chỉ gọi sau khi đã đối chiếu với PayOS
+    /// (xem <see cref="IBookingPaymentService"/>).
+    /// </summary>
+    Task MarkPaidAsync(Guid bookingId, CancellationToken ct);
 
     /// <summary>
     /// Áp mã giảm giá lên booking đang chờ thanh toán và tính lại giá.
