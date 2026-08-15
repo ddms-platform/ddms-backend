@@ -14,5 +14,6 @@ namespace DDMS.Backend.Repositories.Interfaces
         Task<review> UpdateReviewAsync(review review);
         Task<bool> DeleteReviewAsync(Guid id);
         Task<bool> HasUserReviewedBookingAsync(Guid bookingId);
+        Task<(Guid? ownerId, string tourName, string customerName)> GetBookingReviewContextAsync(Guid bookingId, Guid userId);
     }
 }

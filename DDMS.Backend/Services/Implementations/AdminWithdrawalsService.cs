@@ -12,15 +12,18 @@ public class AdminWithdrawalsService : IAdminWithdrawalsService
     private readonly IAdminWithdrawalsRepository _repo;
     private readonly IWalletRepository _wallets;
     private readonly IEmailSender _email;
+    private readonly INotificationService _notificationService;
 
     public AdminWithdrawalsService(
         IAdminWithdrawalsRepository repo,
         IWalletRepository wallets,
-        IEmailSender email)
+        IEmailSender email,
+        INotificationService notificationService)
     {
         _repo = repo;
         _wallets = wallets;
         _email = email;
+        _notificationService = notificationService;
     }
 
     public Task<List<WithdrawalItem>> GetAllAsync(CancellationToken ct) => _repo.GetAllAsync(ct);
@@ -46,6 +49,27 @@ public class AdminWithdrawalsService : IAdminWithdrawalsService
 
         await _repo.SaveChangesAsync(ct);
         await TrySendNotificationEmailAsync(w, newStatus);
+
+        try
+        {
+            var code = w.id.ToString().Substring(0, 8).ToUpper();
+            var isApproved = newStatus == WithdrawalStatuses.Approved;
+            var title = isApproved ? "Rút tiền thành công 💰" : "Yêu cầu rút tiền bị từ chối ❌";
+            var body = isApproved
+                ? $"Lệnh rút tiền #{code} trị giá {w.amount:N0} đ về tài khoản {w.bank_name} ({w.account_number}) đã được xử lý thành công."
+                : $"Yêu cầu rút tiền #{code} trị giá {w.amount:N0} đ đã bị từ chối. Số tiền đã được hoàn lại vào ví của bạn.";
+
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: title,
+                body: body,
+                recipientIds: new List<Guid> { w.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best-effort */ }
     }
 
     private async Task RefundAsync(Guid userId, decimal amount, CancellationToken ct)

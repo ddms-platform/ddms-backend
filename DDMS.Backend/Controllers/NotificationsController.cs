@@ -38,7 +38,7 @@ public class NotificationsController : ControllerBase
             id = record.id,
             title = record.notification?.title ?? "Thông báo",
             content = record.notification?.body ?? "",
-            createdAt = record.created_at.ToString("o"),
+            createdAt = DateTime.SpecifyKind(record.created_at, DateTimeKind.Utc).ToString("o"),
             isRead = record.is_read
         }).ToList();
 

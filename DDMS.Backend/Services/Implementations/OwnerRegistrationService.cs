@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DDMS.Backend.Common.Exceptions;
@@ -21,19 +21,22 @@ public class OwnerRegistrationService : IOwnerRegistrationService
     private readonly IEmailSender _emailSender;
     private readonly ICertificateTypeService _certificateTypes;
     private readonly IOwnerDocumentService _ownerDocuments;
+    private readonly INotificationService _notificationService;
 
     public OwnerRegistrationService(
         AppDbContext dbContext,
         ICloudinaryService cloudinaryService,
         IEmailSender emailSender,
         ICertificateTypeService certificateTypes,
-        IOwnerDocumentService ownerDocuments)
+        IOwnerDocumentService ownerDocuments,
+        INotificationService notificationService)
     {
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
         _emailSender = emailSender;
         _certificateTypes = certificateTypes;
         _ownerDocuments = ownerDocuments;
+        _notificationService = notificationService;
     }
 
     public async Task<MessageResponse> RegisterOwnerAsync(Guid userId, OwnerRegistrationRequest request, string language = "vi")
@@ -197,7 +200,21 @@ public class OwnerRegistrationService : IOwnerRegistrationService
 
         await _dbContext.SaveChangesAsync();
 
-        // 3. Send Email
+        // 3. Send In-App Notification to Admins
+        try
+        {
+            await _notificationService.CreateNotificationForAdminsAsync(
+                senderId: userId,
+                type: "admin",
+                title: "Đăng ký đối tác mới 👤",
+                body: $"Người dùng {request.FullName} vừa gửi hồ sơ đăng ký làm Chủ tàu mới trên hệ thống. Vui lòng kiểm duyệt.",
+                data: null,
+                ct: default
+            );
+        }
+        catch { /* best-effort */ }
+
+        // 4. Send Email
         await _emailSender.SendOwnerRegistrationSuccessEmailAsync(user.email, request.FullName, request, language);
 
         return new MessageResponse { message = "Gửi yêu cầu đăng ký chủ thuyền thành công. Vui lòng chờ Admin duyệt." };

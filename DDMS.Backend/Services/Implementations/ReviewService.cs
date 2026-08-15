@@ -14,11 +14,16 @@ namespace DDMS.Backend.Services.Implementations
     {
         private readonly IReviewRepository _reviewRepository;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly INotificationService _notificationService;
 
-        public ReviewService(IReviewRepository reviewRepository, ICloudinaryService cloudinaryService)
+        public ReviewService(
+            IReviewRepository reviewRepository,
+            ICloudinaryService cloudinaryService,
+            INotificationService notificationService)
         {
             _reviewRepository = reviewRepository;
             _cloudinaryService = cloudinaryService;
+            _notificationService = notificationService;
         }
 
         public async Task<PaginatedReviewResult> GetReviewsByTourIdAsync(Guid tourId, int pageIndex, int pageSize)
@@ -101,6 +106,28 @@ namespace DDMS.Backend.Services.Implementations
             };
 
             await _reviewRepository.AddReviewAsync(review);
+
+            try
+            {
+                var (ownerId, tourName, customerName) = await _reviewRepository.GetBookingReviewContextAsync(dto.BookingId, userId);
+                if (ownerId.HasValue)
+                {
+                    var commentPreview = !string.IsNullOrWhiteSpace(dto.Comment)
+                        ? (dto.Comment.Length > 60 ? dto.Comment.Substring(0, 57) + "..." : dto.Comment)
+                        : "Không có bình luận";
+
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: userId,
+                        type: "owner",
+                        title: "Nhận được đánh giá mới ⭐",
+                        body: $"Khách hàng {customerName} vừa gửi đánh giá {dto.Rating} sao cho tour {tourName}: \"{commentPreview}\".",
+                        recipientIds: new List<Guid> { ownerId.Value },
+                        data: JsonSerializer.Serialize(new { reviewId = review.id, tourId = dto.TourId }),
+                        ct: default
+                    );
+                }
+            }
+            catch { /* best-effort */ }
 
             return new ReviewDto { Id = review.id };
         }

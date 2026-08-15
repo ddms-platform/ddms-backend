@@ -437,6 +437,43 @@ public class BookingService : IBookingService
 
         await _repo.SaveChangesAsync(ct);
 
+        try
+        {
+            var tourName = booking.schedule.tour.name;
+            var bookingCode = booking.id.ToString().Substring(0, 8).ToUpper();
+            var startTimeFormatted = booking.schedule.start_time.ToString("HH:mm dd/MM/yyyy");
+
+            // 1. Notify Boat Owner
+            if (booking.schedule.boat?.owner_id != null)
+            {
+                var customerName = booking.user?.full_name ?? "Khách hàng";
+                await _notificationService.CreateNotificationAsync(
+                    senderId: null,
+                    type: "owner",
+                    title: "Khách hủy đặt chỗ 🚨",
+                    body: $"Khách hàng {customerName} đã hủy {booking.num_people} vé tour {tourName} khởi hành lúc {startTimeFormatted}. Ghế trống đã được mở bán lại.",
+                    recipientIds: new List<Guid> { booking.schedule.boat.owner_id.Value },
+                    data: JsonSerializer.Serialize(new { bookingId = booking.id }),
+                    ct: ct
+                );
+            }
+
+            // 2. Notify Customer if refund processed
+            if (eligibleForRefund)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    senderId: null,
+                    type: "system",
+                    title: "Hoàn tiền thành công 💸",
+                    body: $"Số tiền {booking.total_price:N0} đ cho mã đặt chỗ {bookingCode} đã được hoàn lại thành công vào tài khoản ví của bạn.",
+                    recipientIds: new List<Guid> { booking.user_id },
+                    data: JsonSerializer.Serialize(new { bookingId = booking.id }),
+                    ct: ct
+                );
+            }
+        }
+        catch { /* best-effort */ }
+
         // Fire-and-forget admin alert
         _ = Task.Run(async () =>
         {
