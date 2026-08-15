@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DDMS.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260815190746_AddBlogPosts")]
+    [Migration("20260815192634_AddBlogPosts")]
     partial class AddBlogPosts
     {
         /// <inheritdoc />
@@ -783,7 +783,8 @@ namespace DDMS.Backend.Migrations
                 {
                     b.Property<Guid>("id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("char(36)")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<decimal>("amount")
                         .HasColumnType("decimal(18,2)");
@@ -792,7 +793,8 @@ namespace DDMS.Backend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("booking_id")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("char(36)")
+                        .UseCollation("utf8mb4_unicode_ci");
 
                     b.Property<string>("checkout_url")
                         .HasMaxLength(500)
