@@ -55,6 +55,25 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
+      # deploy.sh chay `docker build` ngay tren VM. Moi lan build de ra mot bo
+      # layer moi, image cu thanh dangling nhung khong ai xoa, build cache cung
+      # tich lai. EBS mac dinh 8 GB nen chi vai lan deploy la day - tu 05/08 den
+      # 15/08 co 6 luot deploy lien tiep chet o `git fetch` voi loi
+      # "No space left on device", tren ca hai server.
+      #
+      # Loc `until=24h` giu lai image vua dung, va docker khong bao gio xoa image
+      # cua container dang chay.
+      - name: Don dia truoc khi build
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '
+            echo "=== Truoc khi don ==="
+            df -h / | tail -1
+            docker system prune -af --filter "until=24h" >/dev/null 2>&1 || true
+            docker builder prune -af --filter "until=24h" >/dev/null 2>&1 || true
+            echo "=== Sau khi don ==="
+            df -h / | tail -1
+          '
+
       - name: Run deploy script on VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} 'bash ~/deploy.sh'
@@ -62,10 +81,11 @@ jobs:
       # deploy.sh ket thuc ngay sau `docker run -d`, nen khong co buoc nay
       # thi container chet lien sau do van bao deploy thanh cong.
       - name: Kiem tra ung dung song sau deploy
-        # Hardcode thay vi dung secrets.VM_HOST: chung chi TLS cap cho dung
-        # domain nay, doi server la phai cap lai chung chi va sua ca dong nay.
+        # Suy ra tu VM_HOST theo quy uoc <IP>.nip.io - doi server chi can sua
+        # secret, khong phai sua file nay. Van phai cap lai chung chi TLS cho
+        # domain moi, neu khong curl se bao loi chung chi va buoc nay fail.
         env:
-          HEALTH_URL: https://13.211.76.82.nip.io/health
+          HEALTH_URL: https://${{ secrets.VM_HOST }}.nip.io/health
         run: |
           for i in $(seq 1 10); do
             if curl -fsS --max-time 10 "$HEALTH_URL"; then
