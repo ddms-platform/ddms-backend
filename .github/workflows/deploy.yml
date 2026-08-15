@@ -1,17 +1,21 @@
 name: CI/CD - Deploy BE to VM
 
 on:
+  pull_request:
+    branches: [develop]
   push:
     branches: [develop]
   workflow_dispatch:
+
+# Push lien tiep vao cung mot nhanh thi huy luot cu, khoi ton phut chay
+concurrency:
+  group: be-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Build & Test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./DDMS.Backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,18 +25,24 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # Chay o goc repo voi solution. Truoc day job nay dat
+      # working-directory: ./DDMS.Backend nen `dotnet test` khong tim thay
+      # project test nao - no exit 0 ma khong chay gi, deploy van di tiep
+      # du test co hong.
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore DDMS.Backend.slnx
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build DDMS.Backend.slnx --configuration Release --no-restore
 
       - name: Run unit tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: dotnet test DDMS.Backend.slnx --configuration Release --no-build --verbosity normal
 
   deploy:
     name: Deploy to VM
     needs: test
+    # PR chi chay test, khong deploy
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH
@@ -45,6 +55,41 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
+      # deploy.sh da tu chay `docker image prune -f` sau moi lan build, nhung
+      # build cache thi khong ai don. In df ra de neu co ngay dia gan day thi
+      # doc duoc ngay trong log, thay vi de deploy chet o `git fetch` voi loi
+      # "No space left on device" nhu tung xay ra 6 lan lien tiep tren VM cu.
+      #
+      # Loc `until=168h` chi cat cache cu hon 7 ngay, giu lai cache gan day de
+      # build khong phai lam lai tu dau.
+      - name: Kiem tra dia va cat build cache cu
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '
+            df -h / | tail -1
+            docker builder prune -f --filter "until=168h" >/dev/null 2>&1 || true
+          '
+
       - name: Run deploy script on VM
         run: |
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} 'bash ~/deploy.sh'
+
+      # deploy.sh ket thuc ngay sau `docker run -d`, nen khong co buoc nay
+      # thi container chet lien sau do van bao deploy thanh cong.
+      - name: Kiem tra ung dung song sau deploy
+        # Suy ra tu VM_HOST theo quy uoc <IP>.nip.io - doi server chi can sua
+        # secret, khong phai sua file nay. Van phai cap lai chung chi TLS cho
+        # domain moi, neu khong curl se bao loi chung chi va buoc nay fail.
+        env:
+          HEALTH_URL: https://${{ secrets.VM_HOST }}.nip.io/health
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS --max-time 10 "$HEALTH_URL"; then
+              echo ""
+              echo "Health check OK sau $i lan thu"
+              exit 0
+            fi
+            echo "Lan $i chua len, doi 6s..."
+            sleep 6
+          done
+          echo "Health check that bai sau 10 lan thu - container co the da chet"
+          exit 1
