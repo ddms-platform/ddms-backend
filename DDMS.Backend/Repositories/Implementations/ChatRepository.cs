@@ -139,6 +139,10 @@ public class ChatRepository : IChatRepository
             .Include(b => b.schedule)
                 .ThenInclude(s => s.tour)
                     .ThenInclude(t => t.created_byNavigation)
+            // Chu tau cua lich trinh moi la owner thuc su trong da so truong hop,
+            // tour.created_by chi la phuong an du phong (xem ChatService).
+            .Include(b => b.schedule)
+                .ThenInclude(s => s.boat)
             .FirstOrDefaultAsync(b => b.id == bookingId, ct);
     }
 

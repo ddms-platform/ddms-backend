@@ -13,8 +13,12 @@ public class TourBuilder
     private string _status = "active";
     private string _cancelPolicy = "free";
     private readonly List<tour_image> _images = new();
+    // Mặc định null, đúng như tour tạo qua api/legacy/tours (TourService.CreateAsync
+    // không gán created_by) — đây chính là tình huống làm hỏng chat trước đây.
+    private Guid? _createdBy;
 
     public TourBuilder WithId(Guid id) { _id = id; return this; }
+    public TourBuilder WithCreatedBy(Guid? createdBy) { _createdBy = createdBy; return this; }
     public TourBuilder WithName(string name) { _name = name; return this; }
     public TourBuilder WithPrice(decimal price) { _price = price; return this; }
     public TourBuilder WithStatus(string status) { _status = status; return this; }
@@ -31,6 +35,7 @@ public class TourBuilder
             location = _location,
             status = _status,
             cancel_policy = _cancelPolicy,
+            created_by = _createdBy,
             created_at = DateTime.UtcNow.AddDays(-200),
             updated_at = DateTime.UtcNow.AddDays(-200),
             tour_images = _images
