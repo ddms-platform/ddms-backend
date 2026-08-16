@@ -79,6 +79,12 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             await _repo.RemoveRoutesByTourIdAsync(existingTour.id, ct);
             AddRoutes(request, existingTour.id, now);
 
+            if (request.imageUrls != null)
+            {
+                await _repo.RemoveImagesByTourIdAsync(existingTour.id, ct);
+                AddTourImages(request, existingTour.id, now);
+            }
+
             // Cập nhật Cabins / Combos nếu có
             if (request.rooms != null && request.rooms.Count > 0)
             {
@@ -133,6 +139,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             AddCombos(request, now);
             AddFaqs(request, tour.id, now);
             AddRoutes(request, tour.id, now);
+            AddTourImages(request, tour.id, now);
             AddDefaultSchedule(request.boatId, tour.id, now);
 
             await _repo.SaveChangesAsync(ct);
@@ -205,6 +212,28 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 sort_order = sort++,
                 created_at = now,
                 updated_at = now
+            });
+        }
+    }
+
+    private void AddTourImages(DynamicServiceRequest req, Guid tourId, DateTime now)
+    {
+        var sort = 0;
+        foreach (var rawUrl in req.imageUrls ?? Enumerable.Empty<string>())
+        {
+            var url = rawUrl?.Trim();
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                continue;
+            }
+
+            _repo.AddTourImage(new tour_image
+            {
+                id = Guid.NewGuid(),
+                tour_id = tourId,
+                image_url = url,
+                sort_order = sort++,
+                created_at = now
             });
         }
     }

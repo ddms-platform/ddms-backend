@@ -8,6 +8,7 @@ public class BoatServiceResponse
     public decimal price { get; init; }
     public string? description { get; init; }
     public string? imageUrl { get; init; }
+    public List<string> imageUrls { get; init; } = [];
     public string? serviceType { get; init; }
     public bool isActive { get; init; }
     public DateTime createdAt { get; init; }
