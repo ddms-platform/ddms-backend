@@ -14,77 +14,55 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
-# Visual Studio
+# Visual Studio / Rider / VS Code
 .vs/
 .vscode/
+.idea/
 *.user
 *.sln.docstates
 *.suo
-*.sln.iml
-
-# Visual Studio Code
-.vscode/settings.json
-.vscode/tasks.json
-.vscode/launch.json
-.vscode/extensions.json
-
-# Rider
-.idea/
 *.sln.iml
 *.swp
 *.swo
 *~
 
-# NuGet
+# NuGet / dotnet
 *.nupkg
 *.snupkg
 *.nuget.props
 *.nuget.targets
-
-# dotnet
 project.lock.json
 project.fragment.lock.json
 artifacts/
 .dotnet/
 
-# Entity Framework
+# Entity Framework local DBs
 *.db
 *.db-shm
 *.db-wal
 
-
-# Application
+# Application secrets
 appsettings.*.json
 !appsettings.Development.json
 !appsettings.json
-
-# Logs
-Logs/
-*.log
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-Desktop.ini
-
-# Environment variables
 .env
 .env.local
 .env.*.local
-
-# Local secrets (use dotnet user-secrets instead — see SECRETS.md)
 secrets.json
 appsettings.Local.json
 **/secrets.json
 
-# Temporary files
+# Logs / temp
+Logs/
+*.log
 temp/
 tmp/
 *.tmp
 *.bak
 *.orig
+Thumbs.db
+Desktop.ini
+.DS_Store
 
 # Test output, coverage reports, cache
 [Tt]est[Rr]esults/
@@ -92,15 +70,22 @@ CoverageReport/
 coverage/
 *.coverage
 *.coveragexml
+*.dcvr
 *.cache
 
-# Python (local doc / report generators)
+# Python (local doc / report generators — not part of the backend)
 *.py
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+.venv/
+venv/
 
 # Generated / local documentation (keep on disk, do not push)
 docs/
 *.docx
 *.xlsx
 *.pdf
+DDMS_Tai_Lieu_Chi_Tiet_Du_An.docx
+Danh_Sach_Chuc_Nang_DDMS.xlsx
