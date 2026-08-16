@@ -391,8 +391,9 @@ public class BoatRepository : IBoatRepository
 
     public Task<bool> HasActiveBookingsAsync(Guid boatId)
     {
-        var activeStatuses = new[] { "pending", "confirmed", "checked_in" };
-        return _dbContext.bookings
-            .AnyAsync(b => b.schedule.boat_id == boatId && activeStatuses.Contains(b.status.ToLower()));
+        return _dbContext.tour_schedules
+            .Where(ts => ts.boat_id == boatId)
+            .SelectMany(ts => ts.bookings)
+            .AnyAsync(b => b.status == "pending" || b.status == "confirmed" || b.status == "checked_in" || b.status == "holding");
     }
 }
