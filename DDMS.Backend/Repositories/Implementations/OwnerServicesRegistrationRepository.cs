@@ -1,4 +1,4 @@
-using DDMS.Backend.Data;
+﻿using DDMS.Backend.Data;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +50,24 @@ public class OwnerServicesRegistrationRepository : IOwnerServicesRegistrationRep
         if (images.Count > 0)
         {
             _db.tour_images.RemoveRange(images);
+        }
+    }
+
+    public async Task RemoveCabinsByTourIdAsync(Guid tourId, CancellationToken ct)
+    {
+        var cabins = await _db.boat_cabins.Where(c => c.tour_id == tourId).ToListAsync(ct);
+        if (cabins.Count > 0)
+        {
+            _db.boat_cabins.RemoveRange(cabins);
+        }
+    }
+
+    public async Task RemoveCombosByTourIdAsync(Guid tourId, CancellationToken ct)
+    {
+        var combos = await _db.boat_services.Where(s => s.tour_id == tourId).ToListAsync(ct);
+        if (combos.Count > 0)
+        {
+            _db.boat_services.RemoveRange(combos);
         }
     }
 

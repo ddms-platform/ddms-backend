@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DDMS.Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -460,9 +460,21 @@ public partial class AppDbContext : DbContext
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
+            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
+            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
+            // tren production voi loi 3780 lech collation.
+            entity.Property(e => e.tour_id)
+                .HasColumnType("char(36)")
+                .UseCollation("utf8mb4_unicode_ci");
+
             entity.HasOne(d => d.boat).WithMany(p => p.boat_cabins)
                 .HasForeignKey(d => d.boat_id)
                 .HasConstraintName("fk_cabins_boat");
+
+            entity.HasOne<tour>().WithMany()
+                .HasForeignKey(d => d.tour_id)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_cabins_tour");
         });
 
         modelBuilder.Entity<boat_image>(entity =>
@@ -534,9 +546,21 @@ public partial class AppDbContext : DbContext
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
+            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
+            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
+            // tren production voi loi 3780 lech collation.
+            entity.Property(e => e.tour_id)
+                .HasColumnType("char(36)")
+                .UseCollation("utf8mb4_unicode_ci");
+
             entity.HasOne(d => d.boat).WithMany(p => p.boat_services)
                 .HasForeignKey(d => d.boat_id)
                 .HasConstraintName("fk_services_boat");
+
+            entity.HasOne<tour>().WithMany()
+                .HasForeignKey(d => d.tour_id)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_services_tour");
         });
 
         modelBuilder.Entity<booking>(entity =>
@@ -1117,6 +1141,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.status, "idx_tours_status");
 
             entity.Property(e => e.avg_rating).HasPrecision(3, 2);
+            entity.Property(e => e.service_type).HasMaxLength(30);
             entity.Property(e => e.cancel_policy)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'free'");

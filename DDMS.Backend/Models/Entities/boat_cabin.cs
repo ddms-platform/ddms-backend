@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -8,6 +8,12 @@ public partial class boat_cabin
     public Guid id { get; set; }
 
     public Guid boat_id { get; set; }
+
+    /// <summary>
+    /// Phòng/combo thuộc về tour nào. NULL = dùng chung cho cả con thuyền,
+    /// giữ nguyên hành vi cũ cho dữ liệu đã có trước khi tách theo tour.
+    /// </summary>
+    public Guid? tour_id { get; set; }
 
     public string name { get; set; } = null!;
 

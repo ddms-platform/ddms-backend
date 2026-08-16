@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Exceptions;
+﻿using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Boat;
 using DDMS.Backend.Models.Entities;
@@ -357,8 +357,9 @@ public class BoatService : IBoatService
             .Select(g => g.First())
             .ToList() ?? [];
 
-        // Cabins/combos are boat-scoped (shared across all tours running on this boat)
-        var sharedRooms = b.boat_cabins?.Select(c => new ServiceRoomItem
+        // Phòng/combo gắn theo tour. tour_id NULL là dữ liệu cũ từ trước khi
+        // tách — vẫn hiện cho mọi tour để không làm mất dữ liệu đã nhập.
+        var sharedRooms = b.boat_cabins?.Where(c => c.tour_id == null).Select(c => new ServiceRoomItem
         {
             id = c.id,
             name = c.name,
@@ -368,7 +369,7 @@ public class BoatService : IBoatService
             imageUrl = c.image_url,
         }).ToList() ?? [];
 
-        var sharedCombos = b.boat_services?.Select(s => new ServiceComboItem
+        var sharedCombos = b.boat_services?.Where(s => s.tour_id == null).Select(s => new ServiceComboItem
         {
             id = s.id,
             name = s.name,
@@ -414,8 +415,29 @@ public class BoatService : IBoatService
                     question = f.question,
                     answer = f.answer,
                 }).ToList() ?? [],
-            rooms = sharedRooms,
-            combos = sharedCombos,
+            serviceType = t.service_type,
+            // Phòng/combo của riêng tour này, cộng thêm dữ liệu cũ chưa gắn tour.
+            rooms = [.. b.boat_cabins?
+                .Where(c => c.tour_id == t.id)
+                .Select(c => new ServiceRoomItem
+                {
+                    id = c.id,
+                    name = c.name,
+                    capacity = c.capacity,
+                    price = c.price,
+                    description = c.description,
+                    imageUrl = c.image_url,
+                }) ?? [], .. sharedRooms],
+            combos = [.. b.boat_services?
+                .Where(sv => sv.tour_id == t.id)
+                .Select(sv => new ServiceComboItem
+                {
+                    id = sv.id,
+                    name = sv.name,
+                    price = sv.price,
+                    description = sv.description,
+                    imageUrl = sv.image_url,
+                }) ?? [], .. sharedCombos],
         }).ToList();
     }
 
