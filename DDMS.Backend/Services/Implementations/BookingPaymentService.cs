@@ -219,17 +219,18 @@ public class BookingPaymentService : IBookingPaymentService
     }
 
     public async Task<BookingPaymentStatusResponse> SimulatePaidAsync(
-        Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct)
+        Guid bookingId, Guid userId, CancellationToken ct)
     {
-        // Chốt chặn độc lập với tầng route: dev thì ai cũng dùng được (máy cá nhân),
-        // còn trên production chỉ admin. Khách thường gọi thẳng vào endpoint này
-        // vẫn bị chặn ở đây.
-        if (!_env.IsDevelopment() && !isAdmin)
-            throw new AppException(
-                ErrorCode.BookingPaymentSimulateDisabled,
-                ErrorCode.Messages.BookingPaymentSimulateDisabled);
+        // Mở cho mọi tài khoản đã đăng nhập, kể cả trên production.
+        //
+        // KHOÁ LẠI SAU KHI BẢO VỆ: thêm lại điều kiện ở ngay đây là xong, không
+        // phải sửa chỗ nào khác.
+        //     if (!_env.IsDevelopment())
+        //         throw new AppException(
+        //             ErrorCode.BookingPaymentSimulateDisabled,
+        //             ErrorCode.Messages.BookingPaymentSimulateDisabled);
 
-        // Không nới quyền sở hữu: admin chỉ giả lập được đơn do chính mình đặt.
+        // Ràng buộc duy nhất còn giữ: chỉ đụng được vào đơn của chính người gọi.
         var booking = await _bookings.FindUserBookingAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
@@ -240,8 +241,8 @@ public class BookingPaymentService : IBookingPaymentService
         // Ghi rõ ai bấm: đây là đường duy nhất đánh dấu đã-trả-tiền mà không có
         // tiền thật, nên phải truy được ra người chịu trách nhiệm.
         _logger.LogWarning(
-            "Giả lập thanh toán booking {BookingId} (đơn PayOS {OrderCode}) bởi user {UserId}, admin={IsAdmin}, env={Env}",
-            bookingId, payment.payos_order_code, userId, isAdmin, _env.EnvironmentName);
+            "Giả lập thanh toán booking {BookingId} (đơn PayOS {OrderCode}) bởi user {UserId}, env={Env}",
+            bookingId, payment.payos_order_code, userId, _env.EnvironmentName);
 
         // Đi qua đúng đường mà webhook thật đi, để demo phản ánh đúng hành vi production.
         await ApplyGatewayStatusAsync(

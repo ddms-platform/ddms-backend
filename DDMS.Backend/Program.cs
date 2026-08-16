@@ -388,18 +388,16 @@ app.MapControllers();
 
 // Giả lập thanh toán để demo khi không tiện chuyển khoản thật.
 //
-// Route tồn tại ở mọi môi trường, nhưng quyền nằm ở tầng dưới: trên production
-// chỉ tài khoản admin gọi được (SimulatePaidAsync tự kiểm tra), còn ở
-// Development thì mở cho mọi tài khoản để chạy thử trên máy cá nhân.
-// Ngoài ra vẫn phải là đơn của chính người gọi.
+// Mở cho mọi tài khoản đã đăng nhập, ở mọi môi trường. Điều kiện khoá lại nằm
+// trong SimulatePaidAsync — xem ghi chú ở đó. Vẫn phải là đơn của chính người
+// gọi, và vẫn phải đăng nhập.
 app.MapPost("/api/demo/bookings/{id:guid}/simulate-payment", async (
         Guid id,
         IBookingPaymentService payments,
         ICurrentUser currentUser,
         CancellationToken ct) =>
     Results.Ok(ApiResponse<BookingPaymentStatusResponse>.Ok(
-        await payments.SimulatePaidAsync(
-            id, currentUser.Id, currentUser.IsInRole(RoleNames.Admin), ct))))
+        await payments.SimulatePaidAsync(id, currentUser.Id, ct))))
     .RequireAuthorization()
     .WithTags("Demo");
 app.Run();
