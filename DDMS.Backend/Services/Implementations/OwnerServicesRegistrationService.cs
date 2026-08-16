@@ -30,23 +30,31 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         _email = email;
     }
 
-    public async Task<TourResponse> RegisterAsync(DynamicServiceRequest request, CancellationToken ct)
+    public async Task<TourResponse> RegisterAsync(
+        DynamicServiceRequest request, Guid userId, CancellationToken ct)
     {
-        Guid? ownerId = null;
-        if (request.boatId != Guid.Empty)
+        // Thuyền phải thuộc về chính người gọi. Trước đây hàm chỉ đọc owner_id
+        // TỪ CON THUYỀN rồi dùng luôn, không đối chiếu với ai đang gọi — nên chủ
+        // thuyền A đăng ký được tour trên thuyền của chủ thuyền B.
+        var boat = request.boatId != Guid.Empty
+            ? await _boatRepo.GetByIdAsync(request.boatId)
+            : null;
+
+        if (boat == null || boat.owner_id != userId)
         {
-            var boat = await _boatRepo.GetByIdAsync(request.boatId);
-            if (boat?.owner_id != null)
-            {
-                ownerId = boat.owner_id.Value;
-                var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId.Value, ct);
-                if (docOverview.IsLocked)
-                {
-                    throw new AppException(
-                        ErrorCode.OwnerDocumentOverdueBlocked,
-                        "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể đăng ký thêm dịch vụ hoặc tour mới!");
-                }
-            }
+            throw new AppException(
+                ErrorCode.Forbidden,
+                "Thuyền không tồn tại hoặc không thuộc quyền quản lý của bạn.");
+        }
+
+        var ownerId = boat.owner_id;
+
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId, ct);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể đăng ký thêm dịch vụ hoặc tour mới!");
         }
 
         tour? existingTour = null;

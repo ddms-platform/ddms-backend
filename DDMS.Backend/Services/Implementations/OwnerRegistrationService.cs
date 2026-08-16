@@ -145,7 +145,7 @@ public class OwnerRegistrationService : IOwnerRegistrationService
                 expected_docking_date = vessel.ExpectedDockingDate,
                 required_services = JsonSerializer.Serialize(vessel.RequiredServices ?? new List<string>()),
                 document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
-                max_passengers = 1, // Default value, will be updated by admin later
+                max_passengers = vessel.MaxPassengers,
                 status = "Pending",
                 compliance_status = BoatComplianceStatuses.Valid,
                 created_at = DateTime.UtcNow,

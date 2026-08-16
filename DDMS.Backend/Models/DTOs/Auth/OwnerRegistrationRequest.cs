@@ -44,6 +44,15 @@ public class VesselRegistrationItem
 
     public decimal? Beam { get; set; }
 
+    /// <summary>
+    /// Sức chứa tối đa. Trước đây không hỏi và luôn ghi cứng 1 với ghi chú
+    /// "admin sẽ sửa sau" — thực tế không ai sửa, nên mọi thuyền đăng ký qua
+    /// form này đều chỉ nhận được 1 khách.
+    /// </summary>
+    [Required]
+    [Range(1, 1000, ErrorMessage = "Sức chứa phải từ 1 đến 1000 khách.")]
+    public int MaxPassengers { get; set; }
+
     [Required]
     public string RegistrationNumber { get; set; } = null!;
 

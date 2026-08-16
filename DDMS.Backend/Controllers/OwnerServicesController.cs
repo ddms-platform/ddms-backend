@@ -1,31 +1,39 @@
-﻿using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Identity;
+using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.OwnerServices;
 using DDMS.Backend.Models.DTOs.Tour;
 using DDMS.Backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;
 
 [ApiController]
 [Route("api/owner/services")]
-// [Authorize(Roles = "owner")] — đang tắt để dễ test
+// Dang ky/sua dich vu la thao tac GHI -> doi vai tro "owner" that, khong nhan
+// ho so dang cho duyet. Ranh buoc so huu thuyen kiem o RegisterAsync.
+[Authorize(Roles = RoleNames.Owner)]
 public class OwnerServicesController : ControllerBase
 {
     private readonly IOwnerServicesRegistrationService _registration;
     private readonly ICloudinaryService _cloudinary;
+    private readonly ICurrentUser _currentUser;
 
     public OwnerServicesController(
         IOwnerServicesRegistrationService registration,
-        ICloudinaryService cloudinary)
+        ICloudinaryService cloudinary,
+        ICurrentUser currentUser)
     {
         _registration = registration;
         _cloudinary = cloudinary;
+        _currentUser = currentUser;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> RegisterService([FromBody] DynamicServiceRequest request, CancellationToken ct)
     {
-        var result = await _registration.RegisterAsync(request, ct);
+        var result = await _registration.RegisterAsync(request, _currentUser.Id, ct);
         return Ok(ApiResponse<TourResponse>.Ok(result));
     }
 
