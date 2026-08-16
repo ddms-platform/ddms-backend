@@ -13,6 +13,13 @@ public partial class dock_schedule
 
     public Guid? schedule_id { get; set; }
 
+    /// <summary>
+    /// Khoang neo cang vu gan cho tau (A1..A16, B1..B16). NULL = chua gan.
+    /// Truoc day khong luu o dau ca nen moi man tu suy ra tu vi tri trong mang,
+    /// dan den admin thay A12 con owner thay A1 cho cung mot con tau.
+    /// </summary>
+    public string? berth_code { get; set; }
+
     public DateTime start_time { get; set; }
 
     public DateTime end_time { get; set; }

@@ -761,6 +761,9 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("PRIMARY");
 
+            entity.Property(e => e.berth_code).HasMaxLength(10);
+            entity.HasIndex(e => new { e.dock_id, e.berth_code }, "idx_dock_schedules_berth");
+
             entity.HasIndex(e => e.schedule_id, "fk_dock_sched_schedule");
 
             entity.HasIndex(e => new { e.boat_id, e.start_time, e.end_time }, "idx_dock_sched_boat");
