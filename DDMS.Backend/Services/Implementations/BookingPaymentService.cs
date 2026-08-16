@@ -221,12 +221,16 @@ public class BookingPaymentService : IBookingPaymentService
     public async Task<BookingPaymentStatusResponse> SimulatePaidAsync(
         Guid bookingId, Guid userId, CancellationToken ct)
     {
-        // Chốt chặn thứ hai, độc lập với việc route có được đăng ký hay không.
-        if (!_env.IsDevelopment())
-            throw new AppException(
-                ErrorCode.BookingPaymentSimulateDisabled,
-                ErrorCode.Messages.BookingPaymentSimulateDisabled);
+        // Mở cho mọi tài khoản đã đăng nhập, kể cả trên production.
+        //
+        // KHOÁ LẠI SAU KHI BẢO VỆ: thêm lại điều kiện ở ngay đây là xong, không
+        // phải sửa chỗ nào khác.
+        //     if (!_env.IsDevelopment())
+        //         throw new AppException(
+        //             ErrorCode.BookingPaymentSimulateDisabled,
+        //             ErrorCode.Messages.BookingPaymentSimulateDisabled);
 
+        // Ràng buộc duy nhất còn giữ: chỉ đụng được vào đơn của chính người gọi.
         var booking = await _bookings.FindUserBookingAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
@@ -234,9 +238,11 @@ public class BookingPaymentService : IBookingPaymentService
             ?? throw new AppException(
                 ErrorCode.BookingPaymentNotFound, ErrorCode.Messages.BookingPaymentNotFound);
 
+        // Ghi rõ ai bấm: đây là đường duy nhất đánh dấu đã-trả-tiền mà không có
+        // tiền thật, nên phải truy được ra người chịu trách nhiệm.
         _logger.LogWarning(
-            "[DEV] Giả lập thanh toán cho booking {BookingId}, đơn PayOS {OrderCode}",
-            bookingId, payment.payos_order_code);
+            "Giả lập thanh toán booking {BookingId} (đơn PayOS {OrderCode}) bởi user {UserId}, env={Env}",
+            bookingId, payment.payos_order_code, userId, _env.EnvironmentName);
 
         // Đi qua đúng đường mà webhook thật đi, để demo phản ánh đúng hành vi production.
         await ApplyGatewayStatusAsync(

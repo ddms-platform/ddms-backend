@@ -20,11 +20,18 @@ public interface IBookingPaymentService
     Task<WebhookHandleResult> HandleWebhookAsync(Webhook body, CancellationToken ct);
 
     /// <summary>
-    /// CHỈ DÙNG KHI DEV/DEMO: đánh dấu đơn đã trả tiền mà không qua PayOS.
+    /// DÙNG ĐỂ DEMO: đánh dấu đơn đã trả tiền mà không qua PayOS.
     ///
-    /// Có hai lớp chặn độc lập. Route chỉ được đăng ký khi
-    /// ASPNETCORE_ENVIRONMENT=Development (xem Program.cs), và hàm này tự ném
-    /// nếu bị gọi ở môi trường khác. Bỏ một lớp thì lớp còn lại vẫn giữ.
+    /// Mở cho mọi tài khoản đã đăng nhập, không phân biệt vai trò — đây là yêu
+    /// cầu của kỳ bảo vệ, để bấm một cái là đơn xác nhận ngay mà không phải
+    /// chuyển tiền thật.
+    ///
+    /// CẢNH BÁO: đây là đường duy nhất đánh dấu đã-trả-tiền mà không có tiền
+    /// thật. Để mở như vậy nghĩa là bất kỳ khách nào cũng tự xác nhận được đơn
+    /// của mình. Khoá lại bằng cách trả điều kiện môi trường/vai trò vào đây.
+    ///
+    /// Ràng buộc duy nhất còn giữ: chỉ giả lập được đơn của CHÍNH người gọi —
+    /// không ai đụng được vào đơn của người khác.
     /// </summary>
     Task<BookingPaymentStatusResponse> SimulatePaidAsync(
         Guid bookingId, Guid userId, CancellationToken ct);

@@ -241,7 +241,7 @@ public static class ErrorCode
         public const string BookingPaymentNotPaid =
             "Chưa nhận được thanh toán cho đơn này.";
         public const string BookingPaymentSimulateDisabled =
-            "Giả lập thanh toán chỉ dùng được ở môi trường phát triển.";
+            "Giả lập thanh toán chỉ dành cho quản trị viên hoặc môi trường phát triển.";
 
         public const string DockScheduleOverlap = "Dock schedule overlap";
 
