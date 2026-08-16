@@ -21,12 +21,18 @@ public static class OwnerDocumentTypes
     public const string ResidenceProof = "residence_proof";
     public const string AuthorizationLetter = "authorization_letter";
 
-    public static IReadOnlyList<string> GetRequiredTypes(string entityType)
+    public static readonly IReadOnlyList<string> All = new[]
     {
-        var required = new List<string> { NationalId, TransportLicense };
-        if (OwnerEntityTypes.RequiresBusinessRegistration(entityType))
-            required.Add(BusinessRegistration);
-        return required;
+        NationalId,
+        TransportLicense,
+        BusinessRegistration,
+        ResidenceProof,
+        AuthorizationLetter
+    };
+
+    public static IReadOnlyList<string> GetRequiredTypes(string? entityType = null)
+    {
+        return All;
     }
 }
 

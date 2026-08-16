@@ -16,6 +16,15 @@ public class VerificationItem
     public string Submitted { get; set; } = null!;
     public string Status { get; set; } = null!;
     public int Boats { get; set; }
+    public DateTime? DocumentUploadDeadline { get; set; }
+    public bool IsDocumentDeadlineExpired { get; set; }
+    public bool IsDocumentCompleted { get; set; }
+    public bool IsDocumentPendingReview { get; set; }
+    public bool IsDocumentApproved { get; set; }
+    public bool IsDocumentRejected { get; set; }
+    public bool IsDocumentResubmitted { get; set; }
+    public DateTime? LastDocumentRejectedAt { get; set; }
+    public DateTime? LastDocumentUpdatedAt { get; set; }
     public List<OwnerDocumentListItem> Documents { get; set; } = new();
     public List<VesselItem> Vessels { get; set; } = new();
 }

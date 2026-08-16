@@ -11,15 +11,21 @@ public class BoatComplianceService : IBoatComplianceService
 {
     private readonly IBoatCertificateRepository _repo;
     private readonly IBoatComplianceNotifier _notifier;
+    private readonly IOwnerDocumentRepository _ownerRepo;
+    private readonly INotificationService _notificationService;
     private readonly BoatComplianceOptions _options;
 
     public BoatComplianceService(
         IBoatCertificateRepository repo,
         IBoatComplianceNotifier notifier,
+        IOwnerDocumentRepository ownerRepo,
+        INotificationService notificationService,
         IOptions<BoatComplianceOptions> options)
     {
         _repo = repo;
         _notifier = notifier;
+        _ownerRepo = ownerRepo;
+        _notificationService = notificationService;
         _options = options.Value;
     }
 
@@ -30,6 +36,7 @@ public class BoatComplianceService : IBoatComplianceService
 
         await _repo.MarkExpiredAsync(today, ct);
         await SendExpiringRemindersAsync(today, warningThreshold, ct);
+        await CheckOwnerDocumentsComplianceAsync(ct);
 
         var boats = await _repo.GetBoatsWithCertificatesForComplianceAsync(ct);
 
@@ -132,6 +139,77 @@ public class BoatComplianceService : IBoatComplianceService
         catch (TimeZoneNotFoundException)
         {
             return DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+    }
+
+    private async Task CheckOwnerDocumentsComplianceAsync(CancellationToken ct)
+    {
+        try
+        {
+            var profiles = await _ownerRepo.GetVerifiedProfilesWithDocumentsAsync(ct);
+            var now = DateTime.UtcNow;
+
+            foreach (var profile in profiles)
+            {
+                if (profile.document_upload_deadline.HasValue && profile.document_upload_deadline.Value.Year >= 9999)
+                {
+                    continue;
+                }
+
+                var deadline = profile.document_upload_deadline ?? (profile.verified_at?.AddDays(14) ?? profile.created_at.AddDays(14));
+                var isExpired = now > deadline;
+                var timeRemaining = !isExpired ? (deadline - now) : TimeSpan.Zero;
+                var daysRemaining = (int)Math.Ceiling(timeRemaining.TotalDays);
+
+                var requiredTypes = OwnerDocumentTypes.GetRequiredTypes(profile.entity_type).ToList();
+                var uploadedTypes = (profile.owner_documents ?? new List<owner_document>())
+                    .Select(d => d.document_type)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var isCompleted = requiredTypes.All(r => uploadedTypes.Contains(r));
+
+                if (isCompleted) continue;
+
+                if (daysRemaining == 3)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: null,
+                        type: "system",
+                        title: "Hồ sơ pháp lý còn 3 ngày đến hạn ⏱️",
+                        body: $"Hạn chót bổ sung giấy tờ pháp lý của bạn là ngày {deadline:dd/MM/yyyy} (còn 3 ngày). Vui lòng hoàn tất nộp giấy tờ để đảm bảo quyền mở bán tour và rút tiền.",
+                        recipientIds: new List<Guid> { profile.user_id },
+                        data: null,
+                        ct: ct
+                    );
+                }
+                else if (daysRemaining == 1)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: null,
+                        type: "system",
+                        title: "Cảnh báo khẩn: Hồ sơ pháp lý hết hạn ngày mai ⚠️",
+                        body: $"Hạn chót bổ sung giấy tờ pháp lý của bạn là ngày {deadline:dd/MM/yyyy} (hết hạn vào ngày mai). Hãy tải lên giấy tờ ngay để tránh bị tạm dừng các hoạt động kinh doanh.",
+                        recipientIds: new List<Guid> { profile.user_id },
+                        data: null,
+                        ct: ct
+                    );
+                }
+                else if (isExpired && (now - deadline).TotalDays <= 1)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        senderId: null,
+                        type: "system",
+                        title: "Hồ sơ pháp lý đã quá thời hạn 🔒",
+                        body: $"Thời hạn bổ sung giấy tờ pháp lý của bạn đã kết thúc vào ngày {deadline:dd/MM/yyyy}. Các tính năng mở bán tour và rút tiền đã tạm khóa. Vui lòng liên hệ Ban quản trị để được hỗ trợ gia hạn.",
+                        recipientIds: new List<Guid> { profile.user_id },
+                        data: null,
+                        ct: ct
+                    );
+                }
+            }
+        }
+        catch
+        {
+            // best-effort compliance notification
         }
     }
 }

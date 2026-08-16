@@ -12,15 +12,18 @@ public class WalletService : IWalletService
     private readonly IWalletRepository _wallets;
     private readonly IWithdrawalsRepository _withdrawals;
     private readonly INotificationService _notificationService;
+    private readonly IOwnerDocumentService _ownerDocs;
 
     public WalletService(
         IWalletRepository wallets,
         IWithdrawalsRepository withdrawals,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IOwnerDocumentService ownerDocs)
     {
         _wallets = wallets;
         _withdrawals = withdrawals;
         _notificationService = notificationService;
+        _ownerDocs = ownerDocs;
     }
 
     public async Task<WalletBalanceResponse> GetBalanceAsync(Guid userId, CancellationToken ct)
@@ -34,6 +37,22 @@ public class WalletService : IWalletService
 
     public async Task<WithdrawResult> RequestWithdrawAsync(Guid userId, WithdrawRequest req, CancellationToken ct)
     {
+        // Check owner document compliance if user is an owner
+        try
+        {
+            var overview = await _ownerDocs.GetOverviewByUserIdAsync(userId, ct);
+            if (overview != null && overview.IsLocked)
+            {
+                throw new AppException(
+                    ErrorCode.WithdrawalLockedDueToDocuments,
+                    ErrorCode.Messages.WithdrawalLockedDueToDocuments);
+            }
+        }
+        catch (NotFoundException)
+        {
+            // User does not have an owner profile, proceed normally
+        }
+
         if (req.Amount <= 0)
             throw new AppException(ErrorCode.WithdrawAmountInvalid, ErrorCode.Messages.WithdrawAmountInvalid);
 

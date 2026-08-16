@@ -28,6 +28,13 @@ public class OwnerDocumentRepository : IOwnerDocumentRepository
     public Task<owner_profile?> GetProfileByUserIdAsync(Guid userId, CancellationToken ct = default) =>
         _db.owner_profiles.FirstOrDefaultAsync(p => p.user_id == userId, ct);
 
+    public Task<List<owner_profile>> GetVerifiedProfilesWithDocumentsAsync(CancellationToken ct = default) =>
+        _db.owner_profiles
+            .Include(p => p.owner_documents)
+            .Include(p => p.user)
+            .Where(p => p.status == "verified" || p.is_verified == true)
+            .ToListAsync(ct);
+
     public void Add(owner_document entity) => _db.owner_documents.Add(entity);
 
     public async Task<owner_document> AddAsync(owner_document entity, CancellationToken ct = default)

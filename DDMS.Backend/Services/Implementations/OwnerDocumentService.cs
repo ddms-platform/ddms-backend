@@ -24,6 +24,70 @@ public class OwnerDocumentService : IOwnerDocumentService
         _certificateTypes = certificateTypes;
     }
 
+    public async Task<OwnerDocumentsOverviewResponse> GetOverviewByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        var profile = await GetProfileOrThrowAsync(userId, ct);
+        var docs = await _repo.GetByProfileIdAsync(profile.id, ct);
+        var now = DateTime.UtcNow;
+
+        var ownerSince = profile.verified_at ?? profile.created_at;
+        var requiredTypes = OwnerDocumentTypes.GetRequiredTypes(profile.entity_type).ToList();
+        var uploadedTypes = docs.Select(d => d.document_type).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingTypes = requiredTypes.Where(r => !uploadedTypes.Contains(r)).ToList();
+        var hasAllUploaded = missingTypes.Count == 0;
+
+        // An owner's legal documents are officially approved only when Admin approves them (sets deadline to Year 9999) AND all required docs are present
+        var hasRejectedDocs = docs.Any(d => !string.IsNullOrWhiteSpace(d.admin_note));
+        bool isApproved = profile.document_upload_deadline.HasValue
+            && profile.document_upload_deadline.Value.Year >= 9999
+            && hasAllUploaded
+            && !hasRejectedDocs
+            && (profile.is_verified || profile.status == OwnerProfileStatuses.Verified);
+
+        bool isExpired;
+        int daysRemaining = 0;
+        int hoursRemaining = 0;
+        DateTime? deadline = isApproved ? null : (profile.document_upload_deadline ?? (profile.verified_at?.AddDays(14) ?? profile.created_at.AddDays(14)));
+
+        if (isApproved)
+        {
+            isExpired = false;
+        }
+        else
+        {
+            isExpired = deadline.HasValue && now > deadline.Value;
+            if (!isExpired && deadline.HasValue)
+            {
+                var timeRemaining = deadline.Value - now;
+                daysRemaining = (int)timeRemaining.TotalDays;
+                hoursRemaining = timeRemaining.Hours;
+            }
+        }
+
+        bool isPendingReview = hasAllUploaded && !hasRejectedDocs && !isApproved;
+        bool isRejected = hasRejectedDocs && !isApproved;
+        bool isCompleted = isApproved;
+        bool isLocked = !isApproved && (isExpired || isRejected || isPendingReview);
+
+        return new OwnerDocumentsOverviewResponse
+        {
+            Documents = docs.Select(Map).ToList(),
+            OwnerSince = ownerSince,
+            UploadDeadline = deadline,
+            IsExpired = isExpired,
+            DaysRemaining = daysRemaining,
+            HoursRemaining = hoursRemaining,
+            IsCompleted = isCompleted,
+            IsPendingReview = isPendingReview,
+            IsApproved = isApproved,
+            IsRejected = isRejected,
+            IsLocked = isLocked,
+            EntityType = profile.entity_type,
+            RequiredDocumentTypes = requiredTypes,
+            MissingRequiredTypes = missingTypes
+        };
+    }
+
     public async Task<List<OwnerDocumentListItem>> ListByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         var profile = await GetProfileOrThrowAsync(userId, ct);
@@ -179,6 +243,9 @@ public class OwnerDocumentService : IOwnerDocumentService
         documentUrl = d.document_url,
         expiryDate = d.expiry_date,
         adminNote = d.admin_note,
+        isReuploaded = d.owner_profile?.last_document_rejected_at.HasValue == true
+            && d.updated_at > d.owner_profile.last_document_rejected_at.Value
+            && string.IsNullOrWhiteSpace(d.admin_note),
         createdAt = d.created_at,
         updatedAt = d.updated_at
     };

@@ -16,10 +16,12 @@ public class BoatService : IBoatService
         "Không thể xóa dịch vụ đã có khách đặt. Vui lòng hủy hoặc hoàn tất các booking liên quan trước.";
 
     private readonly IBoatRepository _boatRepository;
+    private readonly IOwnerDocumentService _docService;
 
-    public BoatService(IBoatRepository boatRepository)
+    public BoatService(IBoatRepository boatRepository, IOwnerDocumentService docService)
     {
         _boatRepository = boatRepository;
+        _docService = docService;
     }
 
     public async Task<PagedResponse<BoatListItemResponse>> GetBoatsAsync(BoatListQuery query)
@@ -140,6 +142,14 @@ public class BoatService : IBoatService
 
     public async Task<BoatDetailResponse> CreateByOwnerAsync(CreateBoatRequest request, Guid ownerId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể đăng ký thêm tàu thuyền mới!");
+        }
+
         ValidateBoatRequest(request.name, request.maxPassengers, request.status, request.type);
 
         var boat = new boat
@@ -161,6 +171,14 @@ public class BoatService : IBoatService
 
     public async Task<BoatDetailResponse> UpdateByOwnerAsync(Guid id, UpdateBoatRequest request, Guid ownerId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể cập nhật thông tin tàu!");
+        }
+
         var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền chỉnh sửa");
 
@@ -179,6 +197,14 @@ public class BoatService : IBoatService
 
     public async Task DeleteByOwnerAsync(Guid id, Guid ownerId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể xóa tàu!");
+        }
+
         var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền xóa");
 
@@ -187,6 +213,14 @@ public class BoatService : IBoatService
 
     public async Task DeleteServiceByOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể xóa dịch vụ của tàu!");
+        }
+
         _ = await _boatRepository.GetByIdAndOwnerAsync(boatId, ownerId)
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền chỉnh sửa");
 

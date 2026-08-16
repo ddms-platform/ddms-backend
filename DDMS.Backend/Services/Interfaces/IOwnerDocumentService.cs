@@ -4,6 +4,7 @@ namespace DDMS.Backend.Services.Interfaces;
 
 public interface IOwnerDocumentService
 {
+    Task<OwnerDocumentsOverviewResponse> GetOverviewByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<List<OwnerDocumentListItem>> ListByUserIdAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>Uploads owner docs for registration (no SaveChanges). Returns national_id URL if uploaded.</summary>

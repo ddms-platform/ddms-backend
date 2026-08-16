@@ -14,17 +14,20 @@ public class ScheduleService : IScheduleService
     private readonly IOwnerToursRepository _tourRepository;
     private readonly INotificationService _notificationService;
     private readonly IEmailSender _emailSender;
+    private readonly IOwnerDocumentService _docService;
 
     public ScheduleService(
         IScheduleRepository scheduleRepository, 
         IOwnerToursRepository tourRepository,
         INotificationService notificationService,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        IOwnerDocumentService docService)
     {
         _scheduleRepository = scheduleRepository;
         _tourRepository = tourRepository;
         _notificationService = notificationService;
         _emailSender = emailSender;
+        _docService = docService;
     }
 
     public async Task<PagedResponse<ScheduleItemResponse>> GetSchedulesAsync(Guid userId, ScheduleListQuery query)
@@ -68,6 +71,14 @@ public class ScheduleService : IScheduleService
 
     public async Task<ScheduleItemResponse> CreateAsync(Guid userId, CreateScheduleRequest request)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể tạo lịch trình tour mới!");
+        }
+
         ValidateTimeRange(request.startTime, request.endTime);
 
         var tourEntity = await _tourRepository.GetByIdAsync(request.tourId, userId);
@@ -99,6 +110,14 @@ public class ScheduleService : IScheduleService
 
     public async Task<ScheduleItemResponse> UpdateAsync(Guid id, Guid userId, UpdateScheduleRequest request)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể cập nhật lịch trình tour!");
+        }
+
         ValidateTimeRange(request.startTime, request.endTime);
 
         var normalizedStatus = request.status.Trim().ToLowerInvariant();
@@ -189,6 +208,14 @@ public class ScheduleService : IScheduleService
 
     public async Task DeleteAsync(Guid id, Guid userId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể xóa lịch trình tour!");
+        }
+
         var entity = await _scheduleRepository.GetByIdAsync(id, userId);
         if (entity is null)
         {

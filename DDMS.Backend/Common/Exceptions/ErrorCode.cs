@@ -52,6 +52,8 @@ public static class ErrorCode
     public const int OwnerDocumentTypeRequired = 1520;
     public const int OwnerDocumentRequired = 1521;
     public const int InvalidOwnerEntityType = 1522;
+    public const int OwnerDocumentDeadlineExpired = 1523;
+    public const int OwnerDocumentOverdueBlocked = 1524;
 
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
@@ -68,6 +70,7 @@ public static class ErrorCode
     public const int WithdrawAmountInvalid = 1702;
     public const int WithdrawBankInfoRequired = 1703;
     public const int WithdrawInsufficientBalance = 1704;
+    public const int WithdrawalLockedDueToDocuments = 1705;
 
     public const int BookingCheckInPending = 1800;
     public const int BookingCheckInCompleted = 1801;
@@ -198,6 +201,8 @@ public static class ErrorCode
         public const string OwnerDocumentTypeRequired = "Loại giấy tờ chủ thuyền là bắt buộc.";
         public const string OwnerDocumentRequired = "Thiếu giấy tờ bắt buộc của chủ thuyền.";
         public const string InvalidOwnerEntityType = "Loại chủ thể không hợp lệ.";
+        public const string OwnerDocumentDeadlineExpired = "Thời hạn bổ sung giấy tờ pháp lý của bạn đã kết thúc. Vui lòng liên hệ Quản trị viên để được hỗ trợ gia hạn.";
+        public const string OwnerDocumentOverdueBlocked = "Tài khoản của bạn chưa hoàn tất giấy tờ pháp lý bắt buộc (đã quá thời hạn nộp). Chức năng mở bán tour đã tạm khóa. Vui lòng bổ sung giấy tờ hoặc liên hệ Quản trị viên để được gia hạn.";
 
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";
@@ -214,6 +219,7 @@ public static class ErrorCode
         public const string WithdrawAmountInvalid = "Số tiền rút phải lớn hơn 0.";
         public const string WithdrawBankInfoRequired = "Vui lòng nhập đầy đủ thông tin ngân hàng.";
         public const string WithdrawInsufficientBalance = "Số dư ví không đủ để thực hiện giao dịch.";
+        public const string WithdrawalLockedDueToDocuments = "Chức năng rút tiền tạm khóa do hồ sơ pháp lý của bạn chưa hoàn tất và đã quá thời hạn. Vui lòng bổ sung đầy đủ giấy tờ hoặc liên hệ Ban quản trị để được hỗ trợ.";
 
         public const string BookingCheckInPending = "Vé chưa thanh toán hoặc chưa được xác nhận.";
         public const string BookingCheckInCompleted = "Vé đã hoàn thành, không thể check-in.";

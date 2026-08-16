@@ -64,6 +64,7 @@ public class AdminOwnersService : IAdminOwnersService
             profile.status = OwnerProfileStatuses.Verified;
             profile.is_verified = true;
             profile.verified_at = now;
+            profile.document_upload_deadline = now.AddDays(14);
             profile.updated_at = now;
 
             var ownerRole = await _repo.FindRoleByNameAsync(RoleNames.Owner, ct);
@@ -99,7 +100,7 @@ public class AdminOwnersService : IAdminOwnersService
                 senderId: null,
                 type: "system",
                 title: "Hồ sơ Chủ thuyền đã được duyệt thành công 🎉",
-                body: "Chúc mừng! Bạn đã chính thức trở thành Đối tác Chủ thuyền trên DDMS. Hãy truy cập Bảng điều khiển để bắt đầu quản lý đội tàu của mình.",
+                body: "Chúc mừng! Bạn đã chính thức trở thành Đối tác Chủ thuyền trên DDMS. Vui lòng hoàn tất tải lên các giấy tờ pháp lý cần thiết trong vòng 14 ngày.",
                 recipientIds: new List<Guid> { profile.user_id },
                 data: null,
                 ct: ct
@@ -108,6 +109,180 @@ public class AdminOwnersService : IAdminOwnersService
         catch { /* best effort */ }
 
         return "Xác thực chủ thuyền thành công.";
+    }
+
+    public async Task<string> ExtendDocumentDeadlineAsync(Guid profileId, ExtendOwnerDocumentDeadlineRequest request, CancellationToken ct)
+    {
+        var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
+            ?? await _repo.FindProfileAsync(profileId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy hồ sơ chủ thuyền.");
+
+        var now = DateTime.UtcNow;
+        DateTime newDeadline;
+        if (request.NewDeadline.HasValue)
+        {
+            newDeadline = request.NewDeadline.Value;
+        }
+        else
+        {
+            var currentDeadline = profile.document_upload_deadline ?? profile.verified_at?.AddDays(14) ?? now;
+            var baseDate = currentDeadline > now ? currentDeadline : now;
+            var days = request.AdditionalDays is > 0 ? request.AdditionalDays.Value : 14;
+            newDeadline = baseDate.AddDays(days);
+        }
+
+        profile.document_upload_deadline = newDeadline;
+        profile.updated_at = now;
+        await _repo.SaveChangesAsync(ct);
+
+        // Send In-App Notification to owner
+        try
+        {
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Gia hạn thời gian bổ sung giấy tờ pháp lý ⏱️",
+                body: $"Hạn chót bổ sung giấy tờ pháp lý của bạn đã được gia hạn đến ngày {newDeadline:dd/MM/yyyy HH:mm}." + (string.IsNullOrWhiteSpace(request.Reason) ? "" : $" Ghi chú: {request.Reason}"),
+                recipientIds: new List<Guid> { profile.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best effort */ }
+
+        return $"Đã gia hạn thời hạn nộp giấy tờ đến {newDeadline:dd/MM/yyyy}.";
+    }
+
+    public async Task<string> SendDocumentReminderAsync(Guid profileId, CancellationToken ct)
+    {
+        var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
+            ?? await _repo.FindProfileAsync(profileId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy hồ sơ chủ thuyền.");
+
+        var deadline = profile.document_upload_deadline ?? (profile.verified_at?.AddDays(14) ?? profile.created_at.AddDays(14));
+        var isExpired = DateTime.UtcNow > deadline;
+
+        var title = isExpired
+            ? "Cảnh báo quá hạn bổ sung giấy tờ pháp lý ⚠️"
+            : "Nhắc nhở hoàn tất bổ sung giấy tờ pháp lý ⏱️";
+
+        var body = isExpired
+            ? $"Hồ sơ pháp lý của bạn đã quá hạn vào ngày {deadline:dd/MM/yyyy}. Các tính năng mở bán tour và rút tiền đã tạm khóa. Vui lòng liên hệ Ban quản trị để xin gia hạn nộp hồ sơ."
+            : $"Hạn chót hoàn tất bổ sung giấy tờ pháp lý của bạn là ngày {deadline:dd/MM/yyyy}. Vui lòng kiểm tra và tải lên các giấy tờ còn thiếu sớm nhất.";
+
+        await _notificationService.CreateNotificationAsync(
+            senderId: null,
+            type: "system",
+            title: title,
+            body: body,
+            recipientIds: new List<Guid> { profile.user_id },
+            data: null,
+            ct: ct
+        );
+
+        return "Đã gửi thông báo nhắc nhở đến chủ thuyền.";
+    }
+
+    public async Task<string> ApproveDocumentsAsync(Guid profileId, CancellationToken ct)
+    {
+        var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
+            ?? await _repo.FindProfileAsync(profileId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy hồ sơ chủ thuyền.");
+
+        var requiredTypes = OwnerDocumentTypes.GetRequiredTypes(profile.entity_type ?? OwnerEntityTypes.Individual);
+        var uploadedTypes = profile.owner_documents.Select(d => d.document_type).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingTypes = requiredTypes.Where(r => !uploadedTypes.Contains(r)).ToList();
+
+        if (missingTypes.Count > 0)
+        {
+            throw new ValidationException($"Chủ thuyền chưa nộp đủ {requiredTypes.Count} loại giấy tờ bắt buộc (còn thiếu {missingTypes.Count} loại).");
+        }
+
+        var now = DateTime.UtcNow;
+        profile.document_upload_deadline = new DateTime(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+        profile.status = OwnerProfileStatuses.Verified;
+        profile.is_verified = true;
+        profile.verified_at ??= now;
+        profile.updated_at = now;
+
+        // Clear any previous rejection notes
+        profile.last_document_rejected_at = null;
+        foreach (var doc in profile.owner_documents)
+        {
+            doc.admin_note = null;
+            doc.updated_at = now;
+        }
+
+        await _repo.SaveChangesAsync(ct);
+
+        // Send In-App Notification to owner
+        try
+        {
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Hồ sơ pháp lý đã được Ban quản trị phê duyệt 🎉",
+                body: "Chúc mừng! Toàn bộ giấy tờ pháp lý của bạn đã được kiểm duyệt và chấp thuận. Tất cả các chức năng kinh doanh trên hệ thống đã được mở khóa hoàn toàn.",
+                recipientIds: new List<Guid> { profile.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best effort */ }
+
+        return "Đã phê duyệt hồ sơ pháp lý và mở khóa toàn bộ cho chủ thuyền.";
+    }
+
+    public async Task<string> RejectDocumentsAsync(Guid profileId, RejectOwnerDocumentsRequest request, CancellationToken ct)
+    {
+        var profile = await _repo.FindProfileWithUserAsync(profileId, ct)
+            ?? await _repo.FindProfileAsync(profileId, ct)
+            ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy hồ sơ chủ thuyền.");
+
+        var reason = string.IsNullOrWhiteSpace(request?.Reason)
+            ? "Giấy tờ chưa đạt chuẩn hoặc không hợp lệ. Vui lòng kiểm tra và cập nhật lại."
+            : request.Reason.Trim();
+
+        var now = DateTime.UtcNow;
+        profile.updated_at = now;
+        profile.last_document_rejected_at = now;
+        if (profile.document_upload_deadline.HasValue && profile.document_upload_deadline.Value.Year >= 9999)
+        {
+            profile.document_upload_deadline = profile.verified_at?.AddDays(14) ?? profile.created_at.AddDays(14);
+        }
+
+        // Apply admin rejection note to targeted documents or all uploaded documents
+        var targetDocs = profile.owner_documents.AsEnumerable();
+        if (request?.DocumentTypes != null && request.DocumentTypes.Count > 0)
+        {
+            var typeSet = request.DocumentTypes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            targetDocs = profile.owner_documents.Where(d => typeSet.Contains(d.document_type));
+        }
+
+        foreach (var doc in targetDocs)
+        {
+            doc.admin_note = reason;
+            doc.updated_at = now;
+        }
+
+        await _repo.SaveChangesAsync(ct);
+
+        // Send In-App Notification to owner
+        try
+        {
+            await _notificationService.CreateNotificationAsync(
+                senderId: null,
+                type: "system",
+                title: "Hồ sơ pháp lý cần bổ sung / chỉnh sửa ⚠️",
+                body: $"Hồ sơ pháp lý của bạn chưa được duyệt: {reason}. Vui lòng tải lên lại giấy tờ hợp lệ.",
+                recipientIds: new List<Guid> { profile.user_id },
+                data: null,
+                ct: ct
+            );
+        }
+        catch { /* best effort */ }
+
+        return "Đã gửi thông báo từ chối hồ sơ pháp lý đến chủ thuyền.";
     }
 
     public async Task<string> RejectVerificationAsync(Guid profileId, CancellationToken ct)
@@ -188,33 +363,66 @@ public class AdminOwnersService : IAdminOwnersService
         }
     }
 
-    private static VerificationItem MapVerification(owner_profile op, int boatCount, List<boat> boats) => new()
+    private static VerificationItem MapVerification(owner_profile op, int boatCount, List<boat> boats)
     {
-        Id = op.id,
-        Name = op.business_name ?? op.user?.full_name ?? "Chủ thuyền",
-        Owner = op.user?.full_name ?? "N/A",
-        Email = op.user?.email ?? "N/A",
-        Phone = op.phone_business ?? op.user?.phone ?? "N/A",
-        Address = op.address ?? "N/A",
-        License = op.license_number ?? "N/A",
-        EntityType = op.entity_type ?? OwnerEntityTypes.Individual,
-        Submitted = op.created_at.ToString("dd/MM/yyyy"),
-        Status = (op.status ?? OwnerProfileStatuses.Pending).ToLower(),
-        Boats = boatCount,
-        Documents = op.owner_documents
-            .OrderBy(d => d.document_type)
-            .Select(d => new OwnerDocumentListItem
-            {
-                id = d.id,
-                documentType = d.document_type,
-                documentUrl = d.document_url,
-                expiryDate = d.expiry_date,
-                adminNote = d.admin_note,
-                createdAt = d.created_at,
-                updatedAt = d.updated_at
-            }).ToList(),
-        Vessels = boats.Select(MapVessel).ToList()
-    };
+        var requiredTypes = OwnerDocumentTypes.GetRequiredTypes(op.entity_type ?? OwnerEntityTypes.Individual);
+        var uploadedTypes = op.owner_documents.Select(d => d.document_type).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasAllUploaded = requiredTypes.All(r => uploadedTypes.Contains(r));
+        var hasRejectedDocs = op.owner_documents.Any(d => !string.IsNullOrWhiteSpace(d.admin_note));
+        var isApproved = op.document_upload_deadline.HasValue
+                         && op.document_upload_deadline.Value.Year >= 9999
+                         && hasAllUploaded
+                         && !hasRejectedDocs;
+        DateTime? deadline = isApproved ? null : (op.document_upload_deadline ?? (op.verified_at?.AddDays(14) ?? op.created_at.AddDays(14)));
+        var isExpired = !isApproved && (deadline.HasValue && DateTime.UtcNow > deadline.Value);
+        var isPendingReview = hasAllUploaded && !hasRejectedDocs && !isApproved;
+        var isDocumentRejected = hasRejectedDocs && !isApproved;
+        var lastRejectedAt = op.last_document_rejected_at;
+        var lastDocUpdatedAt = op.owner_documents.Count > 0 ? (DateTime?)op.owner_documents.Max(d => d.updated_at) : null;
+        var isDocumentResubmitted = lastRejectedAt.HasValue
+            && !isApproved
+            && op.owner_documents.Any(d => d.updated_at > lastRejectedAt.Value && string.IsNullOrWhiteSpace(d.admin_note));
+
+        return new()
+        {
+            Id = op.id,
+            Name = op.business_name ?? op.user?.full_name ?? "Chủ thuyền",
+            Owner = op.user?.full_name ?? "N/A",
+            Email = op.user?.email ?? "N/A",
+            Phone = op.phone_business ?? op.user?.phone ?? "N/A",
+            Address = op.address ?? "N/A",
+            License = op.license_number ?? "N/A",
+            EntityType = op.entity_type ?? OwnerEntityTypes.Individual,
+            Submitted = op.created_at.ToString("dd/MM/yyyy"),
+            Status = (op.status ?? OwnerProfileStatuses.Pending).ToLower(),
+            Boats = boatCount,
+            DocumentUploadDeadline = deadline,
+            IsDocumentDeadlineExpired = isExpired,
+            IsDocumentCompleted = isApproved,
+            IsDocumentPendingReview = isPendingReview,
+            IsDocumentApproved = isApproved,
+            IsDocumentRejected = isDocumentRejected,
+            IsDocumentResubmitted = isDocumentResubmitted,
+            LastDocumentRejectedAt = lastRejectedAt,
+            LastDocumentUpdatedAt = lastDocUpdatedAt,
+            Documents = op.owner_documents
+                .OrderBy(d => d.document_type)
+                .Select(d => new OwnerDocumentListItem
+                {
+                    id = d.id,
+                    documentType = d.document_type,
+                    documentUrl = d.document_url,
+                    expiryDate = d.expiry_date,
+                    adminNote = d.admin_note,
+                    isReuploaded = lastRejectedAt.HasValue
+                        && d.updated_at > lastRejectedAt.Value
+                        && string.IsNullOrWhiteSpace(d.admin_note),
+                    createdAt = d.created_at,
+                    updatedAt = d.updated_at
+                }).ToList(),
+            Vessels = boats.Select(MapVessel).ToList()
+        };
+    }
 
     private static VesselItem MapVessel(boat b) => new()
     {
