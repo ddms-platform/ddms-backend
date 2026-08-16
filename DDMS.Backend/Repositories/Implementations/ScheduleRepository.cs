@@ -88,7 +88,7 @@ public class ScheduleRepository : IScheduleRepository
         DateTime endTime,
         Guid? excludeScheduleId)
     {
-        var activeStatuses = new[]
+        var activeStatuses = new List<string>
         {
             TourConstants.ScheduleStatuses.Scheduled,
             TourConstants.ScheduleStatuses.Ongoing
