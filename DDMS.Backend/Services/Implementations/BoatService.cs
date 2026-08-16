@@ -384,6 +384,11 @@ public class BoatService : IBoatService
             name = t.name,
             price = t.price,
             description = t.description,
+            imageUrls = t.tour_images?
+                .OrderBy(i => i.sort_order)
+                .Select(i => i.image_url)
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .ToList() ?? [],
             imageUrl = t.tour_images?
                 .OrderBy(i => i.sort_order)
                 .Select(i => i.image_url)

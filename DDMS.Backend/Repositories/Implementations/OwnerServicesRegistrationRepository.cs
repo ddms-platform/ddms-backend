@@ -14,6 +14,7 @@ public class OwnerServicesRegistrationRepository : IOwnerServicesRegistrationRep
     public void AddBoatService(boat_service entity) => _db.boat_services.Add(entity);
     public void AddFaq(faq entity) => _db.faqs.Add(entity);
     public void AddRoute(route entity) => _db.routes.Add(entity);
+    public void AddTourImage(tour_image entity) => _db.tour_images.Add(entity);
     public void AddTourSchedule(tour_schedule entity) => _db.tour_schedules.Add(entity);
 
     public Task<boat?> FindBoatWithOwnerAsync(Guid boatId, CancellationToken ct) =>
@@ -40,6 +41,15 @@ public class OwnerServicesRegistrationRepository : IOwnerServicesRegistrationRep
         if (routes.Count > 0)
         {
             _db.routes.RemoveRange(routes);
+        }
+    }
+
+    public async Task RemoveImagesByTourIdAsync(Guid tourId, CancellationToken ct)
+    {
+        var images = await _db.tour_images.Where(i => i.tour_id == tourId).ToListAsync(ct);
+        if (images.Count > 0)
+        {
+            _db.tour_images.RemoveRange(images);
         }
     }
 

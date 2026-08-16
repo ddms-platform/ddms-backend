@@ -15,6 +15,12 @@ public class DynamicServiceRequest
     public List<ServiceFaq>? faqs { get; set; }
     public string? equipments { get; set; }
     public decimal? pricePerDay { get; set; }
+
+    /// <summary>
+    /// Cover/gallery URLs for this tour (Cloudinary). Null = keep existing images on update.
+    /// Empty list = clear all tour images. Scoped to the tour, not the boat.
+    /// </summary>
+    public List<string>? imageUrls { get; set; }
 }
 
 public class ServiceCombo
