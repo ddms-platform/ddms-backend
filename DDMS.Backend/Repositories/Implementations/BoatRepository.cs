@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Data;
+using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.Boat;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
@@ -148,6 +148,61 @@ public class BoatRepository : IBoatRepository
     public async Task DeleteAsync(boat entity)
     {
         entity.is_deleted = true;
+
+        // 1. Lấy tất cả các tour_schedules của con thuyền này
+        var schedules = await _dbContext.tour_schedules
+            .Where(ts => ts.boat_id == entity.id)
+            .ToListAsync();
+
+        var scheduleIds = schedules.Select(s => s.id).ToList();
+        var affectedTourIds = schedules.Select(ts => ts.tour_id).Distinct().ToList();
+
+        // 2. Hủy các lịch trình chưa hoàn thành của thuyền này
+        foreach (var s in schedules)
+        {
+            if (s.status == "scheduled" || s.status == "ongoing")
+            {
+                s.status = "cancelled";
+            }
+        }
+
+        // 3. Xóa các lịch dock schedule và gỡ schedule_id khỏi conversations
+        if (scheduleIds.Count > 0)
+        {
+            var dockSchedules = await _dbContext.dock_schedules
+                .Where(d => d.schedule_id != null && scheduleIds.Contains(d.schedule_id.Value))
+                .ToListAsync();
+            if (dockSchedules.Count > 0)
+            {
+                _dbContext.dock_schedules.RemoveRange(dockSchedules);
+            }
+
+            var conversations = await _dbContext.conversations
+                .Where(c => c.schedule_id != null && scheduleIds.Contains(c.schedule_id.Value))
+                .ToListAsync();
+            foreach (var conv in conversations)
+            {
+                conv.schedule_id = null;
+            }
+        }
+
+        // 4. Đối với các tour bị ảnh hưởng: kiểm tra xem có con thuyền nào KHÁC (chưa bị xóa) đang chạy tour này không
+        foreach (var tourId in affectedTourIds)
+        {
+            var hasOtherActiveBoats = await _dbContext.tour_schedules
+                .AnyAsync(ts => ts.tour_id == tourId && ts.boat_id != entity.id && ts.boat != null && !ts.boat.is_deleted);
+
+            if (!hasOtherActiveBoats)
+            {
+                var tour = await _dbContext.tours.FirstOrDefaultAsync(t => t.id == tourId);
+                if (tour != null && tour.status == "active")
+                {
+                    tour.status = "inactive";
+                    tour.updated_at = DateTime.UtcNow;
+                }
+            }
+        }
+
         _dbContext.boats.Update(entity);
         await _dbContext.SaveChangesAsync();
     }
@@ -332,5 +387,12 @@ public class BoatRepository : IBoatRepository
     {
         _dbContext.boat_services.Remove(entity);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public Task<bool> HasActiveBookingsAsync(Guid boatId)
+    {
+        var activeStatuses = new[] { "pending", "confirmed", "checked_in" };
+        return _dbContext.bookings
+            .AnyAsync(b => b.schedule.boat_id == boatId && activeStatuses.Contains(b.status.ToLower()));
     }
 }

@@ -34,6 +34,7 @@ public class TourService : ITourService
             status = NormalizeStatus(request.status),
             cancel_policy = request.cancel_policy,
             cancel_hours = request.cancel_hours,
+            created_by = request.created_by,
             avg_rating = 0,
             total_reviews = 0,
             created_at = DateTime.UtcNow,

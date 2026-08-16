@@ -32,12 +32,14 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
 
     public async Task<TourResponse> RegisterAsync(DynamicServiceRequest request, CancellationToken ct)
     {
+        Guid? ownerId = null;
         if (request.boatId != Guid.Empty)
         {
             var boat = await _boatRepo.GetByIdAsync(request.boatId);
             if (boat?.owner_id != null)
             {
-                var docOverview = await _docService.GetOverviewByUserIdAsync(boat.owner_id.Value, ct);
+                ownerId = boat.owner_id.Value;
+                var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId.Value, ct);
                 if (docOverview.IsLocked)
                 {
                     throw new AppException(
@@ -47,29 +49,98 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             }
         }
 
-        var createTourReq = new CreateTourRequest
+        tour? existingTour = null;
+        if (request.id.HasValue && request.id.Value != Guid.Empty)
         {
-            name = request.name,
-            price = request.basePrice,
-            description = BuildDescription(request),
-            duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
-            location = OwnerServiceRegistrationDefaults.TourLocation,
-            status = OwnerServiceRegistrationDefaults.TourPendingStatus,
-            cancel_policy = OwnerServiceRegistrationDefaults.CancelPolicy
-        };
+            existingTour = await _repo.FindTourByIdAsync(request.id.Value, ct);
+        }
 
-        var tour = await _tourService.CreateAsync(createTourReq, ct);
         var now = DateTime.UtcNow;
-        AddCabins(request, now);
-        AddCombos(request, now);
-        AddFaqs(request, tour.id, now);
-        AddRoutes(request, tour.id, now);
-        AddDefaultSchedule(request.boatId, tour.id, now);
+        TourResponse tourResponse;
 
-        await _repo.SaveChangesAsync(ct);
+        if (existingTour != null)
+        {
+            // Cập nhật tour hiện tại, không tạo tour mới
+            existingTour.name = request.name.Trim();
+            existingTour.price = request.basePrice;
+            existingTour.description = BuildDescription(request);
+            existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
+            existingTour.updated_at = now;
+            if (existingTour.created_by == null && ownerId.HasValue)
+            {
+                existingTour.created_by = ownerId.Value;
+            }
+
+            // Đồng bộ lại FAQs
+            await _repo.RemoveFaqsByTourIdAsync(existingTour.id, ct);
+            AddFaqs(request, existingTour.id, now);
+
+            // Đồng bộ lại Routes
+            await _repo.RemoveRoutesByTourIdAsync(existingTour.id, ct);
+            AddRoutes(request, existingTour.id, now);
+
+            // Cập nhật Cabins / Combos nếu có
+            if (request.rooms != null && request.rooms.Count > 0)
+            {
+                await _repo.RemoveCabinsByBoatIdAsync(request.boatId, ct);
+                AddCabins(request, now);
+            }
+            if (request.combos != null && request.combos.Count > 0)
+            {
+                await _repo.RemoveCombosByBoatIdAsync(request.boatId, ct);
+                AddCombos(request, now);
+            }
+
+            // Đảm bảo có lịch trình gắn với tàu
+            if (!await _repo.HasScheduleForBoatAndTourAsync(request.boatId, existingTour.id, ct))
+            {
+                AddDefaultSchedule(request.boatId, existingTour.id, now);
+            }
+
+            await _repo.SaveChangesAsync(ct);
+            tourResponse = new TourResponse
+            {
+                id = existingTour.id,
+                name = existingTour.name,
+                description = existingTour.description,
+                price = existingTour.price,
+                duration_minutes = existingTour.duration_minutes,
+                location = existingTour.location,
+                avg_rating = existingTour.avg_rating,
+                total_reviews = existingTour.total_reviews,
+                status = existingTour.status,
+                cancel_policy = existingTour.cancel_policy,
+                cancel_hours = existingTour.cancel_hours
+            };
+        }
+        else
+        {
+            // Tạo mới tour
+            var createTourReq = new CreateTourRequest
+            {
+                name = request.name,
+                price = request.basePrice,
+                description = BuildDescription(request),
+                duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
+                location = OwnerServiceRegistrationDefaults.TourLocation,
+                status = OwnerServiceRegistrationDefaults.TourPendingStatus,
+                cancel_policy = OwnerServiceRegistrationDefaults.CancelPolicy,
+                created_by = ownerId
+            };
+
+            var tour = await _tourService.CreateAsync(createTourReq, ct);
+            AddCabins(request, now);
+            AddCombos(request, now);
+            AddFaqs(request, tour.id, now);
+            AddRoutes(request, tour.id, now);
+            AddDefaultSchedule(request.boatId, tour.id, now);
+
+            await _repo.SaveChangesAsync(ct);
+            tourResponse = tour;
+        }
 
         await TrySendConfirmationEmailAsync(request, ct);
-        return tour;
+        return tourResponse;
     }
 
     private static string BuildDescription(DynamicServiceRequest r)

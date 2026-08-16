@@ -10,6 +10,7 @@ public class CreateTourRequest
     public string status { get; set; } = "active";
     public string cancel_policy { get; set; } = "free";
     public int? cancel_hours { get; set; }
+    public Guid? created_by { get; set; }
 }
 
 public class UpdateTourRequest : CreateTourRequest

@@ -2,6 +2,7 @@ namespace DDMS.Backend.Models.DTOs.OwnerServices;
 
 public class DynamicServiceRequest
 {
+    public Guid? id { get; set; }
     public Guid boatId { get; set; }
     public string serviceType { get; set; } = string.Empty;
     public string name { get; set; } = string.Empty;

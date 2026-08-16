@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Models.DTOs.Boat;
+using DDMS.Backend.Models.DTOs.Boat;
 using DDMS.Backend.Models.Entities;
 
 namespace DDMS.Backend.Repositories.Interfaces;
@@ -22,4 +22,5 @@ public interface IBoatRepository
     Task<boat_service?> GetBoatServiceForOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId);
     Task DetachTourFromBoatAsync(tour entity, Guid boatId);
     Task DeleteBoatServiceAsync(boat_service entity);
+    Task<bool> HasActiveBookingsAsync(Guid boatId);
 }
