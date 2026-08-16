@@ -1,4 +1,4 @@
-using DDMS.Backend.Models.Entities;
+﻿using DDMS.Backend.Models.Entities;
 
 namespace DDMS.Backend.Repositories.Interfaces;
 
@@ -16,6 +16,13 @@ public interface IOwnerServicesRegistrationRepository
     Task RemoveFaqsByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveRoutesByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveImagesByTourIdAsync(Guid tourId, CancellationToken ct);
+    /// <summary>
+    /// Chi xoa phong/combo cua dung tour do. Ban theo boatId cu van giu de
+    /// khong pha code khac, nhung luong dang ky dich vu khong dung nua: no xoa
+    /// ca phong cua nhung tour khac chay tren cung con thuyen.
+    /// </summary>
+    Task RemoveCabinsByTourIdAsync(Guid tourId, CancellationToken ct);
+    Task RemoveCombosByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveCabinsByBoatIdAsync(Guid boatId, CancellationToken ct);
     Task RemoveCombosByBoatIdAsync(Guid boatId, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);

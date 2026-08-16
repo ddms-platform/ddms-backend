@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Helpers;
@@ -328,7 +328,10 @@ public class BookingService : IBookingService
 
         var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(scheduleId, ct);
 
+        // Phòng gắn theo tour. tour_id NULL là dữ liệu có từ trước khi tách
+        // theo tour — vẫn coi là dùng chung cho cả thuyền để không mất phòng cũ.
         return schedule.boat.boat_cabins
+            .Where(c => c.tour_id == null || c.tour_id == schedule.tour_id)
             .OrderBy(c => c.name)
             .Select(c =>
             {

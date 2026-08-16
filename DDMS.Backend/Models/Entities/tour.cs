@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace DDMS.Backend.Models.Entities;
@@ -16,6 +16,13 @@ public partial class tour
     public int duration_minutes { get; set; }
 
     public string? location { get; set; }
+
+    /// <summary>
+    /// Loại dịch vụ chủ thuyền chọn lúc đăng ký: cruise | dinner | fishing |
+    /// speedboat | complex_tour. Trước đây nhận từ client rồi vứt đi, nên mở
+    /// lại form là mọi dịch vụ đều thành cruise.
+    /// </summary>
+    public string? service_type { get; set; }
     
     public string? map_url { get; set; }
 

@@ -1,4 +1,4 @@
-namespace DDMS.Backend.Models.DTOs.Tour;
+﻿namespace DDMS.Backend.Models.DTOs.Tour;
 
 public class CreateTourRequest
 {
@@ -7,6 +7,8 @@ public class CreateTourRequest
     public string? description { get; set; }
     public int duration_minutes { get; set; }
     public string? location { get; set; }
+    /// <summary>cruise | dinner | fishing | speedboat | complex_tour</summary>
+    public string? service_type { get; set; }
     public string status { get; set; } = "active";
     public string cancel_policy { get; set; } = "free";
     public int? cancel_hours { get; set; }

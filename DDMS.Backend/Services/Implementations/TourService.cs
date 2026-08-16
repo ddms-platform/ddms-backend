@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Tour;
 using DDMS.Backend.Models.Entities;
@@ -31,6 +31,7 @@ public class TourService : ITourService
             description = request.description,
             duration_minutes = request.duration_minutes,
             location = request.location,
+            service_type = request.service_type,
             status = NormalizeStatus(request.status),
             cancel_policy = request.cancel_policy,
             cancel_hours = request.cancel_hours,

@@ -1,4 +1,4 @@
-using DDMS.Backend.Common.Constants;
+﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.OwnerServices;
 using DDMS.Backend.Models.DTOs.Tour;
@@ -72,6 +72,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             existingTour.name = request.name.Trim();
             existingTour.price = request.basePrice;
             existingTour.description = BuildDescription(request);
+            existingTour.service_type = NormalizeServiceType(request.serviceType);
             existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
             existingTour.updated_at = now;
             if (existingTour.created_by == null && ownerId.HasValue)
@@ -93,16 +94,18 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 AddTourImages(request, existingTour.id, now);
             }
 
-            // Cập nhật Cabins / Combos nếu có
+            // Đồng bộ Cabins / Combos của RIÊNG tour này.
+            // Trước đây xoá theo boatId — nghĩa là sửa một dịch vụ thì mọi tour
+            // khác chạy trên cùng con thuyền mất sạch hạng phòng và combo.
             if (request.rooms != null && request.rooms.Count > 0)
             {
-                await _repo.RemoveCabinsByBoatIdAsync(request.boatId, ct);
-                AddCabins(request, now);
+                await _repo.RemoveCabinsByTourIdAsync(existingTour.id, ct);
+                AddCabins(request, existingTour.id, now);
             }
             if (request.combos != null && request.combos.Count > 0)
             {
-                await _repo.RemoveCombosByBoatIdAsync(request.boatId, ct);
-                AddCombos(request, now);
+                await _repo.RemoveCombosByTourIdAsync(existingTour.id, ct);
+                AddCombos(request, existingTour.id, now);
             }
 
             // Đảm bảo có lịch trình gắn với tàu
@@ -137,14 +140,15 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 description = BuildDescription(request),
                 duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
                 location = OwnerServiceRegistrationDefaults.TourLocation,
+                service_type = NormalizeServiceType(request.serviceType),
                 status = OwnerServiceRegistrationDefaults.TourPendingStatus,
                 cancel_policy = OwnerServiceRegistrationDefaults.CancelPolicy,
                 created_by = ownerId
             };
 
             var tour = await _tourService.CreateAsync(createTourReq, ct);
-            AddCabins(request, now);
-            AddCombos(request, now);
+            AddCabins(request, tour.id, now);
+            AddCombos(request, tour.id, now);
             AddFaqs(request, tour.id, now);
             AddRoutes(request, tour.id, now);
             AddTourImages(request, tour.id, now);
@@ -158,6 +162,16 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         return tourResponse;
     }
 
+    /// <summary>
+    /// Chỉ nhận các loại dịch vụ hệ thống biết. Trước đây giá trị này bị vứt
+    /// hoàn toàn nên mở lại form là dịch vụ nào cũng thành "cruise".
+    /// </summary>
+    private static string? NormalizeServiceType(string? raw)
+    {
+        var value = raw?.Trim().ToLowerInvariant();
+        return string.IsNullOrEmpty(value) || !ServiceTypes.IsValid(value) ? null : value;
+    }
+
     private static string BuildDescription(DynamicServiceRequest r)
     {
         var s = r.description ?? string.Empty;
@@ -167,7 +181,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         return s;
     }
 
-    private void AddCabins(DynamicServiceRequest req, DateTime now)
+    private void AddCabins(DynamicServiceRequest req, Guid tourId, DateTime now)
     {
         foreach (var r in req.rooms ?? Enumerable.Empty<ServiceRoom>())
         {
@@ -175,6 +189,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             {
                 id = Guid.NewGuid(),
                 boat_id = req.boatId,
+                tour_id = tourId,
                 name = r.name,
                 capacity = r.capacity,
                 price = r.price ?? 0,
@@ -187,7 +202,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         }
     }
 
-    private void AddCombos(DynamicServiceRequest req, DateTime now)
+    private void AddCombos(DynamicServiceRequest req, Guid tourId, DateTime now)
     {
         foreach (var c in req.combos ?? Enumerable.Empty<ServiceCombo>())
         {
@@ -195,6 +210,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             {
                 id = Guid.NewGuid(),
                 boat_id = req.boatId,
+                tour_id = tourId,
                 name = c.name,
                 price = c.price,
                 description = c.description,
