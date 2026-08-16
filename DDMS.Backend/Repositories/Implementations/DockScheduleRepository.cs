@@ -93,6 +93,27 @@ public class DockScheduleRepository : IDockScheduleRepository
         return query.CountAsync();
     }
 
+    public Task<bool> HasBerthConflictAsync(
+        Guid dockId, string berthCode, DateTime startTime, DateTime endTime, Guid? excludeId = null)
+    {
+        var query = _dbContext.dock_schedules.Where(x =>
+            x.dock_id == dockId
+            && x.berth_code == berthCode
+            // Giao nhau ve thoi gian: bat dau truoc khi cai kia ket thuc, va
+            // ket thuc sau khi cai kia bat dau.
+            && x.start_time < endTime
+            && x.end_time > startTime);
+
+        if (excludeId.HasValue)
+        {
+            query = query.Where(x => x.id != excludeId.Value);
+        }
+
+        return query.AnyAsync();
+    }
+
+    public Task SaveChangesAsync(CancellationToken ct) => _dbContext.SaveChangesAsync(ct);
+
     public async Task AddAsync(dock_schedule entity)
     {
         _dbContext.dock_schedules.Add(entity);

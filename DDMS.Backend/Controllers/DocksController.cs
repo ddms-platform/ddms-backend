@@ -1,4 +1,5 @@
-﻿using DDMS.Backend.Common.Responses;
+﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Dock;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +14,12 @@ namespace DDMS.Backend.Controllers;
 public class DocksController : ControllerBase
 {
     private readonly IDockService _dockService;
+    private readonly IDockScheduleService _dockScheduleService;
 
-    public DocksController(IDockService dockService)
+    public DocksController(IDockService dockService, IDockScheduleService dockScheduleService)
     {
         _dockService = dockService;
+        _dockScheduleService = dockScheduleService;
     }
 
     // ── Dock CRUD ─────────────────────────────────────────────
@@ -73,7 +76,30 @@ public class DocksController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { deleted = true }));
     }
 
-    // ── Schedules ─────────────────────────────────────────────
+    // ── Schedules ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Cang vu gan khoang neo cho mot lich neo dau. Body rong hoac berthCode
+    /// rong thi go khoang.
+    /// </summary>
+    [Authorize(Roles = "admin")]
+    [HttpPut("schedules/{dockScheduleId:guid}/berth")]
+    public async Task<IActionResult> AssignBerth(
+        Guid dockScheduleId, [FromBody] AssignBerthRequest request, CancellationToken ct)
+    {
+        var result = await _dockScheduleService.AssignBerthAsync(dockScheduleId, request?.berthCode, ct);
+        return Ok(ApiResponse<BerthAssignmentResponse>.Ok(result));
+    }
+
+    /// <summary>Danh sach khoang cua ben, dung de admin chon.</summary>
+    [HttpGet("{dockId:guid}/berths")]
+    public async Task<IActionResult> GetBerths(Guid dockId)
+    {
+        var dock = await _dockService.GetByIdAsync(dockId);
+        var berths = DockBerths.Ordered.Take(dock.maxBoats).ToList();
+        return Ok(ApiResponse<List<string>>.Ok(berths));
+    }
+
 
     [HttpGet("{dockId:guid}/schedules")]
     public async Task<IActionResult> GetSchedules(Guid dockId)

@@ -1,4 +1,4 @@
-namespace DDMS.Backend.Models.DTOs.Dock;
+﻿namespace DDMS.Backend.Models.DTOs.Dock;
 
 public class DockScheduleResponse
 {
@@ -7,6 +7,8 @@ public class DockScheduleResponse
     public Guid boatId { get; init; }
     public string boatName { get; init; } = null!;
     public Guid? scheduleId { get; init; }
+    /// <summary>Khoang neo, vi du "A12". Null khi cang vu chua gan.</summary>
+    public string? berthCode { get; init; }
     public DateTime startTime { get; init; }
     public DateTime endTime { get; init; }
     public DateTime createdAt { get; init; }

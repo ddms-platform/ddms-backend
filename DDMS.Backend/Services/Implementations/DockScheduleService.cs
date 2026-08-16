@@ -1,4 +1,5 @@
-﻿using DDMS.Backend.Common.Exceptions;
+﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -144,6 +145,57 @@ public class DockScheduleService : IDockScheduleService
                 ErrorCode.DockScheduleDockCapacityExceeded,
                 ErrorCode.Messages.DockScheduleDockCapacityExceeded);
         }
+    }
+
+    public async Task<Models.DTOs.Dock.BerthAssignmentResponse> AssignBerthAsync(
+        Guid dockScheduleId, string? berthCode, CancellationToken ct)
+    {
+        var entity = await _dockScheduleRepository.GetByIdAsync(dockScheduleId)
+            ?? throw new AppException(
+                ErrorCode.DockScheduleNotFound, "Khong tim thay lich neo dau nay.");
+
+        var code = DockBerths.Normalize(berthCode);
+
+        if (code != null)
+        {
+            if (!DockBerths.IsKnown(code))
+            {
+                throw new AppException(
+                    ErrorCode.DockScheduleValidationFailed,
+                    $"Khoang '{berthCode}' khong co tren so do ben.");
+            }
+
+            var dock = await _dockScheduleRepository.GetDockAsync(entity.dock_id)
+                ?? throw new AppException(
+                    ErrorCode.DockScheduleDockNotFound, "Khong tim thay ben nay.");
+
+            if (!DockBerths.IsWithinCapacity(code, dock.max_boats))
+            {
+                throw new AppException(
+                    ErrorCode.DockScheduleDockCapacityExceeded,
+                    $"Ben '{dock.name}' chi mo {dock.max_boats} khoang, khong co khoang {code}.");
+            }
+
+            // Mot khoang chi chua duoc mot tau tai mot thoi diem.
+            if (await _dockScheduleRepository.HasBerthConflictAsync(
+                    entity.dock_id, code, entity.start_time, entity.end_time, entity.id))
+            {
+                throw new AppException(
+                    ErrorCode.DockScheduleOverlap,
+                    $"Khoang {code} da co tau khac dau trong khoang thoi gian nay.");
+            }
+        }
+
+        entity.berth_code = code;
+        await _dockScheduleRepository.SaveChangesAsync(ct);
+
+        return new Models.DTOs.Dock.BerthAssignmentResponse
+        {
+            id = entity.id,
+            dockId = entity.dock_id,
+            boatId = entity.boat_id,
+            berthCode = entity.berth_code,
+        };
     }
 
     private static DockScheduleItemResponse MapSchedule(dock_schedule entity)
