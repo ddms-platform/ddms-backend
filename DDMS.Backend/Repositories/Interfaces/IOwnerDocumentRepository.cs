@@ -8,6 +8,7 @@ public interface IOwnerDocumentRepository
     Task<owner_document?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<owner_document?> GetByProfileAndTypeAsync(Guid ownerProfileId, string documentType, CancellationToken ct = default);
     Task<owner_profile?> GetProfileByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<List<owner_profile>> GetVerifiedProfilesWithDocumentsAsync(CancellationToken ct = default);
     void Add(owner_document entity);
     Task<owner_document> AddAsync(owner_document entity, CancellationToken ct = default);
     Task UpdateAsync(owner_document entity, CancellationToken ct = default);

@@ -25,10 +25,15 @@ public class AdminOwnersRepository : IAdminOwnersRepository
         _db.boats.Include(b => b.boat_images).Include(b => b.boat_certificates).Where(b => b.owner_id == ownerId && !b.is_deleted).ToListAsync(ct);
 
     public Task<owner_profile?> FindProfileWithUserAsync(Guid profileId, CancellationToken ct) =>
-        _db.owner_profiles.Include(op => op.user).FirstOrDefaultAsync(op => op.id == profileId, ct);
+        _db.owner_profiles
+            .Include(op => op.user)
+            .Include(op => op.owner_documents)
+            .FirstOrDefaultAsync(op => op.id == profileId, ct);
 
     public Task<owner_profile?> FindProfileAsync(Guid profileId, CancellationToken ct) =>
-        _db.owner_profiles.FirstOrDefaultAsync(op => op.id == profileId, ct);
+        _db.owner_profiles
+            .Include(op => op.owner_documents)
+            .FirstOrDefaultAsync(op => op.id == profileId, ct);
 
     public Task<role?> FindRoleByNameAsync(string name, CancellationToken ct) =>
         _db.roles.FirstOrDefaultAsync(r => r.name == name, ct);

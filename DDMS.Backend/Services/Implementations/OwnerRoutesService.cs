@@ -1,4 +1,4 @@
-﻿using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -11,11 +11,16 @@ public class OwnerRoutesService : IOwnerRoutesService
 {
     private readonly IOwnerRoutesRepository _routeRepository;
     private readonly IOwnerToursRepository _tourRepository;
+    private readonly IOwnerDocumentService _docService;
 
-    public OwnerRoutesService(IOwnerRoutesRepository routeRepository, IOwnerToursRepository tourRepository)
+    public OwnerRoutesService(
+        IOwnerRoutesRepository routeRepository,
+        IOwnerToursRepository tourRepository,
+        IOwnerDocumentService docService)
     {
         _routeRepository = routeRepository;
         _tourRepository = tourRepository;
+        _docService = docService;
     }
 
     public async Task<PagedResponse<RouteItemResponse>> GetRoutesAsync(Guid userId, RouteListQuery query)
@@ -56,6 +61,14 @@ public class OwnerRoutesService : IOwnerRoutesService
 
     public async Task<RouteItemResponse> CreateAsync(Guid userId, CreateRouteRequest request)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể tạo lộ trình tour mới!");
+        }
+
         ValidateRouteInput(request.startPoint, request.endPoint, request.sortOrder);
 
         var tourEntity = await _tourRepository.GetByIdAsync(request.tourId, userId);
@@ -83,6 +96,14 @@ public class OwnerRoutesService : IOwnerRoutesService
 
     public async Task<RouteItemResponse> UpdateAsync(Guid id, Guid userId, UpdateRouteRequest request)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể cập nhật lộ trình tour!");
+        }
+
         ValidateRouteInput(request.startPoint, request.endPoint, request.sortOrder);
 
         var tourEntity = await _tourRepository.GetByIdAsync(request.tourId, userId);
@@ -111,6 +132,14 @@ public class OwnerRoutesService : IOwnerRoutesService
 
     public async Task DeleteAsync(Guid id, Guid userId)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(userId);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể xóa lộ trình tour!");
+        }
+
         var entity = await _routeRepository.GetByIdAsync(id, userId);
         if (entity is null)
         {

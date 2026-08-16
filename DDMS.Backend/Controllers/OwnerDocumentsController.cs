@@ -22,6 +22,10 @@ public class OwnerDocumentsController : ControllerBase
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetOverview(CancellationToken ct) =>
+        Ok(ApiResponse<OwnerDocumentsOverviewResponse>.Ok(await _documents.GetOverviewByUserIdAsync(_user.Id, ct)));
+
+    [HttpGet("list")]
     public async Task<IActionResult> List(CancellationToken ct) =>
         Ok(ApiResponse<List<OwnerDocumentListItem>>.Ok(await _documents.ListByUserIdAsync(_user.Id, ct)));
 

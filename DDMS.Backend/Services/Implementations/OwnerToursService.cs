@@ -11,10 +11,14 @@ namespace DDMS.Backend.Services.Implementations;
 public class OwnerToursService : IOwnerToursService
 {
     private readonly IOwnerToursRepository _tourRepository;
+    private readonly IOwnerDocumentService _ownerDocs;
 
-    public OwnerToursService(IOwnerToursRepository tourRepository)
+    public OwnerToursService(
+        IOwnerToursRepository tourRepository,
+        IOwnerDocumentService ownerDocs)
     {
         _tourRepository = tourRepository;
+        _ownerDocs = ownerDocs;
     }
 
     public async Task<PagedResponse<TourItemResponse>> GetToursAsync(Guid userId, TourListQuery query)
@@ -58,6 +62,7 @@ public class OwnerToursService : IOwnerToursService
 
     public async Task<TourItemResponse> CreateAsync(Guid userId, CreateTourRequest request)
     {
+        await EnsureOwnerCanManageToursAsync(userId);
         ValidateCoreFields(request.name, request.price, request.durationMinutes);
         var (cancelPolicy, cancelHours) = ValidateCancelPolicy(request.cancelPolicy, request.cancelHours);
 
@@ -85,6 +90,7 @@ public class OwnerToursService : IOwnerToursService
 
     public async Task<TourItemResponse> UpdateAsync(Guid id, Guid userId, UpdateTourRequest request)
     {
+        await EnsureOwnerCanManageToursAsync(userId);
         ValidateCoreFields(request.name, request.price, request.durationMinutes);
 
         var normalizedStatus = request.status.Trim().ToLowerInvariant();
@@ -119,6 +125,7 @@ public class OwnerToursService : IOwnerToursService
 
     public async Task DeleteAsync(Guid id, Guid userId)
     {
+        await EnsureOwnerCanManageToursAsync(userId);
         var entity = await _tourRepository.GetByIdAsync(id, userId);
         if (entity is null)
         {
@@ -209,5 +216,23 @@ public class OwnerToursService : IOwnerToursService
             createdAt = entity.created_at,
             updatedAt = entity.updated_at
         };
+    }
+
+    private async Task EnsureOwnerCanManageToursAsync(Guid userId, CancellationToken ct = default)
+    {
+        try
+        {
+            var overview = await _ownerDocs.GetOverviewByUserIdAsync(userId, ct);
+            if (overview != null && overview.IsLocked)
+            {
+                throw new AppException(
+                    ErrorCode.OwnerDocumentOverdueBlocked,
+                    ErrorCode.Messages.OwnerDocumentOverdueBlocked);
+            }
+        }
+        catch (NotFoundException)
+        {
+            // Not an owner profile or admin, allow
+        }
     }
 }

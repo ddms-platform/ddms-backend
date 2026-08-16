@@ -24,17 +24,20 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
     private readonly IWalletRepository _wallets;
     private readonly IEmailSender _email;
     private readonly INotificationService _notificationService;
+    private readonly IOwnerDocumentService _docService;
 
     public OwnerToursDashboardService(
         IOwnerToursDashboardRepository repo,
         IWalletRepository wallets,
         IEmailSender email,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IOwnerDocumentService docService)
     {
         _repo = repo;
         _wallets = wallets;
         _email = email;
         _notificationService = notificationService;
+        _docService = docService;
     }
 
     public Task<List<TourStatsItem>> GetStatsAsync(Guid ownerId, CancellationToken ct) =>
@@ -51,6 +54,14 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
 
     public async Task CreateScheduleAsync(Guid ownerId, CreateScheduleRequest req, CancellationToken ct)
     {
+        var docOverview = await _docService.GetOverviewByUserIdAsync(ownerId, ct);
+        if (docOverview.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.OwnerDocumentOverdueBlocked,
+                "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Chức năng tạo lịch trình tour đang bị tạm khóa!");
+        }
+
         var boat = await _repo.FindOwnerBoatAsync(req.BoatId, ownerId, ct)
             ?? throw new AppException(ErrorCode.UncategorizedError,
                 "Thuyền không tồn tại hoặc không thuộc sở hữu của bạn!");

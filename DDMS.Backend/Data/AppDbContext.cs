@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DDMS.Backend.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -910,6 +910,8 @@ public partial class AppDbContext : DbContext
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
             entity.Property(e => e.verified_at).HasMaxLength(6);
+            entity.Property(e => e.document_upload_deadline).HasMaxLength(6);
+            entity.Property(e => e.last_document_rejected_at).HasMaxLength(6);
 
             entity.HasOne(d => d.user).WithOne(p => p.owner_profile)
                 .HasForeignKey<owner_profile>(d => d.user_id)

@@ -33,6 +33,8 @@ public partial class owner_profile
     public string? status { get; set; }
 
     public DateTime? verified_at { get; set; }
+    public DateTime? document_upload_deadline { get; set; }
+    public DateTime? last_document_rejected_at { get; set; }
 
     public DateTime created_at { get; set; }
 

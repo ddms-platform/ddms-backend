@@ -1,4 +1,5 @@
-﻿using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.OwnerServices;
 using DDMS.Backend.Models.DTOs.Tour;
 using DDMS.Backend.Models.Entities;
@@ -11,20 +12,41 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
 {
     private readonly ITourService _tourService;
     private readonly IOwnerServicesRegistrationRepository _repo;
+    private readonly IBoatRepository _boatRepo;
+    private readonly IOwnerDocumentService _docService;
     private readonly IEmailSender _email;
 
     public OwnerServicesRegistrationService(
         ITourService tourService,
         IOwnerServicesRegistrationRepository repo,
+        IBoatRepository boatRepo,
+        IOwnerDocumentService docService,
         IEmailSender email)
     {
         _tourService = tourService;
         _repo = repo;
+        _boatRepo = boatRepo;
+        _docService = docService;
         _email = email;
     }
 
     public async Task<TourResponse> RegisterAsync(DynamicServiceRequest request, CancellationToken ct)
     {
+        if (request.boatId != Guid.Empty)
+        {
+            var boat = await _boatRepo.GetByIdAsync(request.boatId);
+            if (boat?.owner_id != null)
+            {
+                var docOverview = await _docService.GetOverviewByUserIdAsync(boat.owner_id.Value, ct);
+                if (docOverview.IsLocked)
+                {
+                    throw new AppException(
+                        ErrorCode.OwnerDocumentOverdueBlocked,
+                        "Tài khoản của bạn đang bị tạm khóa do chưa hoàn tất phê duyệt giấy tờ pháp lý. Không thể đăng ký thêm dịch vụ hoặc tour mới!");
+                }
+            }
+        }
+
         var createTourReq = new CreateTourRequest
         {
             name = request.name,
@@ -38,7 +60,6 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
 
         var tour = await _tourService.CreateAsync(createTourReq, ct);
         var now = DateTime.UtcNow;
-
         AddCabins(request, now);
         AddCombos(request, now);
         AddFaqs(request, tour.id, now);
