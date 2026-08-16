@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using DDMS.Backend.Common.Authorization;
 using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Common.Identity;
@@ -14,6 +15,7 @@ using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Implementations;
 using DDMS.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -112,7 +114,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.ConfigureDdmsJwtBearer();
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Policies.OwnerArea, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new OwnerAreaRequirement());
+    });
+});
+builder.Services.AddScoped<IAuthorizationHandler, OwnerAreaHandler>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -182,6 +192,7 @@ builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOwnerRegistrationService, OwnerRegistrationService>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IOwnerProfileRepository, OwnerProfileRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IOwnerToursRepository, OwnerToursRepository>();

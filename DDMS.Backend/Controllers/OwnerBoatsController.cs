@@ -1,3 +1,5 @@
+﻿using DDMS.Backend.Common.Authorization;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Boat;
@@ -9,7 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;
 
-[Authorize(Roles = "owner")]
+// Doc: mo cho ca ho so dang cho cang vu duyet -- xem OwnerAreaHandler.
+// Ghi: van doi vai tro "owner" that, khai bao rieng tren tung action ben duoi.
+[Authorize(Policy = Policies.OwnerArea)]
 [ApiController]
 [Route("api/owner/boats")]
 public class OwnerBoatsController : ControllerBase
@@ -47,14 +51,17 @@ public class OwnerBoatsController : ControllerBase
         Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.GetByIdByOwnerAsync(id, _user.Id)));
 
     [HttpPost]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> Create([FromBody] CreateBoatRequest request) =>
         Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.CreateByOwnerAsync(request, _user.Id)));
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBoatRequest request) =>
         Ok(ApiResponse<BoatDetailResponse>.Ok(await _boats.UpdateByOwnerAsync(id, request, _user.Id)));
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _boats.DeleteByOwnerAsync(id, _user.Id);
@@ -62,6 +69,7 @@ public class OwnerBoatsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}/services/{serviceId:guid}")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> DeleteService(Guid id, Guid serviceId)
     {
         await _boats.DeleteServiceByOwnerAsync(id, serviceId, _user.Id);
@@ -76,6 +84,7 @@ public class OwnerBoatsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/images")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> UploadImage(Guid id, [FromBody] UploadBoatImageRequest request)
     {
         await EnsureOwnedAsync(id);
@@ -83,6 +92,7 @@ public class OwnerBoatsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}/images/{imageId:guid}")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> DeleteImage(Guid id, Guid imageId)
     {
         await EnsureOwnedAsync(id);
@@ -91,6 +101,7 @@ public class OwnerBoatsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/maintenances/register")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> RegisterMaintenances(Guid id,
         [FromBody] List<MaintenanceRegistrationRequest> registrations, CancellationToken ct)
     {
@@ -99,6 +110,7 @@ public class OwnerBoatsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}/maintenances/{maintenanceId:guid}")]
+    [Authorize(Roles = RoleNames.Owner)]
     public async Task<IActionResult> DeleteMaintenance(Guid id, Guid maintenanceId, CancellationToken ct)
     {
         await _maintenances.DeleteAsync(id, maintenanceId, _user.Id, ct);
@@ -116,6 +128,7 @@ public class OwnerBoatsController : ControllerBase
             await _certificates.GetByBoatIdForOwnerAsync(id, _user.Id, ct)));
 
     [HttpPost("{id:guid}/certificates")]
+    [Authorize(Roles = RoleNames.Owner)]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadCertificate(
         Guid id, [FromForm] UploadCertificateRequest request, CancellationToken ct) =>
@@ -123,6 +136,7 @@ public class OwnerBoatsController : ControllerBase
             await _certificates.UploadAsync(id, _user.Id, request, ct)));
 
     [HttpPost("{id:guid}/certificates/{certId:guid}/renew")]
+    [Authorize(Roles = RoleNames.Owner)]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> RenewCertificate(
         Guid id, Guid certId, [FromForm] RenewCertificateRequest request, CancellationToken ct) =>
