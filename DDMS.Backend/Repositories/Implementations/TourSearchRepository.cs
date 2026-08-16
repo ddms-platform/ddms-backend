@@ -21,9 +21,10 @@ public class TourSearchRepository : ITourSearchRepository
             .AsNoTracking()
             .Include(x => x.tour)
             .Include(x => x.boat)
-            .Where(x => x.boat == null
-                || (x.boat.compliance_status != BoatComplianceStatuses.Hidden
-                    && x.boat.compliance_status != BoatComplianceStatuses.Locked))
+            .Where(x => x.boat != null
+                && !x.boat.is_deleted
+                && x.boat.compliance_status != BoatComplianceStatuses.Hidden
+                && x.boat.compliance_status != BoatComplianceStatuses.Locked)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.location))

@@ -208,6 +208,12 @@ public class BoatService : IBoatService
         var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền xóa");
 
+        var hasActiveBookings = await _boatRepository.HasActiveBookingsAsync(id);
+        if (hasActiveBookings)
+        {
+            throw new ValidationException("Không thể xóa thuyền đang có đơn đặt chỗ chưa hoàn tất hoặc đang hoạt động!");
+        }
+
         await _boatRepository.DeleteAsync(boat);
     }
 

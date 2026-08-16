@@ -28,6 +28,7 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
                 .ThenInclude(s => s.boat)
             .Include(x => x.tour_schedules)
                 .ThenInclude(s => s.dock)
+            .Where(x => x.tour_schedules.Any(ts => ts.boat != null && !ts.boat.is_deleted))
             .AsQueryable();
 
         if (string.IsNullOrWhiteSpace(query.status))
@@ -173,7 +174,7 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
     public async Task<List<PopularDestinationResponse>> GetPopularDestinationsAsync(int limit)
     {
         var destinations = await _dbContext.tours
-            .Where(t => t.status == TourConstants.Statuses.Active && t.location != null)
+            .Where(t => t.status == TourConstants.Statuses.Active && t.location != null && t.tour_schedules.Any(ts => ts.boat != null && !ts.boat.is_deleted))
             .GroupBy(t => t.location)
             .Select(g => new PopularDestinationResponse
             {
