@@ -219,14 +219,17 @@ public class BookingPaymentService : IBookingPaymentService
     }
 
     public async Task<BookingPaymentStatusResponse> SimulatePaidAsync(
-        Guid bookingId, Guid userId, CancellationToken ct)
+        Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct)
     {
-        // Chốt chặn thứ hai, độc lập với việc route có được đăng ký hay không.
-        if (!_env.IsDevelopment())
+        // Chốt chặn độc lập với tầng route: dev thì ai cũng dùng được (máy cá nhân),
+        // còn trên production chỉ admin. Khách thường gọi thẳng vào endpoint này
+        // vẫn bị chặn ở đây.
+        if (!_env.IsDevelopment() && !isAdmin)
             throw new AppException(
                 ErrorCode.BookingPaymentSimulateDisabled,
                 ErrorCode.Messages.BookingPaymentSimulateDisabled);
 
+        // Không nới quyền sở hữu: admin chỉ giả lập được đơn do chính mình đặt.
         var booking = await _bookings.FindUserBookingAsync(bookingId, userId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Không tìm thấy thông tin đặt tour.");
 
@@ -234,9 +237,11 @@ public class BookingPaymentService : IBookingPaymentService
             ?? throw new AppException(
                 ErrorCode.BookingPaymentNotFound, ErrorCode.Messages.BookingPaymentNotFound);
 
+        // Ghi rõ ai bấm: đây là đường duy nhất đánh dấu đã-trả-tiền mà không có
+        // tiền thật, nên phải truy được ra người chịu trách nhiệm.
         _logger.LogWarning(
-            "[DEV] Giả lập thanh toán cho booking {BookingId}, đơn PayOS {OrderCode}",
-            bookingId, payment.payos_order_code);
+            "Giả lập thanh toán booking {BookingId} (đơn PayOS {OrderCode}) bởi user {UserId}, admin={IsAdmin}, env={Env}",
+            bookingId, payment.payos_order_code, userId, isAdmin, _env.EnvironmentName);
 
         // Đi qua đúng đường mà webhook thật đi, để demo phản ánh đúng hành vi production.
         await ApplyGatewayStatusAsync(

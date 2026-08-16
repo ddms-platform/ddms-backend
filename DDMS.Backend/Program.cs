@@ -386,20 +386,20 @@ app.MapHub<BlogHub>("/hub/blog");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 
-// Giả lập thanh toán để demo/dev khi không tiện chuyển khoản thật.
-// Route này CHỈ tồn tại khi ASPNETCORE_ENVIRONMENT=Development — trên production
-// nó không được đăng ký nên trả 404, không phải ẩn đi ở giao diện.
-// BookingPaymentService.SimulatePaidAsync còn tự kiểm tra môi trường một lần nữa.
-if (app.Environment.IsDevelopment())
-{
-    app.MapPost("/api/dev/bookings/{id:guid}/simulate-payment", async (
-            Guid id,
-            IBookingPaymentService payments,
-            ICurrentUser currentUser,
-            CancellationToken ct) =>
-        Results.Ok(ApiResponse<BookingPaymentStatusResponse>.Ok(
-            await payments.SimulatePaidAsync(id, currentUser.Id, ct))))
-        .RequireAuthorization()
-        .WithTags("Dev");
-}
+// Giả lập thanh toán để demo khi không tiện chuyển khoản thật.
+//
+// Route tồn tại ở mọi môi trường, nhưng quyền nằm ở tầng dưới: trên production
+// chỉ tài khoản admin gọi được (SimulatePaidAsync tự kiểm tra), còn ở
+// Development thì mở cho mọi tài khoản để chạy thử trên máy cá nhân.
+// Ngoài ra vẫn phải là đơn của chính người gọi.
+app.MapPost("/api/demo/bookings/{id:guid}/simulate-payment", async (
+        Guid id,
+        IBookingPaymentService payments,
+        ICurrentUser currentUser,
+        CancellationToken ct) =>
+    Results.Ok(ApiResponse<BookingPaymentStatusResponse>.Ok(
+        await payments.SimulatePaidAsync(
+            id, currentUser.Id, currentUser.IsInRole(RoleNames.Admin), ct))))
+    .RequireAuthorization()
+    .WithTags("Demo");
 app.Run();

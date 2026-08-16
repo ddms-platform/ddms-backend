@@ -22,10 +22,15 @@ public interface IBookingPaymentService
     /// <summary>
     /// CHỈ DÙNG KHI DEV/DEMO: đánh dấu đơn đã trả tiền mà không qua PayOS.
     ///
-    /// Có hai lớp chặn độc lập. Route chỉ được đăng ký khi
-    /// ASPNETCORE_ENVIRONMENT=Development (xem Program.cs), và hàm này tự ném
-    /// nếu bị gọi ở môi trường khác. Bỏ một lớp thì lớp còn lại vẫn giữ.
+    /// Chỉ chạy khi môi trường là Development, HOẶC người gọi có vai trò admin —
+    /// admin cần đường này để demo trên production mà không phải chuyển tiền thật.
+    /// Ngoài hai trường hợp đó thì ném, kể cả khi route vẫn được đăng ký.
+    ///
+    /// Vẫn giữ nguyên ràng buộc quyền sở hữu: chỉ giả lập được đơn của chính
+    /// người gọi. Admin muốn demo thì tự đặt tour rồi tự bấm — không đụng được
+    /// vào đơn của khách khác.
     /// </summary>
+    /// <param name="isAdmin">Người gọi có vai trò admin hay không.</param>
     Task<BookingPaymentStatusResponse> SimulatePaidAsync(
-        Guid bookingId, Guid userId, CancellationToken ct);
+        Guid bookingId, Guid userId, bool isAdmin, CancellationToken ct);
 }
