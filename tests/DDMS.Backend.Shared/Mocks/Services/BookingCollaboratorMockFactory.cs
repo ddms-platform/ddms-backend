@@ -31,14 +31,14 @@ public static class BookingPricingServiceMockFactory
         var mock = new Mock<IBookingPricingService>();
         mock.Setup(p => p.QuoteAsync(
                 It.IsAny<Guid>(),
-                It.IsAny<int>(),
+                It.IsAny<PartyComposition>(),
                 It.IsAny<IReadOnlyCollection<BookingLineRequest>>(),
                 It.IsAny<IReadOnlyCollection<BookingLineRequest>>(),
                 It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((
                 Guid _,
-                int numPeople,
+                PartyComposition party,
                 IReadOnlyCollection<BookingLineRequest> cabins,
                 IReadOnlyCollection<BookingLineRequest> services,
                 string? _,
@@ -50,7 +50,7 @@ public static class BookingPricingServiceMockFactory
                 var serviceLines = ToPriced(services);
                 var stub = new BookingQuote
                 {
-                    BasePrice = StubUnitPrice * numPeople,
+                    BasePrice = StubUnitPrice * party.Total,
                     CabinPrice = cabinLines.Sum(l => l.UnitPrice * l.Quantity),
                     ServicePrice = serviceLines.Sum(l => l.UnitPrice * l.Quantity),
                     CabinLines = cabinLines,

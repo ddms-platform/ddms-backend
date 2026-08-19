@@ -13,6 +13,12 @@ public partial class tour
 
     public decimal price { get; set; }
 
+    /// <summary>% giá tour mà trẻ 5–11 tuổi phải trả. Lưu % PHẢI TRẢ chứ không phải % giảm.</summary>
+    public decimal child_price_percent { get; set; }
+
+    /// <summary>% giá tour mà trẻ dưới 5 tuổi phải trả.</summary>
+    public decimal infant_price_percent { get; set; }
+
     public int duration_minutes { get; set; }
 
     public string? location { get; set; }

@@ -86,6 +86,8 @@ public class PublicTourCatalogService : IPublicTourCatalogService
             id = entity.id,
             name = entity.name,
             price = entity.price,
+            childPricePercent = entity.child_price_percent,
+            infantPricePercent = entity.infant_price_percent,
             description = entity.description,
             durationMinutes = entity.duration_minutes,
             location = entity.location,

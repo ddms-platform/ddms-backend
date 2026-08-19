@@ -71,6 +71,10 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             // Cập nhật tour hiện tại, không tạo tour mới
             existingTour.name = request.name.Trim();
             existingTour.price = request.basePrice;
+            if (request.childPricePercent is not null)
+                existingTour.child_price_percent = request.childPricePercent.Value;
+            if (request.infantPricePercent is not null)
+                existingTour.infant_price_percent = request.infantPricePercent.Value;
             existingTour.description = BuildDescription(request);
             existingTour.service_type = NormalizeServiceType(request.serviceType);
             existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
@@ -137,6 +141,8 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             {
                 name = request.name,
                 price = request.basePrice,
+                child_price_percent = request.childPricePercent,
+                infant_price_percent = request.infantPricePercent,
                 description = BuildDescription(request),
                 duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
                 location = OwnerServiceRegistrationDefaults.TourLocation,

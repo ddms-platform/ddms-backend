@@ -3,7 +3,18 @@ namespace DDMS.Backend.Models.DTOs.Booking;
 public class CreateBookingRequest
 {
     public Guid ScheduleId { get; set; }
+    /// <summary>Tổng số khách. Client cũ chỉ gửi field này — khi đó toàn bộ tính là người lớn.
+    /// Có gửi hạng vé thì field này bị bỏ qua, server tự cộng lại.</summary>
     public int NumPeople { get; set; }
+
+    /// <summary>Số khách từ 12 tuổi, trả đủ giá tour.</summary>
+    public int NumAdults { get; set; }
+
+    /// <summary>Số khách 5–11 tuổi, trả theo child_price_percent của tour.</summary>
+    public int NumChildren { get; set; }
+
+    /// <summary>Số khách dưới 5 tuổi, trả theo infant_price_percent của tour.</summary>
+    public int NumInfants { get; set; }
 
     /// <summary>Mã giảm giá khách nhập. Server tự tra và tự tính mức giảm.</summary>
     public string? PromotionCode { get; set; }

@@ -30,6 +30,25 @@ public class BookingQuote
 
     /// <summary>Dịch vụ kèm đơn giá đã tra từ DB — dùng để ghi booking_service.</summary>
     public List<PricedLine> ServiceLines { get; set; } = [];
+
+    /// <summary>Tiền tour tách theo hạng vé — để hoá đơn hiện rõ từng dòng.
+    /// Hạng không có khách thì không xuất hiện.</summary>
+    public List<PartyPricedLine> PartyLines { get; set; } = [];
+}
+
+/// <summary>Một hạng vé trên hoá đơn.</summary>
+public class PartyPricedLine
+{
+    /// <summary>adult / child / infant — xem <see cref="Common.Constants.PassengerTiers"/>.</summary>
+    public string Tier { get; set; } = string.Empty;
+
+    public int Quantity { get; set; }
+
+    /// <summary>Giá một khách của hạng này, đã nhân tỉ lệ.</summary>
+    public decimal UnitPrice { get; set; }
+
+    /// <summary>Thành tiền cả dòng, đã làm tròn. Tổng các dòng chính là BasePrice.</summary>
+    public decimal LineTotal { get; set; }
 }
 
 /// <summary>Một dòng đã được server gán đơn giá.</summary>

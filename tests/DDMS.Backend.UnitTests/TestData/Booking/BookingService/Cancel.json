@@ -33,6 +33,17 @@
     "expectedCancelReason": "Hủy bởi khách hàng"
   },
   {
+    "caseName": "Holding_CancelsWithoutRefund",
+    "bookingFound": true,
+    "status": "holding",
+    "departingInDays": 10,
+    "walletExists": false,
+    "expectedException": null,
+    "expectedStatus": "cancelled",
+    "expectedRefunded": false,
+    "expectedCancelReason": "Hủy bởi khách hàng"
+  },
+  {
     "caseName": "Paid_WithinRefundWindow_NoExistingWallet_Refunds",
     "bookingFound": true,
     "status": "paid",

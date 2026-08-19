@@ -13,7 +13,15 @@ public partial class booking
 
     public Guid? promotion_id { get; set; }
 
+    /// <summary>Tổng số khách = num_adults + num_children + num_infants.
+    /// Giữ là tổng để sức chứa, thông báo và check-in không phải đổi gì.</summary>
     public int num_people { get; set; }
+
+    public int num_adults { get; set; }
+
+    public int num_children { get; set; }
+
+    public int num_infants { get; set; }
 
     public decimal base_price { get; set; }
 

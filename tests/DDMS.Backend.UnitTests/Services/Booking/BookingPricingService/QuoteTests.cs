@@ -25,6 +25,9 @@ public class QuoteTests
 
     private static readonly IReadOnlyCollection<BookingLineRequest> NoLines = [];
 
+    /// <summary>Đoàn toàn người lớn — các test dưới đây không quan tâm tới hạng vé.</summary>
+    private static PartyComposition Adults(int count) => new(count, 0, 0);
+
     /// <summary>Dựng service với một lịch trình hợp lệ và bảng giá cabin/dịch vụ cố định.</summary>
     private static (DDMS.Backend.Services.Implementations.BookingPricingService Service,
                     Mock<DDMS.Backend.Repositories.Interfaces.IPromotionsRepository> Promotions)
@@ -89,7 +92,7 @@ public class QuoteTests
         var (service, _) = Build();
 
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 2, Cabin(), Service(), null, CancellationToken.None);
+            TestGuids.ScheduleId, Adults(2), Cabin(), Service(), null, CancellationToken.None);
 
         quote.BasePrice.Should().Be(TourPrice * 2);
         quote.CabinPrice.Should().Be(CabinPrice);
@@ -107,7 +110,7 @@ public class QuoteTests
 
         // Client chỉ nói "1 cabin này" — không có chỗ nào để khai đơn giá.
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, Cabin(), NoLines, null, CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), Cabin(), NoLines, null, CancellationToken.None);
 
         quote.CabinLines.Should().ContainSingle()
             .Which.UnitPrice.Should().Be(CabinPrice);
@@ -119,7 +122,7 @@ public class QuoteTests
         var (service, _) = Build(ValidPromo());
 
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         quote.Subtotal.Should().Be(TourPrice);
         quote.DiscountAmount.Should().Be(TourPrice * 0.1m);
@@ -137,7 +140,7 @@ public class QuoteTests
         }));
 
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         // 50% của 300k là 150k nhưng trần chỉ 20k.
         quote.DiscountAmount.Should().Be(20_000m);
@@ -154,7 +157,7 @@ public class QuoteTests
         }));
 
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         quote.DiscountAmount.Should().Be(TourPrice);
         quote.TotalPrice.Should().Be(0m);
@@ -184,7 +187,7 @@ public class QuoteTests
         var (service, _) = Build(promo);
 
         var act = async () => await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<AppException>();
         ex.Which.ShouldBeAppException(expectedCode);
@@ -196,7 +199,7 @@ public class QuoteTests
         var (service, _) = Build(promo: null);
 
         var act = async () => await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "NOPE", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "NOPE", CancellationToken.None);
 
         (await act.Should().ThrowAsync<AppException>())
             .Which.ShouldBeAppException(ErrorCode.PromotionNotFound);
@@ -215,7 +218,7 @@ public class QuoteTests
         var (service, _) = Build(ownerPromo, boatOwnerId: TestGuids.OwnerId);
 
         var act = async () => await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         (await act.Should().ThrowAsync<AppException>())
             .Which.ShouldBeAppException(ErrorCode.PromotionNotApplicableToTour);
@@ -232,7 +235,7 @@ public class QuoteTests
         var (service, _) = Build(ownerPromo, boatOwnerId: TestGuids.OwnerId);
 
         var quote = await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, NoLines, NoLines, "SUMMER25", CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), NoLines, NoLines, "SUMMER25", CancellationToken.None);
 
         quote.DiscountAmount.Should().Be(TourPrice * 0.1m);
     }
@@ -247,7 +250,7 @@ public class QuoteTests
         };
 
         var act = async () => await service.QuoteAsync(
-            TestGuids.ScheduleId, 1, strangerCabin, NoLines, null, CancellationToken.None);
+            TestGuids.ScheduleId, Adults(1), strangerCabin, NoLines, null, CancellationToken.None);
 
         (await act.Should().ThrowAsync<AppException>())
             .Which.ShouldBeAppException(ErrorCode.ResourceNotFound);
