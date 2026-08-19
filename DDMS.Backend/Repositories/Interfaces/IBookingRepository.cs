@@ -1,5 +1,7 @@
 using DDMS.Backend.Models.Entities;
 
+using Microsoft.EntityFrameworkCore.Storage;
+
 namespace DDMS.Backend.Repositories.Interfaces;
 
 public interface IBookingRepository
@@ -13,6 +15,18 @@ public interface IBookingRepository
 
     /// <summary>Tổng số khách đã đặt (đang chiếm chỗ) trên một lịch trình.</summary>
     Task<int> GetBookedSeatsAsync(Guid scheduleId, CancellationToken ct);
+
+    /// <summary>Đánh dấu hoàn thành mọi đơn đã trả tiền của chuyến đã kết thúc. Trả về số dòng đổi.</summary>
+    Task<int> CompleteFinishedToursAsync(DateTime now, CancellationToken ct);
+
+    /// <summary>Mở giao dịch để bọc "kiểm tra rồi ghi" thành một khối.</summary>
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Khoá dòng lịch trình (SELECT ... FOR UPDATE) để hai request cùng một chuyến
+    /// phải xếp hàng. Chuyến khác nhau vẫn chạy song song.
+    /// </summary>
+    Task LockScheduleAsync(Guid scheduleId, CancellationToken ct);
 
     /// <summary>Đơn giá cabin theo id, giới hạn trong đúng con tàu của lịch trình.</summary>
     Task<Dictionary<Guid, decimal>> GetCabinPricesAsync(Guid boatId, IReadOnlyCollection<Guid> cabinIds, CancellationToken ct);
