@@ -55,6 +55,10 @@ public static class ErrorCode
     public const int OwnerDocumentDeadlineExpired = 1523;
     public const int OwnerDocumentOverdueBlocked = 1524;
 
+    public const int ScheduleNotBookable = 1525;
+    public const int ScheduleDeparted = 1526;
+    public const int ScheduleSeatsExhausted = 1527;
+
     public const int PromotionCodeRequired = 1600;
     public const int PromotionCodeExists = 1601;
     public const int PromotionNotFound = 1602;
@@ -203,6 +207,10 @@ public static class ErrorCode
         public const string InvalidOwnerEntityType = "Loại chủ thể không hợp lệ.";
         public const string OwnerDocumentDeadlineExpired = "Thời hạn bổ sung giấy tờ pháp lý của bạn đã kết thúc. Vui lòng liên hệ Quản trị viên để được hỗ trợ gia hạn.";
         public const string OwnerDocumentOverdueBlocked = "Tài khoản của bạn chưa hoàn tất giấy tờ pháp lý bắt buộc (đã quá thời hạn nộp). Chức năng mở bán tour đã tạm khóa. Vui lòng bổ sung giấy tờ hoặc liên hệ Quản trị viên để được gia hạn.";
+
+        public const string ScheduleNotBookable = "Lịch trình này không còn nhận đặt chỗ.";
+        public const string ScheduleDeparted = "Tour đã khởi hành, không thể đặt nữa.";
+        public const string ScheduleSeatsExhausted = "Tàu không còn đủ chỗ cho số khách bạn chọn.";
 
         public const string PromotionCodeRequired = "Mã giảm giá không được để trống.";
         public const string PromotionCodeExists = "Mã giảm giá này đã tồn tại trên hệ thống.";

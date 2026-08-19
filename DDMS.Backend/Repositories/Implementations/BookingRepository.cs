@@ -9,10 +9,8 @@ namespace DDMS.Backend.Repositories.Implementations;
 public class BookingRepository : IBookingRepository
 {
     private readonly AppDbContext _db;
-    // Phải là List chứ không phải mảng: với mảng, .NET 10 chọn overload
-    // MemoryExtensions.Contains(ReadOnlySpan<string>, ...) mà EF không dịch sang SQL được,
-    // làm mọi truy vấn dùng nó ném InvalidOperationException lúc chạy.
-    private static readonly List<string> OccupyingStatuses = ["pending", "confirmed", "paid"];
+    // Danh sách dùng chung với tầng service để hai bên không bao giờ lệch nhau.
+    private static readonly List<string> OccupyingStatuses = BookingStatuses.OccupyingStatuses;
 
     public BookingRepository(AppDbContext db) => _db = db;
 
@@ -61,6 +59,11 @@ public class BookingRepository : IBookingRepository
             .GroupBy(bc => bc.cabin_id)
             .Select(g => new { CabinId = g.Key, Quantity = g.Sum(x => x.quantity) })
             .ToDictionaryAsync(x => x.CabinId, x => x.Quantity, ct);
+
+    public async Task<int> GetBookedSeatsAsync(Guid scheduleId, CancellationToken ct) =>
+        await _db.bookings
+            .Where(b => b.schedule_id == scheduleId && OccupyingStatuses.Contains(b.status))
+            .SumAsync(b => b.num_people, ct);
 
     // Lọc theo boat_id để khách không thể mượn id cabin của tàu khác lấy giá rẻ hơn.
     public async Task<Dictionary<Guid, decimal>> GetCabinPricesAsync(

@@ -24,6 +24,7 @@ public class TourScheduleBuilder
     public TourScheduleBuilder WithTour(tour tour) { _tour = tour; _tourId = tour.id; return this; }
     public TourScheduleBuilder WithBoat(boat? boat) { _boat = boat; _boatId = boat?.id; return this; }
     public TourScheduleBuilder WithNoBoat() { _boat = null; _boatId = null; return this; }
+    public TourScheduleBuilder WithStatus(string status) { _status = status; return this; }
 
     /// <summary>Đặt ngày khởi hành cách "now" bao nhiêu ngày — tiện cho test RefundWindow/HoldPolicy.</summary>
     public TourScheduleBuilder DepartingInDays(double days)

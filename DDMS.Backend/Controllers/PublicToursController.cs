@@ -1,7 +1,9 @@
 ﻿using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Models.DTOs.Tours;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDMS.Backend.Controllers;
@@ -45,7 +47,12 @@ public class PublicToursController : ControllerBase
         return Ok(ApiResponse<List<FaqItemResponse>>.Ok(result));
     }
 
-    /// <summary>Check-in vé điện tử qua mã QR (Kiosk cảng).</summary>
+    /// <summary>
+    /// Check-in vé điện tử qua mã QR (Kiosk cảng).
+    /// Chỉ admin được gọi: hành động này đổi trạng thái vé của người khác, mà mã vé
+    /// chỉ là 8 ký tự đầu của GUID nên để ngo ẩn danh là ai cũng phá được vé của khách.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpPut("bookings/check-in")]
     [ProducesResponseType(typeof(ApiResponse<CheckInBookingResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]

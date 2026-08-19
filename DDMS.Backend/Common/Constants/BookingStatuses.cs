@@ -15,6 +15,17 @@ public static class BookingStatuses
 
     public static readonly TimeSpan RefundWindow = TimeSpan.FromDays(2);
 
+    /// <summary>
+    /// Những trạng thái đơn đang chiếm chỗ (ghế/phòng) trên một lịch trình.
+    /// Phải là List chứ không phải mảng: với mảng, .NET 10 chọn overload
+    /// MemoryExtensions.Contains(ReadOnlySpan&lt;string&gt;, ...) mà EF không dịch sang SQL được.
+    /// </summary>
+    public static readonly List<string> OccupyingStatuses = [Pending, Holding, Confirmed, Paid, CheckedIn];
+
+    /// <summary>Phiên bản hàm của <see cref="OccupyingStatuses"/>, dùng ở tầng service.</summary>
+    public static bool OccupiesInventory(string status) =>
+        OccupyingStatuses.Contains(status.ToLowerInvariant());
+
     public const string DefaultTourImage =
         "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&h=400&fit=crop";
 

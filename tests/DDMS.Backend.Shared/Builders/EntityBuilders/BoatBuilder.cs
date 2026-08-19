@@ -14,6 +14,7 @@ public class BoatBuilder
     private string _complianceStatus = BoatComplianceStatuses.Valid;
     private readonly List<boat_cabin> _cabins = new();
     private bool _isDeleted;
+    private int _maxPassengers = 20;
 
     public BoatBuilder WithId(Guid id) { _id = id; return this; }
     public BoatBuilder WithOwnerId(Guid? ownerId) { _ownerId = ownerId; return this; }
@@ -21,6 +22,7 @@ public class BoatBuilder
     public BoatBuilder WithComplianceStatus(string complianceStatus) { _complianceStatus = complianceStatus; return this; }
     public BoatBuilder WithCabins(params boat_cabin[] cabins) { _cabins.Clear(); _cabins.AddRange(cabins); return this; }
     public BoatBuilder WithDeleted(bool isDeleted) { _isDeleted = isDeleted; return this; }
+    public BoatBuilder WithMaxPassengers(int maxPassengers) { _maxPassengers = maxPassengers; return this; }
 
     public boat Build()
     {
@@ -29,7 +31,7 @@ public class BoatBuilder
             id = _id,
             owner_id = _ownerId,
             name = _name,
-            max_passengers = 20,
+            max_passengers = _maxPassengers,
             status = _status,
             compliance_status = _complianceStatus,
             created_at = DateTime.UtcNow.AddDays(-100),
