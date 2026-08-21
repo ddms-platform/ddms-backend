@@ -6,6 +6,10 @@ public class BoatServiceResponse
     public Guid boatId { get; init; }
     public string name { get; init; } = null!;
     public decimal price { get; init; }
+    /// <summary>% giá trẻ 5–11 tuổi phải trả.</summary>
+    public decimal childPricePercent { get; init; }
+    /// <summary>% giá trẻ dưới 5 tuổi phải trả.</summary>
+    public decimal infantPricePercent { get; init; }
     public string? description { get; init; }
     public string? imageUrl { get; init; }
     public List<string> imageUrls { get; init; } = [];

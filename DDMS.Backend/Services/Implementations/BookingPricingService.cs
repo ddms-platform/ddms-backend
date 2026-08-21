@@ -24,13 +24,13 @@ public class BookingPricingService : IBookingPricingService
 
     public async Task<BookingQuote> QuoteAsync(
         Guid scheduleId,
-        int numPeople,
+        PartyComposition party,
         IReadOnlyCollection<BookingLineRequest> cabins,
         IReadOnlyCollection<BookingLineRequest> services,
         string? code,
         CancellationToken ct)
     {
-        if (numPeople <= 0)
+        if (party.Total <= 0)
             throw new AppException(ErrorCode.UncategorizedError, "Số khách phải lớn hơn 0.");
 
         var schedule = await _bookings.FindScheduleWithTourAsync(scheduleId, ct)
@@ -39,9 +39,12 @@ public class BookingPricingService : IBookingPricingService
         var cabinLines = await PriceLinesAsync(schedule.boat_id, cabins, isCabin: true, ct);
         var serviceLines = await PriceLinesAsync(schedule.boat_id, services, isCabin: false, ct);
 
+        var partyLines = PriceParty(schedule.tour, party);
+
         var quote = new BookingQuote
         {
-            BasePrice = (schedule.tour?.price ?? 0m) * numPeople,
+            BasePrice = partyLines.Sum(l => l.LineTotal),
+            PartyLines = partyLines,
             CabinPrice = cabinLines.Sum(l => l.UnitPrice * l.Quantity),
             ServicePrice = serviceLines.Sum(l => l.UnitPrice * l.Quantity),
             CabinLines = cabinLines,
@@ -62,6 +65,42 @@ public class BookingPricingService : IBookingPricingService
 
         return quote;
     }
+
+    /// <summary>
+    /// Tách tiền tour theo hạng vé. Người lớn luôn 100%; trẻ em và em bé theo tỉ lệ
+    /// owner khai báo trên tour.
+    ///
+    /// Làm tròn TỪNG DÒNG rồi mới cộng, không làm tròn tổng: PayOS chỉ nhận số
+    /// nguyên, nên số ghi vào đơn phải khớp chính xác số gửi lên cổng.
+    /// Hạng không có khách thì không tạo dòng, để hoá đơn khỏi hiện "0 trẻ em".
+    /// </summary>
+    private static List<PartyPricedLine> PriceParty(tour? tour, PartyComposition party)
+    {
+        var tourPrice = tour?.price ?? 0m;
+        var lines = new List<PartyPricedLine>(3);
+
+        void Add(string tier, int quantity, decimal percent)
+        {
+            if (quantity <= 0) return;
+
+            var unitPrice = Round(tourPrice * percent / 100m);
+            lines.Add(new PartyPricedLine
+            {
+                Tier = tier,
+                Quantity = quantity,
+                UnitPrice = unitPrice,
+                LineTotal = Round(tourPrice * quantity * percent / 100m),
+            });
+        }
+
+        Add(PassengerTiers.Adult, party.Adults, PassengerTiers.AdultPricePercent);
+        Add(PassengerTiers.Child, party.Children, tour?.child_price_percent ?? PassengerTiers.DefaultChildPricePercent);
+        Add(PassengerTiers.Infant, party.Infants, tour?.infant_price_percent ?? PassengerTiers.DefaultInfantPricePercent);
+
+        return lines;
+    }
+
+    private static decimal Round(decimal value) => Math.Round(value, 0, MidpointRounding.AwayFromZero);
 
     /// <summary>Gán đơn giá từ DB cho từng dòng; id không thuộc tàu của lịch trình sẽ bị từ chối.</summary>
     private async Task<List<PricedLine>> PriceLinesAsync(

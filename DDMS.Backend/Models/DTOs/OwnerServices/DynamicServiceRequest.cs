@@ -7,6 +7,12 @@ public class DynamicServiceRequest
     public string serviceType { get; set; } = string.Empty;
     public string name { get; set; } = string.Empty;
     public decimal basePrice { get; set; }
+
+    /// <summary>% giá tour trẻ 5–11 tuổi phải trả. Null = giữ nguyên giá trị hiện có.</summary>
+    public decimal? childPricePercent { get; set; }
+
+    /// <summary>% giá tour trẻ dưới 5 tuổi phải trả. Null = giữ nguyên giá trị hiện có.</summary>
+    public decimal? infantPricePercent { get; set; }
     public string? description { get; set; }
     public string? route { get; set; }
     public List<ServiceRoute>? routes { get; set; }

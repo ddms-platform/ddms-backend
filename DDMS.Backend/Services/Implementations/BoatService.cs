@@ -384,6 +384,8 @@ public class BoatService : IBoatService
             boatId = b.id,
             name = t.name,
             price = t.price,
+            childPricePercent = t.child_price_percent,
+            infantPricePercent = t.infant_price_percent,
             description = t.description,
             imageUrls = t.tour_images?
                 .OrderBy(i => i.sort_order)

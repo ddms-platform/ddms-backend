@@ -12,7 +12,7 @@ public interface IBookingPricingService
     /// </summary>
     Task<BookingQuote> QuoteAsync(
         Guid scheduleId,
-        int numPeople,
+        PartyComposition party,
         IReadOnlyCollection<BookingLineRequest> cabins,
         IReadOnlyCollection<BookingLineRequest> services,
         string? code,

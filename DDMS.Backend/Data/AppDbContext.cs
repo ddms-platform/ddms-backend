@@ -578,6 +578,9 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.user_id, "idx_bookings_user");
 
             entity.Property(e => e.base_price).HasPrecision(12, 2);
+            entity.Property(e => e.num_adults).HasDefaultValue(0);
+            entity.Property(e => e.num_children).HasDefaultValue(0);
+            entity.Property(e => e.num_infants).HasDefaultValue(0);
             entity.Property(e => e.cabin_price).HasPrecision(12, 2);
             entity.Property(e => e.cancel_reason).HasColumnType("text");
             entity.Property(e => e.cancelled_at).HasMaxLength(6);
@@ -1154,6 +1157,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.description).HasColumnType("text");
             entity.Property(e => e.name).HasMaxLength(255);
             entity.Property(e => e.price).HasPrecision(12, 2);
+            entity.Property(e => e.child_price_percent)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("50.00");
+            entity.Property(e => e.infant_price_percent)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("0.00");
             entity.Property(e => e.status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'active'");

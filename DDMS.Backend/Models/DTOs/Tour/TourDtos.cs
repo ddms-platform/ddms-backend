@@ -4,6 +4,12 @@ public class CreateTourRequest
 {
     public string name { get; set; } = string.Empty;
     public decimal price { get; set; }
+
+    /// <summary>% giá trẻ 5–11 tuổi phải trả. Null = dùng mặc định hệ thống.</summary>
+    public decimal? child_price_percent { get; set; }
+
+    /// <summary>% giá trẻ dưới 5 tuổi phải trả. Null = dùng mặc định hệ thống.</summary>
+    public decimal? infant_price_percent { get; set; }
     public string? description { get; set; }
     public int duration_minutes { get; set; }
     public string? location { get; set; }

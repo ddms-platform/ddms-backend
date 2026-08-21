@@ -68,7 +68,7 @@ public class BookingService : IBookingService
     private Task<BookingQuote> QuoteAsync(CreateBookingRequest request, CancellationToken ct) =>
         _pricing.QuoteAsync(
             request.ScheduleId,
-            request.NumPeople,
+            PartyComposition.FromRequest(request),
             (request.Cabins ?? []).Select(c => new BookingLineRequest { Id = c.CabinId, Quantity = c.Quantity }).ToList(),
             (request.Services ?? []).Select(s => new BookingLineRequest { Id = s.ServiceId, Quantity = s.Quantity }).ToList(),
             request.PromotionCode,
@@ -96,7 +96,8 @@ public class BookingService : IBookingService
 
         var quote = await _pricing.QuoteAsync(
             booking.schedule_id,
-            booking.num_people,
+            PartyComposition.FromCounts(
+                booking.num_people, booking.num_adults, booking.num_children, booking.num_infants),
             booking.booking_cabins.Select(c => new BookingLineRequest { Id = c.cabin_id, Quantity = c.quantity }).ToList(),
             booking.booking_services.Select(s => new BookingLineRequest { Id = s.service_id, Quantity = s.quantity }).ToList(),
             code,
@@ -162,10 +163,13 @@ public class BookingService : IBookingService
     /// không kiểm tra gì, nên vẫn giữ được phòng đã bán hết.
     /// </summary>
     private async Task EnsureInventoryAvailableAsync(
-        tour_schedule schedule, CreateBookingRequest request, CancellationToken ct)
+        tour_schedule schedule, CreateBookingRequest request, PartyComposition party, CancellationToken ct)
     {
+        if (party.Total <= 0)
+            throw new AppException(ErrorCode.UncategorizedError, "Vui lòng chọn ít nhất một khách.");
+
         await EnsureCabinsAvailableAsync(schedule, request, ct);
-        await EnsureSeatsAvailableAsync(schedule, request.NumPeople, ct);
+        await EnsureSeatsAvailableAsync(schedule, party.Total, ct);
     }
 
     private async Task EnsureCabinsAvailableAsync(
@@ -237,7 +241,8 @@ public class BookingService : IBookingService
                 ErrorCode.UncategorizedError,
                 "Bạn đã đặt tour này trong ngày đã chọn. Vui lòng chọn ngày khác hoặc hủy đơn cũ trước khi đặt lại.");
 
-        await EnsureInventoryAvailableAsync(schedule, request, ct);
+        var party = PartyComposition.FromRequest(request);
+        await EnsureInventoryAvailableAsync(schedule, request, party, ct);
 
         var quote = await QuoteAsync(request, ct);
 
@@ -248,7 +253,10 @@ public class BookingService : IBookingService
             user_id = userId,
             schedule_id = request.ScheduleId,
             promotion_id = quote.PromotionId,
-            num_people = request.NumPeople,
+            num_people = party.Total,
+            num_adults = party.Adults,
+            num_children = party.Children,
+            num_infants = party.Infants,
             base_price = quote.BasePrice,
             cabin_price = quote.CabinPrice,
             service_price = quote.ServicePrice,
@@ -301,7 +309,8 @@ public class BookingService : IBookingService
 
         var holdExpiredAt = now.Add(holdDuration.Value);
 
-        await EnsureInventoryAvailableAsync(schedule, request, ct);
+        var party = PartyComposition.FromRequest(request);
+        await EnsureInventoryAvailableAsync(schedule, request, party, ct);
 
         var quote = await QuoteAsync(request, ct);
 
@@ -311,7 +320,10 @@ public class BookingService : IBookingService
             user_id = userId,
             schedule_id = request.ScheduleId,
             promotion_id = quote.PromotionId,
-            num_people = request.NumPeople,
+            num_people = party.Total,
+            num_adults = party.Adults,
+            num_children = party.Children,
+            num_infants = party.Infants,
             base_price = quote.BasePrice,
             cabin_price = quote.CabinPrice,
             service_price = quote.ServicePrice,

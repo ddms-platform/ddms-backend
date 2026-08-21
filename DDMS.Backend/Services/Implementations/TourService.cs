@@ -28,6 +28,8 @@ public class TourService : ITourService
             id = Guid.NewGuid(),
             name = request.name.Trim(),
             price = request.price,
+            child_price_percent = request.child_price_percent ?? PassengerTiers.DefaultChildPricePercent,
+            infant_price_percent = request.infant_price_percent ?? PassengerTiers.DefaultInfantPricePercent,
             description = request.description,
             duration_minutes = request.duration_minutes,
             location = request.location,

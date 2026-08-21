@@ -5,6 +5,12 @@ public class TourItemResponse
     public Guid id { get; set; }
     public string name { get; set; } = string.Empty;
     public decimal price { get; set; }
+
+    /// <summary>% giá trẻ 5–11 tuổi phải trả — FE dùng để hiển thị, giá thật vẫn do server chốt.</summary>
+    public decimal childPricePercent { get; set; }
+
+    /// <summary>% giá trẻ dưới 5 tuổi phải trả.</summary>
+    public decimal infantPricePercent { get; set; }
     public string? description { get; set; }
     public int durationMinutes { get; set; }
     public string? location { get; set; }
