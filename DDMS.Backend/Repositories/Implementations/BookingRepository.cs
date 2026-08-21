@@ -3,6 +3,7 @@ using DDMS.Backend.Data;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace DDMS.Backend.Repositories.Implementations;
 
@@ -59,6 +60,37 @@ public class BookingRepository : IBookingRepository
             .GroupBy(bc => bc.cabin_id)
             .Select(g => new { CabinId = g.Key, Quantity = g.Sum(x => x.quantity) })
             .ToDictionaryAsync(x => x.CabinId, x => x.Quantity, ct);
+
+    /// <summary>
+    /// Chuyến đã kết thúc thì đơn đã trả tiền chuyển sang "đã hoàn thành".
+    /// Bulk update, không nạp entity — chạy mỗi giờ trên toàn bảng.
+    /// </summary>
+    public Task<int> CompleteFinishedToursAsync(DateTime now, CancellationToken ct) =>
+        _db.bookings
+            .Where(b => BookingStatuses.CompletableStatuses.Contains(b.status)
+                && b.schedule.end_time <= now)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.status, BookingStatuses.Completed)
+                .SetProperty(b => b.updated_at, now), ct);
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct) =>
+        await _db.Database.BeginTransactionAsync(ct);
+
+    /// <summary>
+    /// FOR UPDATE giữ dòng lịch trình tới hết giao dịch, nên request thứ hai phải
+    /// chờ request thứ nhất ghi xong rồi mới đếm — không còn cửa sổ để cả hai
+    /// cùng thấy "vẫn còn chỗ".
+    /// </summary>
+    public async Task LockScheduleAsync(Guid scheduleId, CancellationToken ct)
+    {
+        // ToListAsync trần, KHÔNG thêm FirstOrDefault/Where: hễ gắn thêm toán tử LINQ là
+        // EF bọc câu này vào subquery, mà FOR UPDATE trong bảng dẫn xuất thì MySQL
+        // vẫn chạy nhưng không còn giữ khoá như mong đợi — khoá hỏng mà im lặng.
+        _ = await _db.tour_schedules
+            .FromSql($"SELECT * FROM tour_schedules WHERE id = {scheduleId} FOR UPDATE")
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
 
     public async Task<int> GetBookedSeatsAsync(Guid scheduleId, CancellationToken ct) =>
         await _db.bookings

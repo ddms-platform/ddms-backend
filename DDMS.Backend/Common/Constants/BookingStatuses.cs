@@ -22,6 +22,12 @@ public static class BookingStatuses
     /// </summary>
     public static readonly List<string> OccupyingStatuses = [Pending, Holding, Confirmed, Paid, CheckedIn];
 
+    /// <summary>
+    /// Trạng thái được chuyển sang <see cref="Completed"/> khi chuyến đã chạy xong.
+    /// Chỉ đơn đã trả tiền — đơn huỷ hoặc chưa thanh toán thì khách đâu có đi.
+    /// </summary>
+    public static readonly List<string> CompletableStatuses = [Confirmed, Paid, CheckedIn];
+
     /// <summary>Phiên bản hàm của <see cref="OccupyingStatuses"/>, dùng ở tầng service.</summary>
     public static bool OccupiesInventory(string status) =>
         OccupyingStatuses.Contains(status.ToLowerInvariant());

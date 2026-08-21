@@ -70,6 +70,7 @@ builder.Services.AddOptions<BookingHoldOptions>()
 builder.Services.AddHostedService<BlogCrawlerBackgroundService>();
 builder.Services.AddHostedService<BoatComplianceBackgroundService>();
 builder.Services.AddHostedService<SeatHoldCleanupBackgroundService>();
+builder.Services.AddHostedService<BookingCompletionBackgroundService>();
 builder.Services.AddHostedService<OpsBriefingEmailService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();

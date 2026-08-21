@@ -242,6 +242,13 @@ public class BookingService : IBookingService
                 "Bạn đã đặt tour này trong ngày đã chọn. Vui lòng chọn ngày khác hoặc hủy đơn cũ trước khi đặt lại.");
 
         var party = PartyComposition.FromRequest(request);
+
+        // Kiểm tra rồi mới ghi, không có gì chặn ở giữa, thì hai khách đặt chỗ cuối cùng
+        // cùng lúc đều qua cửa. Khoá dòng lịch trình trước khi đếm để hai request
+        // cùng một chuyến xếp hàng; chuyến khác nhau vẫn chạy song song.
+        await using var tx = await _repo.BeginTransactionAsync(ct);
+        await _repo.LockScheduleAsync(schedule.id, ct);
+
         await EnsureInventoryAvailableAsync(schedule, request, party, ct);
 
         var quote = await QuoteAsync(request, ct);
@@ -271,6 +278,7 @@ public class BookingService : IBookingService
         AddLines(booking, quote, now);
 
         await _repo.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         return new BookingResponse
         {
@@ -310,6 +318,13 @@ public class BookingService : IBookingService
         var holdExpiredAt = now.Add(holdDuration.Value);
 
         var party = PartyComposition.FromRequest(request);
+
+        // Kiểm tra rồi mới ghi, không có gì chặn ở giữa, thì hai khách đặt chỗ cuối cùng
+        // cùng lúc đều qua cửa. Khoá dòng lịch trình trước khi đếm để hai request
+        // cùng một chuyến xếp hàng; chuyến khác nhau vẫn chạy song song.
+        await using var tx = await _repo.BeginTransactionAsync(ct);
+        await _repo.LockScheduleAsync(schedule.id, ct);
+
         await EnsureInventoryAvailableAsync(schedule, request, party, ct);
 
         var quote = await QuoteAsync(request, ct);
@@ -339,6 +354,7 @@ public class BookingService : IBookingService
         AddLines(booking, quote, now);
 
         await _repo.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         return new BookingResponse
         {
@@ -354,6 +370,9 @@ public class BookingService : IBookingService
 
     public Task<int> CancelExpiredHoldsAsync(CancellationToken ct) =>
         _repo.CancelExpiredHoldsAsync(DateTime.UtcNow, BookingStatuses.CancelReasonHoldExpired, ct);
+
+    public Task<int> CompleteFinishedToursAsync(CancellationToken ct) =>
+        _repo.CompleteFinishedToursAsync(DateTime.UtcNow, ct);
 
     public async Task<int> SendHoldRemindersAsync(CancellationToken ct)
     {
@@ -578,7 +597,8 @@ public class BookingService : IBookingService
                     senderId: null,
                     type: "system",
                     title: "Hoàn tiền thành công 💸",
-                    body: $"Số tiền {booking.total_price:N0} đ cho mã đặt chỗ {bookingCode} đã được hoàn lại thành công vào tài khoản ví của bạn.",
+                    // Báo đúng số thực sự vào ví. total_price lệch với số này khi khách trả thiếu.
+                    body: $"Số tiền {refundableAmount:N0} đ cho mã đặt chỗ {bookingCode} đã được hoàn lại thành công vào tài khoản ví của bạn.",
                     recipientIds: new List<Guid> { booking.user_id },
                     data: JsonSerializer.Serialize(new { bookingId = booking.id }),
                     ct: ct
