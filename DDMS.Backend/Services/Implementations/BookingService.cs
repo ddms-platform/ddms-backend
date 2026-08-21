@@ -144,6 +144,75 @@ public class BookingService : IBookingService
         }
     }
 
+    /// <summary>
+    /// Lịch trình đã huỷ/đã kết thúc, hoặc tour đã khởi hành, thì không nhận đặt nữa.
+    /// Trạng thái xét theo deny-list để dữ liệu cũ với trạng thái lạ không bị khoá oan.
+    /// </summary>
+    private static void EnsureScheduleOpen(tour_schedule schedule)
+    {
+        if (TourScheduleStatuses.IsClosedForBooking(schedule.status))
+            throw new AppException(ErrorCode.ScheduleNotBookable, ErrorCode.Messages.ScheduleNotBookable);
+
+        if (schedule.start_time <= DateTime.UtcNow)
+            throw new AppException(ErrorCode.ScheduleDeparted, ErrorCode.Messages.ScheduleDeparted);
+    }
+
+    /// <summary>
+    /// Chốt tồn kho dùng chung cho cả đặt thẳng lẫn giữ chỗ — trước đây đường giữ chỗ
+    /// không kiểm tra gì, nên vẫn giữ được phòng đã bán hết.
+    /// </summary>
+    private async Task EnsureInventoryAvailableAsync(
+        tour_schedule schedule, CreateBookingRequest request, CancellationToken ct)
+    {
+        await EnsureCabinsAvailableAsync(schedule, request, ct);
+        await EnsureSeatsAvailableAsync(schedule, request.NumPeople, ct);
+    }
+
+    private async Task EnsureCabinsAvailableAsync(
+        tour_schedule schedule, CreateBookingRequest request, CancellationToken ct)
+    {
+        var requestedCabins = request.Cabins ?? new List<CreateBookingCabinRequest>();
+        if (requestedCabins.Count == 0) return;
+
+        var scheduleWithCabins = await _repo.FindScheduleWithCabinsAsync(schedule.id, ct)
+            ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
+        var cabinsById = scheduleWithCabins.boat?.boat_cabins.ToDictionary(c => c.id)
+            ?? new Dictionary<Guid, boat_cabin>();
+        var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(schedule.id, ct);
+
+        foreach (var requested in requestedCabins.GroupBy(c => c.CabinId))
+        {
+            if (!cabinsById.TryGetValue(requested.Key, out var cabin))
+                throw new AppException(ErrorCode.ResourceNotFound, "Cabin không thuộc lịch trình đã chọn.");
+
+            var requestedQuantity = requested.Sum(c => c.Quantity);
+            var bookedQuantity = bookedByCabin.GetValueOrDefault(requested.Key);
+            if (requestedQuantity <= 0 || bookedQuantity + requestedQuantity > cabin.total_rooms)
+                throw new AppException(ErrorCode.UncategorizedError, "Cabin này đã hết chỗ. Vui lòng chọn cabin khác.");
+        }
+    }
+
+    /// <summary>
+    /// Tổng khách đã đặt cộng khách mới không được vượt sức chứa tàu.
+    /// Tàu chưa khai báo sức chứa (dữ liệu cũ, max_passengers = 0) thì bỏ qua,
+    /// không lấy đó làm cớ chặn hết mọi đơn.
+    /// </summary>
+    private async Task EnsureSeatsAvailableAsync(tour_schedule schedule, int numPeople, CancellationToken ct)
+    {
+        var capacity = schedule.boat?.max_passengers ?? 0;
+        if (capacity <= 0) return;
+
+        var bookedSeats = await _repo.GetBookedSeatsAsync(schedule.id, ct);
+        if (bookedSeats + numPeople <= capacity) return;
+
+        var remaining = Math.Max(capacity - bookedSeats, 0);
+        throw new AppException(
+            ErrorCode.ScheduleSeatsExhausted,
+            remaining > 0
+                ? $"Chuyến này chỉ còn {remaining} chỗ, không đủ cho {numPeople} khách."
+                : "Chuyến này đã kín chỗ. Vui lòng chọn ngày khác.");
+    }
+
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request, CancellationToken ct)
     {
         var schedule = await _repo.FindScheduleWithTourAsync(request.ScheduleId, ct)
@@ -151,6 +220,8 @@ public class BookingService : IBookingService
 
         if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
             throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
+
+        EnsureScheduleOpen(schedule);
 
         var scheduleDayStart = schedule.start_time.Date;
         var scheduleDayEnd = scheduleDayStart.AddDays(1);
@@ -166,26 +237,7 @@ public class BookingService : IBookingService
                 ErrorCode.UncategorizedError,
                 "Bạn đã đặt tour này trong ngày đã chọn. Vui lòng chọn ngày khác hoặc hủy đơn cũ trước khi đặt lại.");
 
-        var requestedCabins = request.Cabins ?? new List<CreateBookingCabinRequest>();
-        if (requestedCabins.Count > 0)
-        {
-            var scheduleWithCabins = await _repo.FindScheduleWithCabinsAsync(request.ScheduleId, ct)
-                ?? throw new AppException(ErrorCode.ScheduleNotFound, "Lịch trình tour không tồn tại.");
-            var cabinsById = scheduleWithCabins.boat?.boat_cabins.ToDictionary(c => c.id)
-                ?? new Dictionary<Guid, boat_cabin>();
-            var bookedByCabin = await _repo.GetBookedCabinQuantitiesAsync(request.ScheduleId, ct);
-
-            foreach (var requested in requestedCabins.GroupBy(c => c.CabinId))
-            {
-                if (!cabinsById.TryGetValue(requested.Key, out var cabin))
-                    throw new AppException(ErrorCode.ResourceNotFound, "Cabin không thuộc lịch trình đã chọn.");
-
-                var requestedQuantity = requested.Sum(c => c.Quantity);
-                var bookedQuantity = bookedByCabin.GetValueOrDefault(requested.Key);
-                if (requestedQuantity <= 0 || bookedQuantity + requestedQuantity > cabin.total_rooms)
-                    throw new AppException(ErrorCode.UncategorizedError, "Cabin này đã hết chỗ. Vui lòng chọn cabin khác.");
-            }
-        }
+        await EnsureInventoryAvailableAsync(schedule, request, ct);
 
         var quote = await QuoteAsync(request, ct);
 
@@ -235,6 +287,8 @@ public class BookingService : IBookingService
         if (BoatComplianceStatuses.IsBlocked(schedule.boat?.compliance_status))
             throw new AppException(ErrorCode.BoatBlockedCompliance, ErrorCode.Messages.BoatBlockedCompliance);
 
+        EnsureScheduleOpen(schedule);
+
         var now = DateTime.UtcNow;
 
         // Đại lý (B2B) được giữ lâu hơn; khách lẻ giữ ngắn. Tính theo ngày khởi hành.
@@ -246,6 +300,8 @@ public class BookingService : IBookingService
             throw new AppException(ErrorCode.HoldNotAllowed, ErrorCode.Messages.HoldNotAllowed);
 
         var holdExpiredAt = now.Add(holdDuration.Value);
+
+        await EnsureInventoryAvailableAsync(schedule, request, ct);
 
         var quote = await QuoteAsync(request, ct);
 

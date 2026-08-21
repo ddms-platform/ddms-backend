@@ -47,8 +47,13 @@ public class HoldTests
         var notificationService = NotificationServiceMockFactory.Create();
         var holdOptions = OptionsFactory.CreateDefault<DDMS.Backend.Configurations.BookingHoldOptions>();
 
+        // Giữ chỗ nay kiểm tra tồn kho giống đặt thẳng, nên tàu phải có sẵn phòng để case
+        // "giữ chỗ kèm phòng thành công" còn đúng nghĩa.
         var boat = c.BoatExists
-            ? new BoatBuilder().WithComplianceStatus(c.ComplianceStatus ?? BoatComplianceStatuses.Valid).Build()
+            ? new BoatBuilder()
+                .WithComplianceStatus(c.ComplianceStatus ?? BoatComplianceStatuses.Valid)
+                .WithCabins(new BoatCabinBuilder().WithId(TestGuids.CabinId).WithTotalRooms(5).Build())
+                .Build()
             : null;
         var schedule = c.ScheduleExists
             ? new TourScheduleBuilder().WithBoat(boat).DepartingInDays(c.DepartingInDays).Build()
@@ -58,6 +63,10 @@ public class HoldTests
             .ReturnsAsync(schedule);
         bookingRepo.Setup(r => r.UserHasRoleAsync(TestGuids.UserId, RoleNames.Agent, It.IsAny<CancellationToken>()))
             .ReturnsAsync(c.IsAgent);
+        bookingRepo.Setup(r => r.FindScheduleWithCabinsAsync(TestGuids.ScheduleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schedule);
+        bookingRepo.Setup(r => r.GetBookedCabinQuantitiesAsync(TestGuids.ScheduleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, int>());
 
         var requestBuilder = new CreateBookingRequestBuilder().WithScheduleId(TestGuids.ScheduleId);
         if (c.HasCabins)

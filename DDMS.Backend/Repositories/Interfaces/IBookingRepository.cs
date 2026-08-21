@@ -11,6 +11,9 @@ public interface IBookingRepository
     Task<tour_schedule?> FindScheduleWithCabinsAsync(Guid scheduleId, CancellationToken ct);
     Task<Dictionary<Guid, int>> GetBookedCabinQuantitiesAsync(Guid scheduleId, CancellationToken ct);
 
+    /// <summary>Tổng số khách đã đặt (đang chiếm chỗ) trên một lịch trình.</summary>
+    Task<int> GetBookedSeatsAsync(Guid scheduleId, CancellationToken ct);
+
     /// <summary>Đơn giá cabin theo id, giới hạn trong đúng con tàu của lịch trình.</summary>
     Task<Dictionary<Guid, decimal>> GetCabinPricesAsync(Guid boatId, IReadOnlyCollection<Guid> cabinIds, CancellationToken ct);
 
