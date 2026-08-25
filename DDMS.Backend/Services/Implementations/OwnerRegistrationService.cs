@@ -109,6 +109,17 @@ public class OwnerRegistrationService : IOwnerRegistrationService
         // 2. Create Boats
         foreach (var vessel in request.Vessels)
         {
+            if (vessel.MaxPassengers < 1 || vessel.MaxPassengers > 1000)
+            {
+                throw new ValidationException(
+                    "Sức chứa phải từ 1 đến 1000 khách.",
+                    new Dictionary<string, List<string>>
+                    {
+                        ["maxPassengers"] = ["Sức chứa phải từ 1 đến 1000 khách."]
+                    });
+            }
+
+
             var boatId = Guid.NewGuid();
             var imageUrls = new List<string>();
             if (vessel.ImageFiles != null && vessel.ImageFiles.Any())
@@ -146,7 +157,7 @@ public class OwnerRegistrationService : IOwnerRegistrationService
                 required_services = JsonSerializer.Serialize(vessel.RequiredServices ?? new List<string>()),
                 document_url = documentUrls.Any() ? JsonSerializer.Serialize(documentUrls) : null,
                 max_passengers = vessel.MaxPassengers,
-                status = "Pending",
+                status = BoatStatuses.Pending,
                 compliance_status = BoatComplianceStatuses.Valid,
                 created_at = DateTime.UtcNow,
                 updated_at = DateTime.UtcNow
