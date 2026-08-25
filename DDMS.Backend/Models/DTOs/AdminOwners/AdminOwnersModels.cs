@@ -43,5 +43,6 @@ public class VesselItem
     public List<string> DocumentUrls { get; set; } = new();
     public List<string> ImageUrls { get; set; } = new();
     public List<CertificateListItem> Certificates { get; set; } = new();
+    public int MaxPassengers { get; set; }
     public string Status { get; set; } = null!;
 }

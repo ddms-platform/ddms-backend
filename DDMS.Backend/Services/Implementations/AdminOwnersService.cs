@@ -437,6 +437,7 @@ public class AdminOwnersService : IAdminOwnersService
         RequiredServices = ParseJsonList(b.required_services),
         DocumentUrls = ParseJsonList(b.document_url),
         ImageUrls = b.boat_images.OrderBy(img => img.sort_order).Select(img => img.image_url).ToList(),
+        MaxPassengers = b.max_passengers,
         Certificates = b.boat_certificates
             .OrderBy(c => c.certificate_type)
             .Select(c => new CertificateListItem

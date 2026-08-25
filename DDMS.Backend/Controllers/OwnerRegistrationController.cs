@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.Auth;
 using DDMS.Backend.Models.DTOs.BoatCertificate;
 using DDMS.Backend.Models.DTOs.OwnerDocument;
@@ -78,7 +79,17 @@ public class OwnerRegistrationController : ControllerBase
             var lengthStr = form[$"{prefix}.Length"].ToString();
             var beamStr = form[$"{prefix}.Beam"].ToString();
             var expectedDateStr = form[$"{prefix}.ExpectedDockingDate"].ToString();
-            
+            var maxPassengersStr = form[$"{prefix}.MaxPassengers"].ToString();
+            if (!int.TryParse(maxPassengersStr, out var maxPassengers) || maxPassengers < 1 || maxPassengers > 1000)
+            {
+                throw new ValidationException(
+                    "Sức chứa phải từ 1 đến 1000 khách.",
+                    new Dictionary<string, List<string>>
+                    {
+                        ["maxPassengers"] = ["Sức chứa phải từ 1 đến 1000 khách."]
+                    });
+            }
+
             var vessel = new VesselRegistrationItem
             {
                 Name = form[$"{prefix}.Name"].ToString(),
@@ -88,6 +99,7 @@ public class OwnerRegistrationController : ControllerBase
                 Length = string.IsNullOrEmpty(lengthStr) ? null : decimal.Parse(lengthStr),
                 Beam = string.IsNullOrEmpty(beamStr) ? null : decimal.Parse(beamStr),
                 ExpectedDockingDate = string.IsNullOrEmpty(expectedDateStr) ? null : DateTime.Parse(expectedDateStr),
+                MaxPassengers = maxPassengers,
                 RequiredServices = new List<string>()
             };
 
