@@ -64,6 +64,7 @@ public class PublicOwnersService : IPublicOwnersService
             result.Add(new FeaturedOwnerResponse
             {
                 Id = profile.id,
+                UserId = profile.user_id,
                 Name = !string.IsNullOrWhiteSpace(profile.business_name)
                     ? profile.business_name!
                     : profile.user?.full_name ?? "Chủ thuyền",
