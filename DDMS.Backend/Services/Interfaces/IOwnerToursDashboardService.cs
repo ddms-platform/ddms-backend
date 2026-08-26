@@ -8,6 +8,7 @@ public interface IOwnerToursDashboardService
     Task<List<ScheduleListItem>> GetSchedulesAsync(Guid ownerId, int month, int year, CancellationToken ct);
     Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, CancellationToken ct);
     Task<OwnerResourcesResponse> GetResourcesAsync(Guid ownerId, CancellationToken ct);
+    Task<List<OwnerTourListItem>> GetOwnerToursAsync(Guid ownerId, CancellationToken ct);
     Task CreateScheduleAsync(Guid ownerId, CreateScheduleRequest request, CancellationToken ct);
     Task<string> UpdateBookingStatusAsync(Guid ownerId, Guid bookingId, UpdateBookingStatusRequest request, CancellationToken ct);
 

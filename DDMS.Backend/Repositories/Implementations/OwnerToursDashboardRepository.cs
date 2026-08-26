@@ -47,7 +47,9 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
             .Select(ts => new 
             {
                 ts.id,
+                ts.tour_id,
                 TourName = ts.tour.name,
+                TourStatus = ts.tour.status,
                 BoatName = ts.boat!.name,
                 ts.boat_id,
                 ts.start_time,
@@ -59,13 +61,79 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
         return schedules.Select(ts => new ScheduleListItem
         {
             Id = ts.id,
+            TourId = ts.tour_id,
             TourName = ts.TourName,
+            TourStatus = ts.TourStatus,
             BoatName = ts.BoatName ?? "N/A",
             BoatId = ts.boat_id ?? Guid.Empty,
             StartTime = ts.start_time,
             EndTime = ts.end_time,
             Status = ts.status
         }).ToList();
+    }
+
+    /// <summary>
+    /// Tour do chủ thuyền đăng ký. Nhận cả tour gắn lịch trên thuyền của họ vì
+    /// dữ liệu cũ có tour được tạo hộ (created_by khác chủ thuyền).
+    /// </summary>
+    public async Task<List<OwnerTourListItem>> GetOwnerToursAsync(Guid ownerId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+
+        var tours = await _db.tours
+            .Where(t => t.created_by == ownerId
+                     || t.tour_schedules.Any(ts => ts.boat != null && ts.boat.owner_id == ownerId))
+            .Select(t => new
+            {
+                t.id,
+                t.name,
+                t.status,
+                t.price,
+                t.duration_minutes,
+                t.location,
+                t.service_type,
+                t.created_at,
+                ThumbnailUrl = t.tour_images
+                    .OrderBy(i => i.sort_order)
+                    .Select(i => i.image_url)
+                    .FirstOrDefault(),
+                Boats = t.tour_schedules
+                    .Where(ts => ts.boat != null)
+                    .Select(ts => new { ts.boat!.id, ts.boat.name }),
+                ScheduleCount = t.tour_schedules.Count(),
+                UpcomingScheduleCount = t.tour_schedules.Count(ts => ts.start_time >= now),
+                NextScheduleAt = t.tour_schedules
+                    .Where(ts => ts.start_time >= now)
+                    .OrderBy(ts => ts.start_time)
+                    .Select(ts => (DateTime?)ts.start_time)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        return tours
+            .OrderByDescending(t => t.created_at)
+            .Select(t =>
+            {
+                var boats = t.Boats.DistinctBy(b => b.id).ToList();
+                return new OwnerTourListItem
+                {
+                    Id = t.id,
+                    Name = t.name,
+                    Status = t.status,
+                    Price = t.price,
+                    DurationMinutes = t.duration_minutes,
+                    Location = t.location,
+                    ServiceType = t.service_type,
+                    ThumbnailUrl = t.ThumbnailUrl,
+                    BoatNames = boats.Select(b => b.name).ToList(),
+                    PrimaryBoatId = boats.Count > 0 ? boats[0].id : null,
+                    ScheduleCount = t.ScheduleCount,
+                    UpcomingScheduleCount = t.UpcomingScheduleCount,
+                    NextScheduleAt = t.NextScheduleAt,
+                    CreatedAt = t.created_at
+                };
+            })
+            .ToList();
     }
 
     public async Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, int take, CancellationToken ct)

@@ -49,6 +49,9 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
     public Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, CancellationToken ct) =>
         _repo.GetRecentBookingsAsync(ownerId, RecentBookingsTake, ct);
 
+    public Task<List<OwnerTourListItem>> GetOwnerToursAsync(Guid ownerId, CancellationToken ct) =>
+        _repo.GetOwnerToursAsync(ownerId, ct);
+
     public async Task<OwnerResourcesResponse> GetResourcesAsync(Guid ownerId, CancellationToken ct) =>
         new() { Boats = await _repo.GetOwnerResourcesAsync(ownerId, ct) };
 

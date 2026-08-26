@@ -29,6 +29,10 @@ public class OwnerToursDashboardController : ControllerBase
     public Task<IActionResult> GetSchedules(int month, int year, CancellationToken ct) =>
         Wrap(async () => new { isSuccess = true, result = await _svc.GetSchedulesAsync(_user.Id, month, year, ct) });
 
+    [HttpGet("tours")]
+    public Task<IActionResult> GetTours(CancellationToken ct) =>
+        Wrap(async () => new { isSuccess = true, result = await _svc.GetOwnerToursAsync(_user.Id, ct) });
+
     [HttpGet("recent-bookings")]
     public Task<IActionResult> GetRecentBookings(CancellationToken ct) =>
         Wrap(async () => new { isSuccess = true, result = await _svc.GetRecentBookingsAsync(_user.Id, ct) });
