@@ -11,11 +11,10 @@ public interface IPublicOwnersRepository
     Task<List<boat>> GetActiveBoatsWithImagesAsync(
         IReadOnlyCollection<Guid> ownerIds, CancellationToken ct);
 
-    /// <summary>
-    /// Map tàu -> các tour có lịch chạy trên con tàu đó.
-    /// Đếm tour qua lịch trình chứ không qua tour.created_by, vì cột đó
-    /// không phải lúc nào cũng được ghi.
-    /// </summary>
+        /// <summary>
+        /// Map tàu -> các tour public đang mở (active + lịch scheduled tương lai)
+        /// trên con tàu đó. Không đếm tour nháp / hết lịch.
+        /// </summary>
     Task<List<(Guid BoatId, Guid TourId)>> GetTourIdsByBoatAsync(
         IReadOnlyCollection<Guid> boatIds, CancellationToken ct);
 

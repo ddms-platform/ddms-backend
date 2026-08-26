@@ -41,7 +41,11 @@ public class PublicOwnersRepository : IPublicOwnersRepository
         if (boatIds.Count == 0) return new List<(Guid, Guid)>();
 
         var rows = await _db.tour_schedules
-            .Where(s => s.boat_id != null && boatIds.Contains(s.boat_id.Value))
+            .Where(s => s.boat_id != null
+                     && boatIds.Contains(s.boat_id.Value)
+                     && s.status == TourConstants.ScheduleStatuses.Scheduled
+                     && s.start_time >= DateTime.UtcNow
+                     && s.tour.status == TourConstants.Statuses.Active)
             .Select(s => new { BoatId = s.boat_id!.Value, s.tour_id })
             .Distinct()
             .ToListAsync(ct);
