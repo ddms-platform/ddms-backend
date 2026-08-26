@@ -14,7 +14,10 @@ public class PublicOwnersService : IPublicOwnersService
 
     public async Task<List<FeaturedOwnerResponse>> GetFeaturedAsync(int take, CancellationToken ct)
     {
-        var profiles = await _repo.GetVerifiedProfilesAsync(take, ct);
+        // Lấy dư hồ sơ rồi lọc người đã có tour public — Take(take) trước sẽ
+        // thiếu card nếu vài chủ thuyền verified chưa mở tour.
+        var profileTake = Math.Clamp(take * 8, take, 48);
+        var profiles = await _repo.GetVerifiedProfilesAsync(profileTake, ct);
         if (profiles.Count == 0) return new List<FeaturedOwnerResponse>();
 
         var ownerIds = profiles.Select(p => p.user_id).Distinct().ToList();
@@ -83,7 +86,7 @@ public class PublicOwnersService : IPublicOwnersService
             });
         }
 
-        // Chủ thuyền chưa có tàu nào thì chưa có gì để giới thiệu.
-        return result.Where(r => r.BoatCount > 0).ToList();
+        // Chỉ hiện đối tác đã có tour khách đặt được. Chưa có tour thì không lên trang chủ.
+        return result.Where(r => r.BoatCount > 0 && r.TourCount > 0).Take(take).ToList();
     }
 }

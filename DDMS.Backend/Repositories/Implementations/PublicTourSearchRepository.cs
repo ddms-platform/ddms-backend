@@ -104,9 +104,10 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
         if (query.ownerId.HasValue)
         {
             var ownerId = query.ownerId.Value;
+            // Cùng cách đếm tour featured: tour chạy trên tàu của chủ này,
+            // không dùng created_by (cột đó hay trỏ nhầm / để trống).
             toursQuery = toursQuery.Where(x =>
-                x.created_by == ownerId
-                || x.tour_schedules.Any(s => s.boat != null && s.boat.owner_id == ownerId));
+                x.tour_schedules.Any(s => s.boat != null && s.boat.owner_id == ownerId));
         }
 
         if (query.minPrice.HasValue)
