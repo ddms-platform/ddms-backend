@@ -24,12 +24,40 @@ public class TourStatsItem
 public class ScheduleListItem
 {
     public Guid Id { get; set; }
+    public Guid TourId { get; set; }
     public string TourName { get; set; } = null!;
+
+    /// <summary>Trạng thái của tour (pending/active/...) — FE cần để biết tour đã lên trang khách chưa.</summary>
+    public string TourStatus { get; set; } = null!;
     public string BoatName { get; set; } = null!;
     public Guid BoatId { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string Status { get; set; } = null!;
+}
+
+/// <summary>
+/// Một tour chủ thuyền đã đăng ký, kèm thông tin đủ để hiển thị danh sách quản lý:
+/// trạng thái duyệt, thuyền khai thác và lịch trình sắp tới.
+/// </summary>
+public class OwnerTourListItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string Status { get; set; } = null!;
+    public decimal Price { get; set; }
+    public int DurationMinutes { get; set; }
+    public string? Location { get; set; }
+    public string? ServiceType { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public List<string> BoatNames { get; set; } = new();
+
+    /// <summary>Thuyền đầu tiên khai thác tour — dùng để mở form sửa dịch vụ.</summary>
+    public Guid? PrimaryBoatId { get; set; }
+    public int ScheduleCount { get; set; }
+    public int UpcomingScheduleCount { get; set; }
+    public DateTime? NextScheduleAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class RecentBookingItem

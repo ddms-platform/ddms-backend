@@ -9,6 +9,7 @@ public interface IOwnerToursDashboardRepository
     Task<List<ScheduleListItem>> GetSchedulesAsync(Guid ownerId, int month, int year, CancellationToken ct);
     Task<List<RecentBookingItem>> GetRecentBookingsAsync(Guid ownerId, int take, CancellationToken ct);
     Task<List<OwnerBoatResource>> GetOwnerResourcesAsync(Guid ownerId, CancellationToken ct);
+    Task<List<OwnerTourListItem>> GetOwnerToursAsync(Guid ownerId, CancellationToken ct);
 
     Task<boat?> FindOwnerBoatAsync(Guid boatId, Guid ownerId, CancellationToken ct);
     Task<tour?> FindTourAsync(Guid tourId, CancellationToken ct);
