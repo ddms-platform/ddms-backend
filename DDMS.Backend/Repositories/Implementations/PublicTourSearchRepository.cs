@@ -101,6 +101,14 @@ public class PublicTourSearchRepository : IPublicTourSearchRepository
             }
         }
 
+        if (query.ownerId.HasValue)
+        {
+            var ownerId = query.ownerId.Value;
+            toursQuery = toursQuery.Where(x =>
+                x.created_by == ownerId
+                || x.tour_schedules.Any(s => s.boat != null && s.boat.owner_id == ownerId));
+        }
+
         if (query.minPrice.HasValue)
         {
             toursQuery = toursQuery.Where(x => x.price >= query.minPrice.Value);

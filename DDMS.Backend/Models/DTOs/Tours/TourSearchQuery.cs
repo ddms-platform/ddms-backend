@@ -15,4 +15,6 @@ public class TourSearchQuery
     public int? maxDurationMinutes { get; set; }
     public string sortBy { get; set; } = "rating";
     public string sortOrder { get; set; } = "desc";
+    /// <summary>User id của chủ thuyền — tour gắn tàu của user này, hoặc created_by.</summary>
+    public Guid? ownerId { get; set; }
 }

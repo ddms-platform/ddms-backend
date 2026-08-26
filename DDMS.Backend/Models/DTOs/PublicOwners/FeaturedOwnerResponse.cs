@@ -8,6 +8,9 @@ public class FeaturedOwnerResponse
 {
     public Guid Id { get; set; }
 
+    /// <summary>Id user chủ thuyền — dùng để lọc tour public, khác Id hồ sơ.</summary>
+    public Guid UserId { get; set; }
+
     /// <summary>Tên doanh nghiệp, rơi về tên người dùng nếu chủ thuyền là cá nhân.</summary>
     public string Name { get; set; } = string.Empty;
 
