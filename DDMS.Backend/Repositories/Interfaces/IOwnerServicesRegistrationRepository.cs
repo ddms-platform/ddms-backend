@@ -9,10 +9,8 @@ public interface IOwnerServicesRegistrationRepository
     void AddFaq(faq entity);
     void AddRoute(route entity);
     void AddTourImage(tour_image entity);
-    void AddTourSchedule(tour_schedule entity);
     Task<boat?> FindBoatWithOwnerAsync(Guid boatId, CancellationToken ct);
     Task<tour?> FindTourByIdAsync(Guid tourId, CancellationToken ct);
-    Task<bool> HasScheduleForBoatAndTourAsync(Guid boatId, Guid tourId, CancellationToken ct);
     Task RemoveFaqsByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveRoutesByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveImagesByTourIdAsync(Guid tourId, CancellationToken ct);

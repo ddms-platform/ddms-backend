@@ -59,6 +59,29 @@ public class TourScheduleRepository : ITourScheduleRepository
         return await _db.docks.AnyAsync(x => x.id == dockId, cancellationToken);
     }
 
+    public Task<Guid?> GetBoatOwnerIdAsync(Guid boatId, CancellationToken cancellationToken) =>
+        _db.boats.Where(b => b.id == boatId).Select(b => b.owner_id).FirstOrDefaultAsync(cancellationToken);
+
+    public Task<Guid?> GetTourCreatedByAsync(Guid tourId, CancellationToken cancellationToken) =>
+        _db.tours.Where(t => t.id == tourId).Select(t => t.created_by).FirstOrDefaultAsync(cancellationToken);
+
+    public Task<bool> HasBoatScheduleOverlapAsync(
+        Guid boatId, DateTime start, DateTime end, Guid? excludeScheduleId, CancellationToken cancellationToken)
+    {
+        var query = _db.tour_schedules.Where(ts =>
+            ts.boat_id == boatId &&
+            ts.status != "cancelled" &&
+            ts.start_time < end &&
+            ts.end_time > start);
+
+        if (excludeScheduleId.HasValue)
+        {
+            query = query.Where(ts => ts.id != excludeScheduleId.Value);
+        }
+
+        return query.AnyAsync(cancellationToken);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await _db.SaveChangesAsync(cancellationToken);

@@ -1,4 +1,6 @@
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Identity;
 using DDMS.Backend.Models.DTOs.TourSchedule;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
@@ -9,15 +11,17 @@ namespace DDMS.Backend.Services.Implementations;
 public class TourScheduleService : ITourScheduleService
 {
     private readonly ITourScheduleRepository _repository;
+    private readonly ICurrentUser _user;
 
-    public TourScheduleService(ITourScheduleRepository repository)
+    public TourScheduleService(ITourScheduleRepository repository, ICurrentUser user)
     {
         _repository = repository;
+        _user = user;
     }
 
     public async Task<TourScheduleResponse> CreateAsync(CreateTourScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateBusinessRulesAsync(request, cancellationToken);
+        await ValidateBusinessRulesAsync(request, excludeScheduleId: null, cancellationToken);
 
         var schedule = new tour_schedule
         {
@@ -39,10 +43,11 @@ public class TourScheduleService : ITourScheduleService
 
     public async Task<TourScheduleResponse> UpdateAsync(Guid id, UpdateTourScheduleRequest request, CancellationToken cancellationToken)
     {
-        await ValidateBusinessRulesAsync(request, cancellationToken);
-
         var schedule = await _repository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ScheduleNotFound, ErrorCode.Messages.ScheduleNotFound);
+
+        await EnsureCanMutateAsync(schedule.boat_id, schedule.tour_id, cancellationToken);
+        await ValidateBusinessRulesAsync(request, excludeScheduleId: id, cancellationToken);
 
         schedule.tour_id = request.tour_id;
         schedule.boat_id = request.boat_id;
@@ -62,6 +67,8 @@ public class TourScheduleService : ITourScheduleService
         var schedule = await _repository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ErrorCode.ScheduleNotFound, ErrorCode.Messages.ScheduleNotFound);
 
+        await EnsureCanMutateAsync(schedule.boat_id, schedule.tour_id, cancellationToken);
+
         _repository.Delete(schedule);
         await _repository.SaveChangesAsync(cancellationToken);
     }
@@ -72,7 +79,8 @@ public class TourScheduleService : ITourScheduleService
         return schedules.Select(Map).ToList();
     }
 
-    private async Task ValidateBusinessRulesAsync(CreateTourScheduleRequest request, CancellationToken cancellationToken)
+    private async Task ValidateBusinessRulesAsync(
+        CreateTourScheduleRequest request, Guid? excludeScheduleId, CancellationToken cancellationToken)
     {
         if (!await _repository.ExistsTourAsync(request.tour_id, cancellationToken))
         {
@@ -87,6 +95,51 @@ public class TourScheduleService : ITourScheduleService
         if (request.dock_id.HasValue && !await _repository.ExistsDockAsync(request.dock_id.Value, cancellationToken))
         {
             throw new AppException(ErrorCode.DockNotExists, ErrorCode.Messages.DockNotExists);
+        }
+
+        await EnsureCanMutateAsync(request.boat_id, request.tour_id, cancellationToken);
+
+        var isCancelled = string.Equals(
+            request.status, TourScheduleStatuses.Cancelled, StringComparison.OrdinalIgnoreCase);
+        if (!isCancelled
+            && request.boat_id.HasValue
+            && await _repository.HasBoatScheduleOverlapAsync(
+                request.boat_id.Value, request.start_time, request.end_time, excludeScheduleId, cancellationToken))
+        {
+            throw new AppException(ErrorCode.ScheduleBoatOverlap, ErrorCode.Messages.ScheduleBoatOverlap);
+        }
+    }
+
+    /// <summary>
+    /// Chỉ chủ thuyền của tàu (hoặc người tạo tour khi chưa gắn tàu) mới được ghi.
+    /// Admin được phép sửa để xử lý sự cố, không đi đường tạo lịch hộ owner.
+    /// </summary>
+    private async Task EnsureCanMutateAsync(Guid? boatId, Guid tourId, CancellationToken cancellationToken)
+    {
+        if (_user.IsInRole(RoleNames.Admin))
+        {
+            return;
+        }
+
+        if (boatId.HasValue)
+        {
+            var ownerId = await _repository.GetBoatOwnerIdAsync(boatId.Value, cancellationToken);
+            if (ownerId != _user.Id)
+            {
+                throw new AppException(
+                    ErrorCode.Forbidden,
+                    "Thuyền không tồn tại hoặc không thuộc quyền quản lý của bạn.");
+            }
+
+            return;
+        }
+
+        var createdBy = await _repository.GetTourCreatedByAsync(tourId, cancellationToken);
+        if (createdBy != _user.Id)
+        {
+            throw new AppException(
+                ErrorCode.Forbidden,
+                "Tour này không thuộc quyền quản lý của bạn.");
         }
     }
 
