@@ -15,16 +15,12 @@ public class OwnerServicesRegistrationRepository : IOwnerServicesRegistrationRep
     public void AddFaq(faq entity) => _db.faqs.Add(entity);
     public void AddRoute(route entity) => _db.routes.Add(entity);
     public void AddTourImage(tour_image entity) => _db.tour_images.Add(entity);
-    public void AddTourSchedule(tour_schedule entity) => _db.tour_schedules.Add(entity);
 
     public Task<boat?> FindBoatWithOwnerAsync(Guid boatId, CancellationToken ct) =>
         _db.boats.Include(b => b.owner).FirstOrDefaultAsync(b => b.id == boatId, ct);
 
     public Task<tour?> FindTourByIdAsync(Guid tourId, CancellationToken ct) =>
         _db.tours.FirstOrDefaultAsync(t => t.id == tourId, ct);
-
-    public Task<bool> HasScheduleForBoatAndTourAsync(Guid boatId, Guid tourId, CancellationToken ct) =>
-        _db.tour_schedules.AnyAsync(ts => ts.boat_id == boatId && ts.tour_id == tourId, ct);
 
     public async Task RemoveFaqsByTourIdAsync(Guid tourId, CancellationToken ct)
     {

@@ -112,12 +112,6 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 AddCombos(request, existingTour.id, now);
             }
 
-            // Đảm bảo có lịch trình gắn với tàu
-            if (!await _repo.HasScheduleForBoatAndTourAsync(request.boatId, existingTour.id, ct))
-            {
-                AddDefaultSchedule(request.boatId, existingTour.id, now);
-            }
-
             await _repo.SaveChangesAsync(ct);
             tourResponse = new TourResponse
             {
@@ -158,7 +152,6 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             AddFaqs(request, tour.id, now);
             AddRoutes(request, tour.id, now);
             AddTourImages(request, tour.id, now);
-            AddDefaultSchedule(request.boatId, tour.id, now);
 
             await _repo.SaveChangesAsync(ct);
             tourResponse = tour;
@@ -285,22 +278,6 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 created_at = now
             });
         }
-    }
-
-    private void AddDefaultSchedule(Guid boatId, Guid tourId, DateTime now)
-    {
-        var start = now.Add(OwnerServiceRegistrationDefaults.ScheduleStartOffset);
-        _repo.AddTourSchedule(new tour_schedule
-        {
-            id = Guid.NewGuid(),
-            tour_id = tourId,
-            boat_id = boatId,
-            start_time = start,
-            end_time = start.AddMinutes(OwnerServiceRegistrationDefaults.TourDurationMinutes),
-            status = TourScheduleStatuses.Scheduled,
-            created_at = now,
-            updated_at = now
-        });
     }
 
     private async Task TrySendConfirmationEmailAsync(DynamicServiceRequest req, CancellationToken ct)

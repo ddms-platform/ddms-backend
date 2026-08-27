@@ -96,5 +96,6 @@ public class RegisterServiceOwnershipTests
 
         tours.Verify(t => t.CreateAsync(It.IsAny<DDMS.Backend.Models.DTOs.Tour.CreateTourRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -7,5 +7,4 @@ public static class OwnerServiceRegistrationDefaults
     public const string TourPendingStatus = "pending";
     public const string CancelPolicy = "free";
     public const string DefaultOwnerName = "Chủ thuyền";
-    public static readonly TimeSpan ScheduleStartOffset = TimeSpan.FromDays(1);
 }
