@@ -78,6 +78,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             existingTour.description = BuildDescription(request);
             existingTour.service_type = NormalizeServiceType(request.serviceType);
             existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
+            existingTour.rejection_reason = null;
             existingTour.updated_at = now;
             if (existingTour.created_by == null && ownerId.HasValue)
             {

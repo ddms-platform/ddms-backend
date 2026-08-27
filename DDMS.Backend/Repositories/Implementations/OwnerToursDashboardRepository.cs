@@ -73,16 +73,21 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
     }
 
     /// <summary>
-    /// Tour do chủ thuyền đăng ký. Nhận cả tour gắn lịch trên thuyền của họ vì
-    /// dữ liệu cũ có tour được tạo hộ (created_by khác chủ thuyền).
+    /// Tour của chủ thuyền để quản lý trên dashboard.
+    /// - Tour bị từ chối: luôn hiện (kể cả khi đã xoá thuyền) để xem lý do Admin.
+    /// - Còn lại: chỉ hiện khi còn gắn thuyền chưa xoá (lịch / cabin / combo).
     /// </summary>
     public async Task<List<OwnerTourListItem>> GetOwnerToursAsync(Guid ownerId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
+        var rejected = TourConstants.Statuses.Rejected;
 
         var tours = await _db.tours
-            .Where(t => t.created_by == ownerId
-                     || t.tour_schedules.Any(ts => ts.boat != null && ts.boat.owner_id == ownerId))
+            .Where(t =>
+                (t.created_by == ownerId && t.status == rejected)
+                || t.tour_schedules.Any(ts => ts.boat != null && ts.boat.owner_id == ownerId)
+                || _db.boat_cabins.Any(c => c.tour_id == t.id && c.boat.owner_id == ownerId)
+                || _db.boat_services.Any(s => s.tour_id == t.id && s.boat.owner_id == ownerId))
             .Select(t => new
             {
                 t.id,
@@ -93,13 +98,15 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
                 t.location,
                 t.service_type,
                 t.created_at,
+                t.rejection_reason,
                 ThumbnailUrl = t.tour_images
                     .OrderBy(i => i.sort_order)
                     .Select(i => i.image_url)
                     .FirstOrDefault(),
-                Boats = t.tour_schedules
-                    .Where(ts => ts.boat != null)
-                    .Select(ts => new { ts.boat!.id, ts.boat.name }),
+                ScheduleBoats = t.tour_schedules
+                    .Where(ts => ts.boat != null && ts.boat.owner_id == ownerId)
+                    .Select(ts => new { ts.boat!.id, ts.boat.name })
+                    .ToList(),
                 ScheduleCount = t.tour_schedules.Count(),
                 UpcomingScheduleCount = t.tour_schedules.Count(ts => ts.start_time >= now),
                 NextScheduleAt = t.tour_schedules
@@ -110,11 +117,27 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
             })
             .ToListAsync(ct);
 
+        var tourIds = tours.Select(t => t.id).ToList();
+        var cabinBoats = await _db.boat_cabins
+            .Where(c => c.tour_id != null && tourIds.Contains(c.tour_id.Value) && c.boat.owner_id == ownerId)
+            .Select(c => new { TourId = c.tour_id!.Value, c.boat.id, c.boat.name })
+            .ToListAsync(ct);
+        var serviceBoats = await _db.boat_services
+            .Where(s => s.tour_id != null && tourIds.Contains(s.tour_id.Value) && s.boat.owner_id == ownerId)
+            .Select(s => new { TourId = s.tour_id!.Value, s.boat.id, s.boat.name })
+            .ToListAsync(ct);
+
         return tours
             .OrderByDescending(t => t.created_at)
             .Select(t =>
             {
-                var boats = t.Boats.DistinctBy(b => b.id).ToList();
+                var boats = t.ScheduleBoats
+                    .Select(b => (b.id, b.name))
+                    .Concat(cabinBoats.Where(b => b.TourId == t.id).Select(b => (b.id, b.name)))
+                    .Concat(serviceBoats.Where(b => b.TourId == t.id).Select(b => (b.id, b.name)))
+                    .DistinctBy(b => b.id)
+                    .ToList();
+
                 return new OwnerTourListItem
                 {
                     Id = t.id,
@@ -130,7 +153,8 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
                     ScheduleCount = t.ScheduleCount,
                     UpcomingScheduleCount = t.UpcomingScheduleCount,
                     NextScheduleAt = t.NextScheduleAt,
-                    CreatedAt = t.created_at
+                    CreatedAt = t.created_at,
+                    RejectionReason = t.rejection_reason
                 };
             })
             .ToList();

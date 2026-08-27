@@ -460,13 +460,13 @@ public partial class AppDbContext : DbContext
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
-            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
-            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
-            // tren production voi loi 3780 lech collation.
-            entity.Property(e => e.tour_id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
-
+            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
+            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
+            // tren production voi loi 3780 lech collation.
+            entity.Property(e => e.tour_id)
+                .HasColumnType("char(36)")
+                .UseCollation("utf8mb4_unicode_ci");
+
             entity.HasOne(d => d.boat).WithMany(p => p.boat_cabins)
                 .HasForeignKey(d => d.boat_id)
                 .HasConstraintName("fk_cabins_boat");
@@ -546,13 +546,13 @@ public partial class AppDbContext : DbContext
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
-            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
-            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
-            // tren production voi loi 3780 lech collation.
-            entity.Property(e => e.tour_id)
-                .HasColumnType("char(36)")
-                .UseCollation("utf8mb4_unicode_ci");
-
+            // Khai ro collation: cot khoa ngoai phai cung charset voi tours.id
+            // (utf8mb4_unicode_ci). Thieu dong nay EF sinh ascii va migration chet
+            // tren production voi loi 3780 lech collation.
+            entity.Property(e => e.tour_id)
+                .HasColumnType("char(36)")
+                .UseCollation("utf8mb4_unicode_ci");
+
             entity.HasOne(d => d.boat).WithMany(p => p.boat_services)
                 .HasForeignKey(d => d.boat_id)
                 .HasConstraintName("fk_services_boat");
@@ -1155,6 +1155,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(6)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
             entity.Property(e => e.description).HasColumnType("text");
+            entity.Property(e => e.rejection_reason).HasColumnType("text");
             entity.Property(e => e.name).HasMaxLength(255);
             entity.Property(e => e.price).HasPrecision(12, 2);
             entity.Property(e => e.child_price_percent)

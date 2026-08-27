@@ -19,6 +19,9 @@ public class CreateTourRequest
     public string cancel_policy { get; set; } = "free";
     public int? cancel_hours { get; set; }
     public Guid? created_by { get; set; }
+
+    /// <summary>Bắt buộc khi status = rejected. Admin gửi lý do từ chối cho chủ thuyền.</summary>
+    public string? rejection_reason { get; set; }
 }
 
 public class UpdateTourRequest : CreateTourRequest
@@ -44,4 +47,5 @@ public class TourResponse
     public string status { get; set; } = string.Empty;
     public string cancel_policy { get; set; } = string.Empty;
     public int? cancel_hours { get; set; }
+    public string? rejection_reason { get; set; }
 }
