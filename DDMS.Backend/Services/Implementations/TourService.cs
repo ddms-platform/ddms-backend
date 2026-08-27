@@ -56,6 +56,17 @@ public class TourService : ITourService
 
         var oldStatus = currentTour.status;
         var newStatus = NormalizeStatus(request.status);
+        var rejectionReason = string.IsNullOrWhiteSpace(request.rejection_reason)
+            ? null
+            : request.rejection_reason.Trim();
+
+        if (string.Equals(newStatus, TourConstants.Statuses.Rejected, StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(rejectionReason))
+        {
+            throw new AppException(
+                ErrorCode.TourValidationFailed,
+                "Vui lòng nhập lý do từ chối để chủ thuyền biết cần sửa gì.");
+        }
 
         currentTour.name = request.name.Trim();
         currentTour.price = request.price;
@@ -66,6 +77,17 @@ public class TourService : ITourService
         currentTour.cancel_policy = request.cancel_policy;
         currentTour.cancel_hours = request.cancel_hours;
         currentTour.updated_at = DateTime.UtcNow;
+
+        if (string.Equals(newStatus, TourConstants.Statuses.Rejected, StringComparison.OrdinalIgnoreCase))
+        {
+            currentTour.rejection_reason = rejectionReason;
+        }
+        else if (string.Equals(newStatus, TourConstants.Statuses.Active, StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(newStatus, TourConstants.Statuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            // Duyệt lại / gửi lại → xoá lý do cũ để không hiện nhầm.
+            currentTour.rejection_reason = null;
+        }
 
         _tourRepository.Update(currentTour);
         await _tourRepository.SaveChangesAsync(cancellationToken);
@@ -89,11 +111,12 @@ public class TourService : ITourService
                 }
                 else if (string.Equals(newStatus, TourConstants.Statuses.Rejected, StringComparison.OrdinalIgnoreCase))
                 {
+                    var reasonText = currentTour.rejection_reason ?? "Không có mô tả chi tiết.";
                     await _notificationService.CreateNotificationAsync(
                         senderId: null,
                         type: "system",
                         title: "Tour du lịch chưa được duyệt ❌",
-                        body: $"Tour '{currentTour.name}' của bạn chưa được phê duyệt. Vui lòng kiểm tra lại thông tin, lịch trình hoặc hình ảnh và gửi lại yêu cầu.",
+                        body: $"Tour '{currentTour.name}' bị từ chối. Lý do: {reasonText}",
                         recipientIds: new List<Guid> { currentTour.created_by.Value },
                         data: null,
                         ct: cancellationToken
@@ -157,7 +180,8 @@ public class TourService : ITourService
             total_reviews = source.total_reviews,
             status = source.status,
             cancel_policy = source.cancel_policy,
-            cancel_hours = source.cancel_hours
+            cancel_hours = source.cancel_hours,
+            rejection_reason = source.rejection_reason
         };
     }
 }

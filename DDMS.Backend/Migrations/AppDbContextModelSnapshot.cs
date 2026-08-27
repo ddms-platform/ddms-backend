@@ -2173,6 +2173,9 @@ namespace DDMS.Backend.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
+                    b.Property<string>("rejection_reason")
+                        .HasColumnType("text");
+
                     b.Property<string>("service_type")
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)");

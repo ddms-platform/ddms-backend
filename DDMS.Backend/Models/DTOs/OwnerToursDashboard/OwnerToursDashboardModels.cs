@@ -58,6 +58,9 @@ public class OwnerTourListItem
     public int UpcomingScheduleCount { get; set; }
     public DateTime? NextScheduleAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>Lý do Admin từ chối — chỉ có khi status = rejected.</summary>
+    public string? RejectionReason { get; set; }
 }
 
 public class RecentBookingItem

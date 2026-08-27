@@ -38,6 +38,9 @@ public partial class tour
 
     public string status { get; set; } = null!;
 
+    /// <summary>Lý do Admin từ chối tour. Null khi chưa bị từ chối hoặc đã duyệt lại.</summary>
+    public string? rejection_reason { get; set; }
+
     public string cancel_policy { get; set; } = null!;
 
     public int? cancel_hours { get; set; }

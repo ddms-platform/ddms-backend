@@ -34,6 +34,13 @@ public class CreateTourRequestValidator : AbstractValidator<CreateTourRequest>
         RuleFor(x => x.cancel_hours)
             .GreaterThanOrEqualTo(0)
             .When(x => x.cancel_hours.HasValue);
+
+        RuleFor(x => x.rejection_reason)
+            .NotEmpty()
+            .WithMessage("Rejection reason is required when rejecting a tour")
+            .MaximumLength(2000)
+            .When(x => string.Equals(
+                x.status?.Trim(), TourConstants.Statuses.Rejected, StringComparison.OrdinalIgnoreCase));
     }
 }
 
