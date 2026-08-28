@@ -191,27 +191,60 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
         }).ToList();
     }
 
+    /// <summary>
+    /// Tour Live gắn thuyền — dùng cho dropdown tạo lịch.
+    /// Phải lấy từ cabin/combo chứ không chỉ từ tour_schedules: tour mới duyệt
+    /// thường chưa có lịch, lọc theo lịch sẽ làm dropdown trống (gà-trứng).
+    /// </summary>
     public async Task<List<OwnerBoatResource>> GetOwnerResourcesAsync(Guid ownerId, CancellationToken ct)
     {
         var boats = await _db.boats
             .Where(b => b.owner_id == ownerId)
-            .Select(b => new 
-            {
-                b.id,
-                b.name,
-                Tours = b.tour_schedules
-                    .Where(ts => ts.tour.status == TourStatuses.Active)
-                    .Select(ts => new { Id = ts.tour_id, Name = ts.tour.name })
-            })
+            .Select(b => new { b.id, b.name })
             .ToListAsync(ct);
+
+        if (boats.Count == 0)
+            return new List<OwnerBoatResource>();
+
+        var boatIds = boats.Select(b => b.id).ToList();
+
+        var fromSchedules = await _db.tour_schedules
+            .Where(ts =>
+                ts.boat_id != null
+                && boatIds.Contains(ts.boat_id.Value)
+                && ts.tour.status == TourStatuses.Active)
+            .Select(ts => new { BoatId = ts.boat_id!.Value, TourId = ts.tour_id, Name = ts.tour.name })
+            .ToListAsync(ct);
+
+        var fromCabins = await (
+            from c in _db.boat_cabins
+            join t in _db.tours on c.tour_id equals t.id
+            where boatIds.Contains(c.boat_id) && t.status == TourStatuses.Active
+            select new { BoatId = c.boat_id, TourId = t.id, Name = t.name }
+        ).ToListAsync(ct);
+
+        var fromServices = await (
+            from s in _db.boat_services
+            join t in _db.tours on s.tour_id equals t.id
+            where boatIds.Contains(s.boat_id) && t.status == TourStatuses.Active
+            select new { BoatId = s.boat_id, TourId = t.id, Name = t.name }
+        ).ToListAsync(ct);
+
+        var linked = fromSchedules
+            .Concat(fromCabins)
+            .Concat(fromServices)
+            .DistinctBy(x => (x.BoatId, x.TourId))
+            .ToList();
 
         return boats.Select(b => new OwnerBoatResource
         {
             Id = b.id,
             Name = b.name,
-            Tours = b.Tours.Select(t => new OwnerTourResource { Id = t.Id, Name = t.Name })
-                           .DistinctBy(t => t.Id)
-                           .ToList()
+            Tours = linked
+                .Where(t => t.BoatId == b.id)
+                .Select(t => new OwnerTourResource { Id = t.TourId, Name = t.Name })
+                .DistinctBy(t => t.Id)
+                .ToList()
         }).ToList();
     }
 
