@@ -72,6 +72,10 @@ public class OwnerToursDashboardService : IOwnerToursDashboardService
         var tour = await _repo.FindTourAsync(req.TourId, ct)
             ?? throw new NotFoundException(ErrorCode.ResourceNotFound, "Tour not found");
 
+        if (!string.Equals(tour.status, TourStatuses.Active, StringComparison.OrdinalIgnoreCase))
+            throw new AppException(ErrorCode.UncategorizedError,
+                "Chỉ tour đã được Admin duyệt (Live) mới tạo được lịch trình.");
+
         var duration = tour.duration_minutes > 0 ? tour.duration_minutes : DefaultTourDurationMinutes;
         var start = req.StartTime;
         var end = req.EndTime ?? start.AddMinutes(duration);
