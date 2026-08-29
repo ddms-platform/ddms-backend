@@ -150,6 +150,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             var tour = await _tourService.CreateAsync(createTourReq, ct);
             AddCabins(request, tour.id, now);
             AddCombos(request, tour.id, now);
+            EnsureTourLinkedToBoat(request, tour.id, now);
             AddFaqs(request, tour.id, now);
             AddRoutes(request, tour.id, now);
             AddTourImages(request, tour.id, now);
@@ -220,6 +221,30 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 updated_at = now
             });
         }
+    }
+
+    /// <summary>
+    /// Fishing/speedboat không gửi phòng/combo nên không có dòng gắn thuyền.
+    /// Không có dòng đó thì tour Live không hiện form sửa tàu lẫn dropdown lịch.
+    /// </summary>
+    private void EnsureTourLinkedToBoat(DynamicServiceRequest req, Guid tourId, DateTime now)
+    {
+        var hasRooms = req.rooms != null && req.rooms.Count > 0;
+        var hasCombos = req.combos != null && req.combos.Count > 0;
+        if (hasRooms || hasCombos) return;
+
+        _repo.AddBoatService(new boat_service
+        {
+            id = Guid.NewGuid(),
+            boat_id = req.boatId,
+            tour_id = tourId,
+            name = req.name.Trim(),
+            price = req.basePrice,
+            description = req.description,
+            is_active = true,
+            created_at = now,
+            updated_at = now
+        });
     }
 
     private void AddFaqs(DynamicServiceRequest req, Guid tourId, DateTime now)

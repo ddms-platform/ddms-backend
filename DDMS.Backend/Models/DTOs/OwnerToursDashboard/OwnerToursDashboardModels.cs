@@ -51,6 +51,7 @@ public class OwnerTourListItem
     public string? ServiceType { get; set; }
     public string? ThumbnailUrl { get; set; }
     public List<string> BoatNames { get; set; } = new();
+    public List<Guid> BoatIds { get; set; } = new();
 
     /// <summary>Thuyền đầu tiên khai thác tour — dùng để mở form sửa dịch vụ.</summary>
     public Guid? PrimaryBoatId { get; set; }

@@ -330,17 +330,56 @@ public class BoatRepository : IBoatRepository
         };
     }
 
-    public Task<tour?> GetTourForBoatOwnerAsync(Guid boatId, Guid tourId, Guid ownerId)
+    public async Task<List<tour>> GetLinkedToursForBoatAsync(Guid boatId)
     {
-        return _dbContext.tours
+        var fromSchedules = await _dbContext.tour_schedules
+            .Where(ts => ts.boat_id == boatId)
+            .Select(ts => ts.tour_id)
+            .ToListAsync();
+        var fromCabins = await _dbContext.boat_cabins
+            .Where(c => c.boat_id == boatId && c.tour_id != null)
+            .Select(c => c.tour_id!.Value)
+            .ToListAsync();
+        var fromCombos = await _dbContext.boat_services
+            .Where(s => s.boat_id == boatId && s.tour_id != null)
+            .Select(s => s.tour_id!.Value)
+            .ToListAsync();
+
+        var ids = fromSchedules.Concat(fromCabins).Concat(fromCombos).Distinct().ToList();
+        if (ids.Count == 0)
+            return [];
+
+        return await _dbContext.tours
+            .Include(t => t.routes)
+            .Include(t => t.faqs)
+            .Include(t => t.tour_images)
+            .Where(t => ids.Contains(t.id))
+            .OrderByDescending(t => t.created_at)
+            .ToListAsync();
+    }
+
+    public async Task<tour?> GetTourForBoatOwnerAsync(Guid boatId, Guid tourId, Guid ownerId)
+    {
+        var ownsBoat = await _dbContext.boats
+            .AnyAsync(b => b.id == boatId && b.owner_id == ownerId);
+        if (!ownsBoat)
+            return null;
+
+        var linked =
+            await _dbContext.tour_schedules.AnyAsync(ts => ts.tour_id == tourId && ts.boat_id == boatId)
+            || await _dbContext.boat_cabins.AnyAsync(c => c.tour_id == tourId && c.boat_id == boatId)
+            || await _dbContext.boat_services.AnyAsync(s => s.tour_id == tourId && s.boat_id == boatId);
+        if (!linked)
+            return null;
+
+        return await _dbContext.tours
             .Include(t => t.faqs)
             .Include(t => t.routes)
             .Include(t => t.tour_images)
             .Include(t => t.wishlists)
             .Include(t => t.reviews)
             .Include(t => t.tour_schedules).ThenInclude(ts => ts.bookings)
-            .FirstOrDefaultAsync(t => t.id == tourId && t.tour_schedules.Any(ts =>
-                ts.boat_id == boatId && ts.boat != null && ts.boat.owner_id == ownerId));
+            .FirstOrDefaultAsync(t => t.id == tourId);
     }
 
     public Task<boat_service?> GetBoatServiceForOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId)
@@ -369,8 +408,24 @@ public class BoatRepository : IBoatRepository
 
         _dbContext.tour_schedules.RemoveRange(schedules);
 
-        // The tour itself is shared, so only drop it once no other boat runs it.
-        if (entity.tour_schedules.All(ts => ts.boat_id == boatId))
+        var cabins = await _dbContext.boat_cabins
+            .Where(c => c.tour_id == entity.id && c.boat_id == boatId)
+            .ToListAsync();
+        _dbContext.boat_cabins.RemoveRange(cabins);
+
+        var combos = await _dbContext.boat_services
+            .Where(s => s.tour_id == entity.id && s.boat_id == boatId)
+            .ToListAsync();
+        _dbContext.boat_services.RemoveRange(combos);
+
+        // The tour itself is shared, so only drop it once no other boat runs it
+        // (lịch, phòng hoặc combo — không chỉ lịch).
+        var stillOnOtherBoat =
+            entity.tour_schedules.Any(ts => ts.boat_id != boatId)
+            || await _dbContext.boat_cabins.AnyAsync(c => c.tour_id == entity.id && c.boat_id != boatId)
+            || await _dbContext.boat_services.AnyAsync(s => s.tour_id == entity.id && s.boat_id != boatId);
+
+        if (!stillOnOtherBoat)
         {
             _dbContext.faqs.RemoveRange(entity.faqs);
             _dbContext.routes.RemoveRange(entity.routes);
