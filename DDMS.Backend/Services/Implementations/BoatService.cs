@@ -52,7 +52,7 @@ public class BoatService : IBoatService
         var boat = await _boatRepository.GetByIdWithDetailsAsync(id)
             ?? throw new NotFoundException();
 
-        return MapToDetail(boat);
+        return await MapToDetailAsync(boat);
     }
 
     public Task<BoatStatsResponse> GetStatsAsync()
@@ -79,7 +79,7 @@ public class BoatService : IBoatService
 
         // Reload with details
         var created = await _boatRepository.GetByIdWithDetailsAsync(boat.id)!;
-        return MapToDetail(created!);
+        return await MapToDetailAsync(created!);
     }
 
     public async Task<BoatDetailResponse> UpdateAsync(Guid id, UpdateBoatRequest request)
@@ -98,7 +98,7 @@ public class BoatService : IBoatService
         await _boatRepository.UpdateAsync(boat);
 
         var updated = await _boatRepository.GetByIdWithDetailsAsync(id)!;
-        return MapToDetail(updated!);
+        return await MapToDetailAsync(updated!);
     }
 
     public async Task DeleteAsync(Guid id)
@@ -132,7 +132,7 @@ public class BoatService : IBoatService
     {
         var boat = await _boatRepository.GetByIdAndOwnerAsync(id, ownerId)
             ?? throw new NotFoundException("Thuyền không tồn tại hoặc bạn không có quyền truy cập");
-        return MapToDetail(boat);
+        return await MapToDetailAsync(boat);
     }
 
     public Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId)
@@ -166,7 +166,7 @@ public class BoatService : IBoatService
 
         await _boatRepository.CreateAsync(boat);
         var created = await _boatRepository.GetByIdWithDetailsAsync(boat.id)!;
-        return MapToDetail(created!);
+        return await MapToDetailAsync(created!);
     }
 
     public async Task<BoatDetailResponse> UpdateByOwnerAsync(Guid id, UpdateBoatRequest request, Guid ownerId)
@@ -192,7 +192,7 @@ public class BoatService : IBoatService
 
         await _boatRepository.UpdateAsync(boat);
         var updated = await _boatRepository.GetByIdWithDetailsAsync(id)!;
-        return MapToDetail(updated!);
+        return await MapToDetailAsync(updated!);
     }
 
     public async Task DeleteByOwnerAsync(Guid id, Guid ownerId)
@@ -296,13 +296,40 @@ public class BoatService : IBoatService
         status = CalculateStatus(b),
         complianceStatus = b.compliance_status,
         cabinCount = b.boat_cabins?.Count ?? 0,
-        serviceCount = (b.tour_schedules?.Select(ts => ts.tour_id).Distinct().Count() ?? 0),
+        serviceCount = CountLinkedTours(b),
         thumbnailUrl = b.boat_images?.OrderBy(i => i.sort_order).FirstOrDefault()?.image_url,
         createdAt = b.created_at,
         updatedAt = b.updated_at,
     };
 
-    private static BoatDetailResponse MapToDetail(boat b) => new()
+    private async Task<BoatDetailResponse> MapToDetailAsync(boat b)
+    {
+        var tours = await _boatRepository.GetLinkedToursForBoatAsync(b.id);
+        return MapToDetail(b, tours);
+    }
+
+    private static int CountLinkedTours(boat b)
+    {
+        var ids = new HashSet<Guid>();
+        if (b.tour_schedules != null)
+        {
+            foreach (var ts in b.tour_schedules)
+                ids.Add(ts.tour_id);
+        }
+        if (b.boat_cabins != null)
+        {
+            foreach (var c in b.boat_cabins)
+                if (c.tour_id.HasValue) ids.Add(c.tour_id.Value);
+        }
+        if (b.boat_services != null)
+        {
+            foreach (var s in b.boat_services)
+                if (s.tour_id.HasValue) ids.Add(s.tour_id.Value);
+        }
+        return ids.Count;
+    }
+
+    private static BoatDetailResponse MapToDetail(boat b, IReadOnlyList<tour> linkedTours) => new()
     {
         id = b.id,
         name = b.name,
@@ -323,7 +350,7 @@ public class BoatService : IBoatService
             createdAt = c.created_at,
             updatedAt = c.updated_at,
         }).ToList() ?? [],
-        services = BuildServicesFromTours(b),
+        services = BuildServicesFromTours(b, linkedTours),
         images = b.boat_images?.OrderBy(i => i.sort_order).Select(i => new BoatImageResponse
         {
             id = i.id,
@@ -348,14 +375,20 @@ public class BoatService : IBoatService
         }).ToList() ?? [],
     };
 
-    private static List<BoatServiceResponse> BuildServicesFromTours(boat b)
+    private static List<BoatServiceResponse> BuildServicesFromTours(boat b, IReadOnlyList<tour> linkedTours)
     {
-        var tours = b.tour_schedules?
+        // Tour gắn thuyền qua lịch HOẶC phòng/combo. Chỉ nhìn tour_schedules
+        // thì tour mới duyệt (chưa có lịch) biến mất khỏi form sửa tàu.
+        var fromSchedules = b.tour_schedules?
             .Where(ts => ts.tour != null)
             .Select(ts => ts.tour!)
+            ?? [];
+
+        var tours = linkedTours
+            .Concat(fromSchedules)
             .GroupBy(t => t.id)
             .Select(g => g.First())
-            .ToList() ?? [];
+            .ToList();
 
         // Phòng/combo gắn theo tour. tour_id NULL là dữ liệu cũ từ trước khi
         // tách — vẫn hiện cho mọi tour để không làm mất dữ liệu đã nhập.

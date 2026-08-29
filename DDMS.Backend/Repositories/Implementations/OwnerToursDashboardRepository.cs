@@ -149,6 +149,7 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
                     ServiceType = t.service_type,
                     ThumbnailUrl = t.ThumbnailUrl,
                     BoatNames = boats.Select(b => b.name).ToList(),
+                    BoatIds = boats.Select(b => b.id).ToList(),
                     PrimaryBoatId = boats.Count > 0 ? boats[0].id : null,
                     ScheduleCount = t.ScheduleCount,
                     UpcomingScheduleCount = t.UpcomingScheduleCount,
@@ -191,28 +192,86 @@ public class OwnerToursDashboardRepository : IOwnerToursDashboardRepository
         }).ToList();
     }
 
+    /// <summary>
+    /// Tour Live gắn thuyền — dùng cho dropdown tạo lịch.
+    /// Phải lấy từ cabin/combo chứ không chỉ từ tour_schedules: tour mới duyệt
+    /// thường chưa có lịch, lọc theo lịch sẽ làm dropdown trống (gà-trứng).
+    /// </summary>
     public async Task<List<OwnerBoatResource>> GetOwnerResourcesAsync(Guid ownerId, CancellationToken ct)
     {
         var boats = await _db.boats
             .Where(b => b.owner_id == ownerId)
-            .Select(b => new 
-            {
-                b.id,
-                b.name,
-                Tours = b.tour_schedules
-                    .Where(ts => ts.tour.status == TourStatuses.Active)
-                    .Select(ts => new { Id = ts.tour_id, Name = ts.tour.name })
-            })
+            .Select(b => new { b.id, b.name })
             .ToListAsync(ct);
+
+        if (boats.Count == 0)
+            return new List<OwnerBoatResource>();
+
+        var boatIds = boats.Select(b => b.id).ToList();
+        var linked = await GetActiveTourBoatLinksAsync(boatIds, ct);
 
         return boats.Select(b => new OwnerBoatResource
         {
             Id = b.id,
             Name = b.name,
-            Tours = b.Tours.Select(t => new OwnerTourResource { Id = t.Id, Name = t.Name })
-                           .DistinctBy(t => t.Id)
-                           .ToList()
+            Tours = linked
+                .Where(t => t.BoatId == b.id)
+                .Select(t => new OwnerTourResource { Id = t.TourId, Name = t.Name })
+                .DistinctBy(t => t.Id)
+                .ToList()
         }).ToList();
+    }
+
+    /// <summary>
+    /// Không join Guid? trực tiếp (Pomelo/MySQL dễ trả 0 dòng). Lấy id rồi
+    /// Contains — cùng kiểu với GetOwnerToursAsync.
+    /// </summary>
+    private async Task<List<(Guid BoatId, Guid TourId, string Name)>> GetActiveTourBoatLinksAsync(
+        List<Guid> boatIds, CancellationToken ct)
+    {
+        var fromSchedules = await _db.tour_schedules
+            .Where(ts =>
+                ts.boat_id != null
+                && boatIds.Contains(ts.boat_id.Value)
+                && ts.tour.status == TourStatuses.Active)
+            .Select(ts => new { BoatId = ts.boat_id!.Value, TourId = ts.tour_id, Name = ts.tour.name })
+            .ToListAsync(ct);
+
+        var fromCabins = await _db.boat_cabins
+            .Where(c => c.tour_id != null && boatIds.Contains(c.boat_id))
+            .Select(c => new { BoatId = c.boat_id, TourId = c.tour_id!.Value })
+            .ToListAsync(ct);
+
+        var fromCombos = await _db.boat_services
+            .Where(s => s.tour_id != null && boatIds.Contains(s.boat_id))
+            .Select(s => new { BoatId = s.boat_id, TourId = s.tour_id!.Value })
+            .ToListAsync(ct);
+
+        var cabinComboIds = fromCabins.Select(x => x.TourId)
+            .Concat(fromCombos.Select(x => x.TourId))
+            .Distinct()
+            .ToList();
+
+        var activeById = cabinComboIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _db.tours
+                .Where(t => cabinComboIds.Contains(t.id) && t.status == TourStatuses.Active)
+                .Select(t => new { t.id, t.name })
+                .ToDictionaryAsync(t => t.id, t => t.name, ct);
+
+        var fromCabinLive = fromCabins
+            .Where(x => activeById.ContainsKey(x.TourId))
+            .Select(x => new { x.BoatId, x.TourId, Name = activeById[x.TourId] });
+        var fromComboLive = fromCombos
+            .Where(x => activeById.ContainsKey(x.TourId))
+            .Select(x => new { x.BoatId, x.TourId, Name = activeById[x.TourId] });
+
+        return fromSchedules
+            .Concat(fromCabinLive)
+            .Concat(fromComboLive)
+            .Select(x => (x.BoatId, x.TourId, x.Name))
+            .Distinct()
+            .ToList();
     }
 
     public Task<boat?> FindOwnerBoatAsync(Guid boatId, Guid ownerId, CancellationToken ct) =>

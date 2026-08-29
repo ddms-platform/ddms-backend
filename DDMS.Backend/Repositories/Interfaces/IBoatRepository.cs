@@ -18,6 +18,11 @@ public interface IBoatRepository
     Task<(List<boat> items, int total)> GetPagedByOwnerAsync(Guid ownerId, OwnerBoatListQuery query);
     Task<boat?> GetByIdAndOwnerAsync(Guid id, Guid ownerId);
     Task<BoatStatsResponse> GetStatsByOwnerAsync(Guid ownerId);
+    /// <summary>
+    /// Tour gắn thuyền qua lịch, phòng hoặc combo — không chỉ tour_schedules.
+    /// Tour mới duyệt thường chưa có lịch nên thiếu nguồn này thì form sửa tàu trống.
+    /// </summary>
+    Task<List<tour>> GetLinkedToursForBoatAsync(Guid boatId);
     Task<tour?> GetTourForBoatOwnerAsync(Guid boatId, Guid tourId, Guid ownerId);
     Task<boat_service?> GetBoatServiceForOwnerAsync(Guid boatId, Guid serviceId, Guid ownerId);
     Task DetachTourFromBoatAsync(tour entity, Guid boatId);

@@ -142,4 +142,25 @@ public class ServiceScopedToTourTests
         daGui.Should().NotBeNull();
         daGui!.service_type.Should().Be("dinner");
     }
+
+    [Fact]
+    public async Task TaoMoi_FishingKhongCoPhongCombo_VanGanTourVaoThuyen()
+    {
+        var (service, _, cabins, combos, _) = Build();
+
+        var ketQua = await service.RegisterAsync(
+            new DynamicServiceRequest
+            {
+                boatId = ThuyenId,
+                name = "Cau ca dem",
+                basePrice = 1_000_000m,
+                serviceType = "fishing",
+            },
+            ChuThuyen,
+            CancellationToken.None);
+
+        cabins.Should().BeEmpty();
+        combos.Should().ContainSingle(c =>
+            c.tour_id == ketQua.id && c.boat_id == ThuyenId && c.name == "Cau ca dem");
+    }
 }
