@@ -23,6 +23,12 @@ public interface IBookingRepository
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct);
 
     /// <summary>
+    /// Execution strategy của EF. Khi bật retry, mọi transaction tự mở đều phải
+    /// chạy bên trong strategy này, nếu không EF ném lỗi ngay khi BeginTransaction.
+    /// </summary>
+    IExecutionStrategy CreateExecutionStrategy();
+
+    /// <summary>
     /// Khoá dòng lịch trình (SELECT ... FOR UPDATE) để hai request cùng một chuyến
     /// phải xếp hàng. Chuyến khác nhau vẫn chạy song song.
     /// </summary>

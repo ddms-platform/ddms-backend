@@ -77,6 +77,15 @@ public class BookingRepository : IBookingRepository
         await _db.Database.BeginTransactionAsync(ct);
 
     /// <summary>
+    /// Program.cs bật EnableRetryOnFailure, nên mở transaction thẳng bằng
+    /// BeginTransaction sẽ bị MySqlRetryingExecutionStrategy chặn. Cả khối
+    /// begin → commit phải chạy qua execution strategy để nó coi đó là một
+    /// đơn vị có thể thử lại.
+    /// </summary>
+    public IExecutionStrategy CreateExecutionStrategy() =>
+        _db.Database.CreateExecutionStrategy();
+
+    /// <summary>
     /// FOR UPDATE giữ dòng lịch trình tới hết giao dịch, nên request thứ hai phải
     /// chờ request thứ nhất ghi xong rồi mới đếm — không còn cửa sổ để cả hai
     /// cùng thấy "vẫn còn chỗ".

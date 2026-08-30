@@ -7,6 +7,8 @@ using DDMS.Backend.Models.DTOs.Booking;
 using DDMS.Backend.Models.Entities;
 using DDMS.Backend.Repositories.Interfaces;
 using DDMS.Backend.Services.Interfaces;
+// Cho extension IExecutionStrategy.ExecuteAsync(Func<CancellationToken, Task<T>>)
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace DDMS.Backend.Services.Implementations;
@@ -246,39 +248,48 @@ public class BookingService : IBookingService
         // Kiểm tra rồi mới ghi, không có gì chặn ở giữa, thì hai khách đặt chỗ cuối cùng
         // cùng lúc đều qua cửa. Khoá dòng lịch trình trước khi đếm để hai request
         // cùng một chuyến xếp hàng; chuyến khác nhau vẫn chạy song song.
-        await using var tx = await _repo.BeginTransactionAsync(ct);
-        await _repo.LockScheduleAsync(schedule.id, ct);
-
-        await EnsureInventoryAvailableAsync(schedule, request, party, ct);
-
-        var quote = await QuoteAsync(request, ct);
-
-        var now = DateTime.UtcNow;
-        var booking = new booking
+        //
+        // Program.cs bật EnableRetryOnFailure, mà MySqlRetryingExecutionStrategy
+        // không cho tự mở transaction: phải chạy cả khối begin → commit bên trong
+        // execution strategy để nó coi đó là một đơn vị có thể thử lại.
+        var strategy = _repo.CreateExecutionStrategy();
+        var booking = await strategy.ExecuteAsync(async token =>
         {
-            id = Guid.NewGuid(),
-            user_id = userId,
-            schedule_id = request.ScheduleId,
-            promotion_id = quote.PromotionId,
-            num_people = party.Total,
-            num_adults = party.Adults,
-            num_children = party.Children,
-            num_infants = party.Infants,
-            base_price = quote.BasePrice,
-            cabin_price = quote.CabinPrice,
-            service_price = quote.ServicePrice,
-            discount_amount = quote.DiscountAmount,
-            total_price = quote.TotalPrice,
-            status = BookingStatuses.Pending,
-            notes = request.Notes,
-            created_at = now,
-            updated_at = now
-        };
-        _repo.AddBooking(booking);
-        AddLines(booking, quote, now);
+            await using var tx = await _repo.BeginTransactionAsync(token);
+            await _repo.LockScheduleAsync(schedule.id, token);
 
-        await _repo.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+            await EnsureInventoryAvailableAsync(schedule, request, party, token);
+
+            var quote = await QuoteAsync(request, token);
+
+            var now = DateTime.UtcNow;
+            var entity = new booking
+            {
+                id = Guid.NewGuid(),
+                user_id = userId,
+                schedule_id = request.ScheduleId,
+                promotion_id = quote.PromotionId,
+                num_people = party.Total,
+                num_adults = party.Adults,
+                num_children = party.Children,
+                num_infants = party.Infants,
+                base_price = quote.BasePrice,
+                cabin_price = quote.CabinPrice,
+                service_price = quote.ServicePrice,
+                discount_amount = quote.DiscountAmount,
+                total_price = quote.TotalPrice,
+                status = BookingStatuses.Pending,
+                notes = request.Notes,
+                created_at = now,
+                updated_at = now
+            };
+            _repo.AddBooking(entity);
+            AddLines(entity, quote, now);
+
+            await _repo.SaveChangesAsync(token);
+            await tx.CommitAsync(token);
+            return entity;
+        }, ct);
 
         return new BookingResponse
         {
@@ -322,39 +333,47 @@ public class BookingService : IBookingService
         // Kiểm tra rồi mới ghi, không có gì chặn ở giữa, thì hai khách đặt chỗ cuối cùng
         // cùng lúc đều qua cửa. Khoá dòng lịch trình trước khi đếm để hai request
         // cùng một chuyến xếp hàng; chuyến khác nhau vẫn chạy song song.
-        await using var tx = await _repo.BeginTransactionAsync(ct);
-        await _repo.LockScheduleAsync(schedule.id, ct);
-
-        await EnsureInventoryAvailableAsync(schedule, request, party, ct);
-
-        var quote = await QuoteAsync(request, ct);
-
-        var booking = new booking
+        //
+        // Giống CreateAsync: transaction phải nằm trong execution strategy vì
+        // EnableRetryOnFailure đang bật.
+        var strategy = _repo.CreateExecutionStrategy();
+        var booking = await strategy.ExecuteAsync(async token =>
         {
-            id = Guid.NewGuid(),
-            user_id = userId,
-            schedule_id = request.ScheduleId,
-            promotion_id = quote.PromotionId,
-            num_people = party.Total,
-            num_adults = party.Adults,
-            num_children = party.Children,
-            num_infants = party.Infants,
-            base_price = quote.BasePrice,
-            cabin_price = quote.CabinPrice,
-            service_price = quote.ServicePrice,
-            discount_amount = quote.DiscountAmount,
-            total_price = quote.TotalPrice,
-            status = BookingStatuses.Holding,
-            hold_expired_at = holdExpiredAt,
-            notes = request.Notes,
-            created_at = now,
-            updated_at = now
-        };
-        _repo.AddBooking(booking);
-        AddLines(booking, quote, now);
+            await using var tx = await _repo.BeginTransactionAsync(token);
+            await _repo.LockScheduleAsync(schedule.id, token);
 
-        await _repo.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+            await EnsureInventoryAvailableAsync(schedule, request, party, token);
+
+            var quote = await QuoteAsync(request, token);
+
+            var entity = new booking
+            {
+                id = Guid.NewGuid(),
+                user_id = userId,
+                schedule_id = request.ScheduleId,
+                promotion_id = quote.PromotionId,
+                num_people = party.Total,
+                num_adults = party.Adults,
+                num_children = party.Children,
+                num_infants = party.Infants,
+                base_price = quote.BasePrice,
+                cabin_price = quote.CabinPrice,
+                service_price = quote.ServicePrice,
+                discount_amount = quote.DiscountAmount,
+                total_price = quote.TotalPrice,
+                status = BookingStatuses.Holding,
+                hold_expired_at = holdExpiredAt,
+                notes = request.Notes,
+                created_at = now,
+                updated_at = now
+            };
+            _repo.AddBooking(entity);
+            AddLines(entity, quote, now);
+
+            await _repo.SaveChangesAsync(token);
+            await tx.CommitAsync(token);
+            return entity;
+        }, ct);
 
         return new BookingResponse
         {

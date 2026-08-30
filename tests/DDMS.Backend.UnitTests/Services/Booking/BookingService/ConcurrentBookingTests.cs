@@ -58,6 +58,8 @@ public class ConcurrentBookingTests
             .Callback(() => _calls.Add("rollback")).Returns(Task.CompletedTask);
         tx.Setup(t => t.DisposeAsync()).Returns(ValueTask.CompletedTask);
 
+        _bookingRepo.Setup(r => r.CreateExecutionStrategy())
+            .Callback(() => _calls.Add("strategy")).Returns(new ImmediateExecutionStrategy());
         _bookingRepo.Setup(r => r.BeginTransactionAsync(It.IsAny<CancellationToken>()))
             .Callback(() => _calls.Add("begin")).ReturnsAsync(tx.Object);
         _bookingRepo.Setup(r => r.LockScheduleAsync(TestGuids.ScheduleId, It.IsAny<CancellationToken>()))
@@ -79,7 +81,9 @@ public class ConcurrentBookingTests
         await CreateSut().CreateAsync(TestGuids.UserId, request, CancellationToken.None);
 
         // Đếm sau khi khoá thì con số đếm được mới còn đúng lúc ghi.
-        _calls.Should().ContainInOrder("begin", "lock", "count", "save", "commit");
+        // "strategy" đứng trước "begin": EnableRetryOnFailure đang bật nên transaction
+        // tự mở phải nằm trong execution strategy, không thì EF ném lỗi ngay.
+        _calls.Should().ContainInOrder("strategy", "begin", "lock", "count", "save", "commit");
     }
 
     [Fact]
@@ -90,7 +94,7 @@ public class ConcurrentBookingTests
 
         await CreateSut().HoldAsync(TestGuids.UserId, request, CancellationToken.None);
 
-        _calls.Should().ContainInOrder("begin", "lock", "count", "save", "commit");
+        _calls.Should().ContainInOrder("strategy", "begin", "lock", "count", "save", "commit");
     }
 
     [Fact]
