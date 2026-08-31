@@ -1,4 +1,5 @@
 using DDMS.Backend.Repositories.Interfaces;
+using DDMS.Backend.Shared.TestUtilities;
 using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 
@@ -25,6 +26,7 @@ public static class BookingRepositoryMockFactory
         tx.Setup(t => t.RollbackAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         tx.Setup(t => t.DisposeAsync()).Returns(ValueTask.CompletedTask);
         mock.Setup(r => r.BeginTransactionAsync(It.IsAny<CancellationToken>())).ReturnsAsync(tx.Object);
+        mock.Setup(r => r.CreateExecutionStrategy()).Returns(new ImmediateExecutionStrategy());
         mock.Setup(r => r.LockScheduleAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return mock;
