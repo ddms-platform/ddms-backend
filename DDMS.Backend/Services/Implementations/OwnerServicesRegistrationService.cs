@@ -292,6 +292,16 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
             await _repo.RemoveCombosByTourIdAsync(existingTour.id, ct);
             AddCombos(request, existingTour.id, now);
         }
+
+        // Nếu owner xoá sạch combos và tour cũng không còn rooms thì
+        // phải cắm lại một dòng boat_service ẩn, nếu không tour bị mất
+        // link với con thuyền (biến mất khỏi lịch/schedules).
+        var comboSynced = request.combos != null;
+        var hasRooms = request.rooms != null && request.rooms.Count > 0;
+        if (comboSynced && !hasRooms)
+        {
+            EnsureTourLinkedToBoat(request, existingTour.id, now);
+        }
     }
 
     private static bool IsReviewedTour(string? status)
