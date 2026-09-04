@@ -13,6 +13,8 @@ public class DynamicServiceRequest
 
     /// <summary>% giá tour trẻ dưới 5 tuổi phải trả. Null = giữ nguyên giá trị hiện có.</summary>
     public decimal? infantPricePercent { get; set; }
+    /// <summary>Số khách tối đa cho tour. Null = giữ nguyên giá trị hiện có.</summary>
+    public int? maxGuests { get; set; }
     public string? description { get; set; }
     public string? route { get; set; }
     public List<ServiceRoute>? routes { get; set; }

@@ -6,6 +6,9 @@ public class CreateTourRequest
     public decimal price { get; set; }
     public string? description { get; set; }
     public int durationMinutes { get; set; }
+
+    /// <summary>Số khách tối đa cho tour. Null = chưa khai.</summary>
+    public int? maxGuests { get; set; }
     public string? location { get; set; }
     public string cancelPolicy { get; set; } = "free";
     public int? cancelHours { get; set; }

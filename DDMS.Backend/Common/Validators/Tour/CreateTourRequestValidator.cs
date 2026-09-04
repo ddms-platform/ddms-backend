@@ -21,6 +21,10 @@ public class CreateTourRequestValidator : AbstractValidator<CreateTourRequest>
         RuleFor(x => x.duration_minutes)
             .GreaterThan(0).WithMessage("Duration must be greater than 0");
 
+        RuleFor(x => x.max_guests)
+            .GreaterThan(0).WithMessage("Max guests must be greater than 0")
+            .When(x => x.max_guests.HasValue);
+
         RuleFor(x => x.status)
             .NotEmpty()
             .Must(s => ValidStatus.Contains(s?.Trim().ToLowerInvariant() ?? string.Empty))

@@ -9,6 +9,8 @@ public class TourBuilder
     private string _name = "Tour Ngắm Hoàng Hôn Sông Hàn";
     private decimal _price = 300_000m;
     private int _durationMinutes = 120;
+    // Mặc định null, đúng như tour cũ chưa khai số khách tối đa.
+    private int? _maxGuests;
     private string _location = "Đà Nẵng";
     private string _status = "active";
     private string _cancelPolicy = "free";
@@ -22,6 +24,7 @@ public class TourBuilder
     public TourBuilder WithName(string name) { _name = name; return this; }
     public TourBuilder WithPrice(decimal price) { _price = price; return this; }
     public TourBuilder WithStatus(string status) { _status = status; return this; }
+    public TourBuilder WithMaxGuests(int? maxGuests) { _maxGuests = maxGuests; return this; }
     public TourBuilder WithImages(params tour_image[] images) { _images.Clear(); _images.AddRange(images); return this; }
 
     public tour Build()
@@ -32,6 +35,7 @@ public class TourBuilder
             name = _name,
             price = _price,
             duration_minutes = _durationMinutes,
+            max_guests = _maxGuests,
             location = _location,
             status = _status,
             cancel_policy = _cancelPolicy,

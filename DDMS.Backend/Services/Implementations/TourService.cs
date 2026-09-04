@@ -32,6 +32,7 @@ public class TourService : ITourService
             infant_price_percent = request.infant_price_percent ?? PassengerTiers.DefaultInfantPricePercent,
             description = request.description,
             duration_minutes = request.duration_minutes,
+            max_guests = request.max_guests,
             location = request.location,
             service_type = request.service_type,
             status = NormalizeStatus(request.status),
@@ -72,6 +73,7 @@ public class TourService : ITourService
         currentTour.price = request.price;
         currentTour.description = request.description;
         currentTour.duration_minutes = request.duration_minutes;
+        currentTour.max_guests = request.max_guests;
         currentTour.location = request.location;
         currentTour.status = newStatus;
         currentTour.cancel_policy = request.cancel_policy;
@@ -175,6 +177,7 @@ public class TourService : ITourService
             description = source.description,
             price = source.price,
             duration_minutes = source.duration_minutes,
+            max_guests = source.max_guests,
             location = source.location,
             avg_rating = source.avg_rating,
             total_reviews = source.total_reviews,

@@ -63,7 +63,7 @@ public class OwnerToursService : IOwnerToursService
     public async Task<TourItemResponse> CreateAsync(Guid userId, CreateTourRequest request)
     {
         await EnsureOwnerCanManageToursAsync(userId);
-        ValidateCoreFields(request.name, request.price, request.durationMinutes);
+        ValidateCoreFields(request.name, request.price, request.durationMinutes, request.maxGuests);
         var (cancelPolicy, cancelHours) = ValidateCancelPolicy(request.cancelPolicy, request.cancelHours);
 
         var entity = new tour
@@ -73,6 +73,7 @@ public class OwnerToursService : IOwnerToursService
             price = request.price,
             description = NormalizeOptional(request.description),
             duration_minutes = request.durationMinutes,
+            max_guests = request.maxGuests,
             location = NormalizeOptional(request.location),
             status = TourConstants.Statuses.Pending,
             cancel_policy = cancelPolicy,
@@ -91,7 +92,7 @@ public class OwnerToursService : IOwnerToursService
     public async Task<TourItemResponse> UpdateAsync(Guid id, Guid userId, UpdateTourRequest request)
     {
         await EnsureOwnerCanManageToursAsync(userId);
-        ValidateCoreFields(request.name, request.price, request.durationMinutes);
+        ValidateCoreFields(request.name, request.price, request.durationMinutes, request.maxGuests);
 
         var normalizedStatus = request.status.Trim().ToLowerInvariant();
         if (!TourConstants.Statuses.Allowed.Contains(normalizedStatus))
@@ -114,6 +115,7 @@ public class OwnerToursService : IOwnerToursService
         entity.price = request.price;
         entity.description = NormalizeOptional(request.description);
         entity.duration_minutes = request.durationMinutes;
+        entity.max_guests = request.maxGuests;
         entity.location = NormalizeOptional(request.location);
         entity.status = normalizedStatus;
         entity.cancel_policy = cancelPolicy;
@@ -137,7 +139,7 @@ public class OwnerToursService : IOwnerToursService
         await _tourRepository.UpdateAsync(entity);
     }
 
-    private static void ValidateCoreFields(string name, decimal price, int durationMinutes)
+    private static void ValidateCoreFields(string name, decimal price, int durationMinutes, int? maxGuests)
     {
         var errors = new Dictionary<string, List<string>>();
 
@@ -154,6 +156,11 @@ public class OwnerToursService : IOwnerToursService
         if (durationMinutes <= 0)
         {
             errors["durationMinutes"] = [ErrorCode.Messages.TourDurationInvalid];
+        }
+
+        if (maxGuests is <= 0)
+        {
+            errors["maxGuests"] = [ErrorCode.Messages.TourMaxGuestsInvalid];
         }
 
         if (errors.Count > 0)
@@ -207,6 +214,7 @@ public class OwnerToursService : IOwnerToursService
             price = entity.price,
             description = entity.description,
             durationMinutes = entity.duration_minutes,
+            maxGuests = entity.max_guests,
             location = entity.location,
             status = entity.status,
             cancelPolicy = entity.cancel_policy,

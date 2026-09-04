@@ -81,6 +81,11 @@ public class PublicTourCatalogService : IPublicTourCatalogService
             .Select(s => s.boat?.owner_id)
             .FirstOrDefault(ownerId => ownerId.HasValue);
 
+        // Ưu tiên thuyền của lịch còn hiệu lực; hết lịch tương lai thì vẫn lấy
+        // thuyền bất kỳ để trang chi tiết không hiện "N/A".
+        var scheduleBoat = activeSchedules.Select(s => s.boat).FirstOrDefault(b => b != null)
+            ?? entity.tour_schedules?.Select(s => s.boat).FirstOrDefault(b => b != null);
+
         return new TourItemResponse
         {
             id = entity.id,
@@ -90,6 +95,9 @@ public class PublicTourCatalogService : IPublicTourCatalogService
             infantPricePercent = entity.infant_price_percent,
             description = entity.description,
             durationMinutes = entity.duration_minutes,
+            maxGuests = entity.max_guests,
+            boatId = scheduleBoat?.id,
+            boatName = scheduleBoat?.name,
             location = entity.location,
             mapUrl = entity.map_url,
             status = entity.status,

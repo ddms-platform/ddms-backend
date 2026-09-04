@@ -27,6 +27,7 @@
   <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Số giờ hủy là bắt buộc và phải &gt;= 0 khi chính sách là partial hoặc no_refund</value></data>
   <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Chính sách hủy phải là free, partial hoặc no_refund</value></data>
   <data name="TourDurationInvalid" xml:space="preserve"><value>Thời lượng tour (phút) phải lớn hơn 0</value></data>
+  <data name="TourMaxGuestsInvalid" xml:space="preserve"><value>Số khách tối đa phải lớn hơn 0</value></data>
   <data name="TourImageFileRequired" xml:space="preserve"><value>File ảnh là bắt buộc</value></data>
   <data name="TourImageSortOrderInvalid" xml:space="preserve"><value>Thứ tự ảnh phải lớn hơn hoặc bằng 0</value></data>
   <data name="TourImageTourNotFound" xml:space="preserve"><value>Không tìm thấy tour hoặc tour không thuộc về bạn</value></data>
