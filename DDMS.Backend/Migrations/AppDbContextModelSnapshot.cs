@@ -2708,6 +2708,61 @@ namespace DDMS.Backend.Migrations
                     b.ToTable("wishlists");
                 });
 
+            modelBuilder.Entity("DDMS.Backend.Models.Entities.service_change_request", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("boat_id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("created_at")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(6)
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                    b.Property<Guid>("owner_id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("payload_json")
+                        .IsRequired()
+                        .HasColumnType("json");
+
+                    b.Property<string>("rejection_reason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValueSql("'pending'");
+
+                    b.Property<Guid>("tour_id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("updated_at")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(6)
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("updated_at"));
+
+                    b.HasKey("id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "boat_id" }, "idx_service_change_boat");
+
+                    b.HasIndex(new[] { "status" }, "idx_service_change_status");
+
+                    b.HasIndex(new[] { "tour_id" }, "idx_service_change_tour");
+
+                    b.ToTable("service_change_requests");
+                });
+
             modelBuilder.Entity("DDMS.Backend.Models.Entities.ai_conversation", b =>
                 {
                     b.HasOne("DDMS.Backend.Models.Entities.user", "user")
@@ -3320,6 +3375,27 @@ namespace DDMS.Backend.Migrations
                     b.Navigation("tour");
 
                     b.Navigation("user");
+                });
+
+            modelBuilder.Entity("DDMS.Backend.Models.Entities.service_change_request", b =>
+                {
+                    b.HasOne("DDMS.Backend.Models.Entities.boat", "boat")
+                        .WithMany()
+                        .HasForeignKey("boat_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_change_boat");
+
+                    b.HasOne("DDMS.Backend.Models.Entities.tour", "tour")
+                        .WithMany()
+                        .HasForeignKey("tour_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_change_tour");
+
+                    b.Navigation("boat");
+
+                    b.Navigation("tour");
                 });
 
             modelBuilder.Entity("DDMS.Backend.Models.Entities.ai_conversation", b =>
