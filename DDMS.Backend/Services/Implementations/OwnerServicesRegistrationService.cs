@@ -1,4 +1,5 @@
-﻿using DDMS.Backend.Common.Constants;
+﻿using System.Text.Json;
+using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.OwnerServices;
 using DDMS.Backend.Models.DTOs.Tour;
@@ -10,6 +11,12 @@ namespace DDMS.Backend.Services.Implementations;
 
 public class OwnerServicesRegistrationService : IOwnerServicesRegistrationService
 {
+    private static readonly JsonSerializerOptions PayloadJson = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly ITourService _tourService;
     private readonly IOwnerServicesRegistrationRepository _repo;
     private readonly IBoatRepository _boatRepo;
@@ -33,9 +40,6 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
     public async Task<TourResponse> RegisterAsync(
         DynamicServiceRequest request, Guid userId, CancellationToken ct)
     {
-        // Thuyền phải thuộc về chính người gọi. Trước đây hàm chỉ đọc owner_id
-        // TỪ CON THUYỀN rồi dùng luôn, không đối chiếu với ai đang gọi — nên chủ
-        // thuyền A đăng ký được tour trên thuyền của chủ thuyền B.
         var boat = request.boatId != Guid.Empty
             ? await _boatRepo.GetByIdAsync(request.boatId)
             : null;
@@ -49,6 +53,17 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
 
         var ownerId = boat.owner_id;
 
+        if (request.maxGuests is <= 0)
+        {
+            throw new AppException(
+                ErrorCode.TourValidationFailed,
+                ErrorCode.Messages.TourValidationFailed,
+                new Dictionary<string, List<string>>
+                {
+                    ["maxGuests"] = [ErrorCode.Messages.TourMaxGuestsInvalid]
+                });
+        }
+
         var docOverview = await _docService.GetOverviewByUserIdAsync(userId, ct);
         if (docOverview.IsLocked)
         {
@@ -61,121 +76,240 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         if (request.id.HasValue && request.id.Value != Guid.Empty)
         {
             existingTour = await _repo.FindTourByIdAsync(request.id.Value, ct);
+            if (existingTour == null)
+            {
+                throw new NotFoundException(
+                    ErrorCode.TourNotFound,
+                    "Không tìm thấy dịch vụ/tour để cập nhật. Không tạo tour mới.");
+            }
+
+            if (existingTour.created_by.HasValue && ownerId.HasValue
+                && existingTour.created_by.Value != ownerId.Value)
+            {
+                throw new AppException(
+                    ErrorCode.Forbidden,
+                    "Dịch vụ này không thuộc quyền quản lý của bạn.");
+            }
         }
 
         var now = DateTime.UtcNow;
-        TourResponse tourResponse;
+
+        if (existingTour != null && IsReviewedTour(existingTour.status))
+        {
+            var change = await QueueServiceChangeAsync(
+                existingTour, request, boat.id, ownerId ?? userId, now, ct);
+            await _repo.SaveChangesAsync(ct);
+            return MapTour(existingTour, ServiceApprovalKinds.ServiceChange, change.id);
+        }
 
         if (existingTour != null)
         {
-            // Cập nhật tour hiện tại, không tạo tour mới
-            existingTour.name = request.name.Trim();
-            existingTour.price = request.basePrice;
-            if (request.childPricePercent is not null)
-                existingTour.child_price_percent = request.childPricePercent.Value;
-            if (request.infantPricePercent is not null)
-                existingTour.infant_price_percent = request.infantPricePercent.Value;
-            existingTour.description = BuildDescription(request);
-            existingTour.service_type = NormalizeServiceType(request.serviceType);
-            existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
-            existingTour.rejection_reason = null;
-            existingTour.updated_at = now;
-            if (existingTour.created_by == null && ownerId.HasValue)
-            {
-                existingTour.created_by = ownerId.Value;
-            }
-
-            // Đồng bộ lại FAQs
-            await _repo.RemoveFaqsByTourIdAsync(existingTour.id, ct);
-            AddFaqs(request, existingTour.id, now);
-
-            // Đồng bộ lại Routes
-            await _repo.RemoveRoutesByTourIdAsync(existingTour.id, ct);
-            AddRoutes(request, existingTour.id, now);
-
-            if (request.imageUrls != null)
-            {
-                await _repo.RemoveImagesByTourIdAsync(existingTour.id, ct);
-                AddTourImages(request, existingTour.id, now);
-            }
-
-            // Đồng bộ Cabins / Combos của RIÊNG tour này.
-            // Trước đây xoá theo boatId — nghĩa là sửa một dịch vụ thì mọi tour
-            // khác chạy trên cùng con thuyền mất sạch hạng phòng và combo.
-            if (request.rooms != null && request.rooms.Count > 0)
-            {
-                await _repo.RemoveCabinsByTourIdAsync(existingTour.id, ct);
-                AddCabins(request, existingTour.id, now);
-            }
-            if (request.combos != null)
-            {
-                await _repo.RemoveCombosByTourIdAsync(existingTour.id, ct);
-                AddCombos(request, existingTour.id, now);
-            }
-
-            // Nếu vừa xoá sạch combos/rooms thì phải cắm lại một dòng
-            // boat_service ẩn, nếu không tour bị mất link với con thuyền.
-            var comboSynced = request.combos != null;
-            var roomSynced = request.rooms != null && request.rooms.Count > 0;
-            if (comboSynced && !roomSynced)
-            {
-                EnsureTourLinkedToBoat(request, existingTour.id, now);
-            }
-
+            await ApplyPayloadAsync(existingTour, request, now, resetToPending: true, ct);
             await _repo.SaveChangesAsync(ct);
-            tourResponse = new TourResponse
-            {
-                id = existingTour.id,
-                name = existingTour.name,
-                description = existingTour.description,
-                price = existingTour.price,
-                duration_minutes = existingTour.duration_minutes,
-                location = existingTour.location,
-                avg_rating = existingTour.avg_rating,
-                total_reviews = existingTour.total_reviews,
-                status = existingTour.status,
-                cancel_policy = existingTour.cancel_policy,
-                cancel_hours = existingTour.cancel_hours
-            };
+            await TrySendConfirmationEmailAsync(request, ct);
+            return MapTour(existingTour, ServiceApprovalKinds.TourResubmit, null);
         }
-        else
+
+        var createTourReq = new CreateTourRequest
         {
-            // Tạo mới tour
-            var createTourReq = new CreateTourRequest
-            {
-                name = request.name,
-                price = request.basePrice,
-                child_price_percent = request.childPricePercent,
-                infant_price_percent = request.infantPricePercent,
-                description = BuildDescription(request),
-                duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
-                location = OwnerServiceRegistrationDefaults.TourLocation,
-                service_type = NormalizeServiceType(request.serviceType),
-                status = OwnerServiceRegistrationDefaults.TourPendingStatus,
-                cancel_policy = OwnerServiceRegistrationDefaults.CancelPolicy,
-                created_by = ownerId
-            };
+            name = request.name,
+            price = request.basePrice,
+            child_price_percent = request.childPricePercent,
+            infant_price_percent = request.infantPricePercent,
+            description = BuildDescription(request),
+            duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
+            max_guests = request.maxGuests,
+            location = OwnerServiceRegistrationDefaults.TourLocation,
+            service_type = NormalizeServiceType(request.serviceType),
+            status = OwnerServiceRegistrationDefaults.TourPendingStatus,
+            cancel_policy = OwnerServiceRegistrationDefaults.CancelPolicy,
+            created_by = ownerId
+        };
 
-            var tour = await _tourService.CreateAsync(createTourReq, ct);
-            AddCabins(request, tour.id, now);
-            AddCombos(request, tour.id, now);
-            EnsureTourLinkedToBoat(request, tour.id, now);
-            AddFaqs(request, tour.id, now);
-            AddRoutes(request, tour.id, now);
-            AddTourImages(request, tour.id, now);
+        var tour = await _tourService.CreateAsync(createTourReq, ct);
+        AddCabins(request, tour.id, now);
+        AddCombos(request, tour.id, now);
+        EnsureTourLinkedToBoat(request, tour.id, now);
+        AddFaqs(request, tour.id, now);
+        AddRoutes(request, tour.id, now);
+        AddTourImages(request, tour.id, now);
 
-            await _repo.SaveChangesAsync(ct);
-            tourResponse = tour;
-        }
-
+        await _repo.SaveChangesAsync(ct);
         await TrySendConfirmationEmailAsync(request, ct);
-        return tourResponse;
+        tour.approvalKind = ServiceApprovalKinds.NewTour;
+        return tour;
     }
 
-    /// <summary>
-    /// Chỉ nhận các loại dịch vụ hệ thống biết. Trước đây giá trị này bị vứt
-    /// hoàn toàn nên mở lại form là dịch vụ nào cũng thành "cruise".
-    /// </summary>
+    public async Task<List<ServiceChangeRequestResponse>> ListChangesAsync(
+        string? status, CancellationToken ct)
+    {
+        var items = await _repo.ListChangesAsync(status, ct);
+        return items.Select(MapChange).ToList();
+    }
+
+    public async Task<ServiceChangeRequestResponse> ApproveChangeAsync(
+        Guid changeId, CancellationToken ct)
+    {
+        var change = await _repo.FindChangeByIdAsync(changeId, ct)
+            ?? throw new NotFoundException(
+                ErrorCode.ServiceChangeNotFound,
+                ErrorCode.Messages.ServiceChangeNotFound);
+
+        if (!string.Equals(change.status, ServiceChangeStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(
+                ErrorCode.ServiceChangeAlreadyProcessed,
+                ErrorCode.Messages.ServiceChangeAlreadyProcessed);
+        }
+
+        var tour = change.tour ?? await _repo.FindTourByIdAsync(change.tour_id, ct)
+            ?? throw new NotFoundException(ErrorCode.TourNotFound, ErrorCode.Messages.TourNotFound);
+
+        var payload = DeserializePayload(change.payload_json);
+        payload.boatId = change.boat_id;
+        payload.id = tour.id;
+
+        await ApplyPayloadAsync(tour, payload, DateTime.UtcNow, resetToPending: false, ct);
+        change.status = ServiceChangeStatuses.Approved;
+        change.rejection_reason = null;
+        change.updated_at = DateTime.UtcNow;
+        await _repo.SaveChangesAsync(ct);
+
+        return MapChange(change);
+    }
+
+    public async Task<ServiceChangeRequestResponse> RejectChangeAsync(
+        Guid changeId, string reason, CancellationToken ct)
+    {
+        var trimmed = reason?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            throw new AppException(
+                ErrorCode.TourValidationFailed,
+                ErrorCode.Messages.ServiceChangeRejectReasonRequired);
+        }
+
+        var change = await _repo.FindChangeByIdAsync(changeId, ct)
+            ?? throw new NotFoundException(
+                ErrorCode.ServiceChangeNotFound,
+                ErrorCode.Messages.ServiceChangeNotFound);
+
+        if (!string.Equals(change.status, ServiceChangeStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(
+                ErrorCode.ServiceChangeAlreadyProcessed,
+                ErrorCode.Messages.ServiceChangeAlreadyProcessed);
+        }
+
+        change.status = ServiceChangeStatuses.Rejected;
+        change.rejection_reason = trimmed;
+        change.updated_at = DateTime.UtcNow;
+        await _repo.SaveChangesAsync(ct);
+
+        return MapChange(change);
+    }
+
+    private async Task<service_change_request> QueueServiceChangeAsync(
+        tour existingTour,
+        DynamicServiceRequest request,
+        Guid boatId,
+        Guid ownerId,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(request, PayloadJson);
+        var pending = await _repo.FindPendingChangeByTourIdAsync(existingTour.id, ct);
+        if (pending != null)
+        {
+            pending.payload_json = json;
+            pending.boat_id = boatId;
+            pending.owner_id = ownerId;
+            pending.updated_at = now;
+            pending.rejection_reason = null;
+            return pending;
+        }
+
+        var created = new service_change_request
+        {
+            id = Guid.NewGuid(),
+            tour_id = existingTour.id,
+            boat_id = boatId,
+            owner_id = ownerId,
+            payload_json = json,
+            status = ServiceChangeStatuses.Pending,
+            created_at = now,
+            updated_at = now,
+        };
+        _repo.AddChangeRequest(created);
+        return created;
+    }
+
+    private async Task ApplyPayloadAsync(
+        tour existingTour,
+        DynamicServiceRequest request,
+        DateTime now,
+        bool resetToPending,
+        CancellationToken ct)
+    {
+        existingTour.name = request.name.Trim();
+        existingTour.price = request.basePrice;
+        if (request.childPricePercent is not null)
+            existingTour.child_price_percent = request.childPricePercent.Value;
+        if (request.infantPricePercent is not null)
+            existingTour.infant_price_percent = request.infantPricePercent.Value;
+        if (request.maxGuests is not null)
+            existingTour.max_guests = request.maxGuests.Value;
+        existingTour.description = BuildDescription(request);
+        existingTour.service_type = NormalizeServiceType(request.serviceType);
+        existingTour.updated_at = now;
+
+        if (resetToPending)
+        {
+            existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus;
+            existingTour.rejection_reason = null;
+        }
+
+        await _repo.RemoveFaqsByTourIdAsync(existingTour.id, ct);
+        AddFaqs(request, existingTour.id, now);
+
+        await _repo.RemoveRoutesByTourIdAsync(existingTour.id, ct);
+        AddRoutes(request, existingTour.id, now);
+
+        if (request.imageUrls != null)
+        {
+            await _repo.RemoveImagesByTourIdAsync(existingTour.id, ct);
+            AddTourImages(request, existingTour.id, now);
+        }
+
+        if (request.rooms != null)
+        {
+            await _repo.RemoveCabinsByTourIdAsync(existingTour.id, ct);
+            AddCabins(request, existingTour.id, now);
+        }
+
+        if (request.combos != null)
+        {
+            await _repo.RemoveCombosByTourIdAsync(existingTour.id, ct);
+            AddCombos(request, existingTour.id, now);
+        }
+
+        // Nếu owner xoá sạch combos và tour cũng không còn rooms thì
+        // phải cắm lại một dòng boat_service ẩn, nếu không tour bị mất
+        // link với con thuyền (biến mất khỏi lịch/schedules).
+        var comboSynced = request.combos != null;
+        var hasRooms = request.rooms != null && request.rooms.Count > 0;
+        if (comboSynced && !hasRooms)
+        {
+            EnsureTourLinkedToBoat(request, existingTour.id, now);
+        }
+    }
+
+    private static bool IsReviewedTour(string? status)
+    {
+        var value = (status ?? string.Empty).Trim().ToLowerInvariant();
+        return value is TourConstants.Statuses.Active or TourConstants.Statuses.Inactive;
+    }
+
     private static string? NormalizeServiceType(string? raw)
     {
         var value = raw?.Trim().ToLowerInvariant();
@@ -185,9 +319,9 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
     private static string BuildDescription(DynamicServiceRequest r)
     {
         var s = r.description ?? string.Empty;
-        if (!string.IsNullOrEmpty(r.route))       s += $"\n| Lộ trình: {r.route}";
-        if (!string.IsNullOrEmpty(r.equipments))  s += $"\n| Dụng cụ: {r.equipments}";
-        if (r.pricePerDay.HasValue)               s += $"\n| Giá nguyên ngày: {r.pricePerDay} VNĐ";
+        if (!string.IsNullOrEmpty(r.route)) s += $"\n| Lộ trình: {r.route}";
+        if (!string.IsNullOrEmpty(r.equipments)) s += $"\n| Dụng cụ: {r.equipments}";
+        if (r.pricePerDay.HasValue) s += $"\n| Giá nguyên ngày: {r.pricePerDay} VNĐ";
         return s;
     }
 
@@ -195,6 +329,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
     {
         foreach (var r in req.rooms ?? Enumerable.Empty<ServiceRoom>())
         {
+            if (string.IsNullOrWhiteSpace(r.name)) continue;
             _repo.AddBoatCabin(new boat_cabin
             {
                 id = Guid.NewGuid(),
@@ -216,6 +351,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
     {
         foreach (var c in req.combos ?? Enumerable.Empty<ServiceCombo>())
         {
+            if (string.IsNullOrWhiteSpace(c.name)) continue;
             _repo.AddBoatService(new boat_service
             {
                 id = Guid.NewGuid(),
@@ -232,14 +368,10 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         }
     }
 
-    /// <summary>
-    /// Fishing/speedboat không gửi phòng/combo nên không có dòng gắn thuyền.
-    /// Không có dòng đó thì tour Live không hiện form sửa tàu lẫn dropdown lịch.
-    /// </summary>
     private void EnsureTourLinkedToBoat(DynamicServiceRequest req, Guid tourId, DateTime now)
     {
-        var hasRooms = req.rooms != null && req.rooms.Count > 0;
-        var hasCombos = req.combos != null && req.combos.Count > 0;
+        var hasRooms = req.rooms != null && req.rooms.Any(r => !string.IsNullOrWhiteSpace(r.name));
+        var hasCombos = req.combos != null && req.combos.Any(c => !string.IsNullOrWhiteSpace(c.name));
         if (hasRooms || hasCombos) return;
 
         _repo.AddBoatService(new boat_service
@@ -261,6 +393,11 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         var sort = 1;
         foreach (var f in req.faqs ?? Enumerable.Empty<ServiceFaq>())
         {
+            if (string.IsNullOrWhiteSpace(f.question) && string.IsNullOrWhiteSpace(f.answer))
+            {
+                continue;
+            }
+
             _repo.AddFaq(new faq
             {
                 id = Guid.NewGuid(),
@@ -280,10 +417,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         foreach (var rawUrl in req.imageUrls ?? Enumerable.Empty<string>())
         {
             var url = rawUrl?.Trim();
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(url)) continue;
 
             _repo.AddTourImage(new tour_image
             {
@@ -301,6 +435,13 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         var sort = 1;
         foreach (var r in req.routes ?? Enumerable.Empty<ServiceRoute>())
         {
+            if (string.IsNullOrWhiteSpace(r.name)
+                && string.IsNullOrWhiteSpace(r.startPoint)
+                && string.IsNullOrWhiteSpace(r.endPoint))
+            {
+                continue;
+            }
+
             _repo.AddRoute(new route
             {
                 id = Guid.NewGuid(),
@@ -331,7 +472,55 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
         }
         catch
         {
-            // best-effort: nuốt lỗi email, không fail request
+            // best-effort
         }
+    }
+
+    private static TourResponse MapTour(tour source, string approvalKind, Guid? changeRequestId)
+    {
+        return new TourResponse
+        {
+            id = source.id,
+            name = source.name,
+            description = source.description,
+            price = source.price,
+            duration_minutes = source.duration_minutes,
+            max_guests = source.max_guests,
+            location = source.location,
+            avg_rating = source.avg_rating,
+            total_reviews = source.total_reviews,
+            status = source.status,
+            cancel_policy = source.cancel_policy,
+            cancel_hours = source.cancel_hours,
+            approvalKind = approvalKind,
+            changeRequestId = changeRequestId,
+        };
+    }
+
+    private static ServiceChangeRequestResponse MapChange(service_change_request source)
+    {
+        return new ServiceChangeRequestResponse
+        {
+            id = source.id,
+            tourId = source.tour_id,
+            tourName = source.tour?.name ?? string.Empty,
+            tourStatus = source.tour?.status,
+            currentPrice = source.tour?.price ?? 0,
+            boatId = source.boat_id,
+            boatName = source.boat?.name,
+            ownerId = source.owner_id,
+            status = source.status,
+            rejectionReason = source.rejection_reason,
+            createdAt = source.created_at,
+            updatedAt = source.updated_at,
+            proposed = DeserializePayload(source.payload_json),
+        };
+    }
+
+    private static DynamicServiceRequest DeserializePayload(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new DynamicServiceRequest();
+        return JsonSerializer.Deserialize<DynamicServiceRequest>(json, PayloadJson)
+            ?? new DynamicServiceRequest();
     }
 }

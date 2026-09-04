@@ -7,10 +7,14 @@ public interface IOwnerServicesRegistrationService
 {
     /// <summary>
     /// Đăng ký hoặc cập nhật một dịch vụ (mỗi dịch vụ là một tour) trên thuyền.
+    /// Tour mới / chưa duyệt → hàng duyệt tour. Tour đang bán → phiếu sửa dịch vụ.
     /// </summary>
-    /// <param name="userId">
-    /// Người đang gọi. Thuyền phải thuộc về chính người này — trước đây hàm chỉ
-    /// lấy owner_id từ con thuyền nên ai biết boatId cũng đăng ký được.
-    /// </param>
     Task<TourResponse> RegisterAsync(DynamicServiceRequest request, Guid userId, CancellationToken ct);
+
+    Task<List<ServiceChangeRequestResponse>> ListChangesAsync(string? status, CancellationToken ct);
+
+    Task<ServiceChangeRequestResponse> ApproveChangeAsync(Guid changeId, CancellationToken ct);
+
+    Task<ServiceChangeRequestResponse> RejectChangeAsync(
+        Guid changeId, string reason, CancellationToken ct);
 }

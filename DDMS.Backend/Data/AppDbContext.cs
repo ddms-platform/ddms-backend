@@ -81,6 +81,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<tour> tours { get; set; }
 
+    public virtual DbSet<service_change_request> service_change_requests { get; set; }
+
     public virtual DbSet<tour_image> tour_images { get; set; }
 
     public virtual DbSet<tour_schedule> tour_schedules { get; set; }
@@ -1176,6 +1178,41 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.created_by)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_tours_created_by");
+        });
+
+        modelBuilder.Entity<service_change_request>(entity =>
+        {
+            entity.ToTable("service_change_requests");
+            entity.HasKey(e => e.id).HasName("PRIMARY");
+
+            entity.HasIndex(e => e.tour_id, "idx_service_change_tour");
+            entity.HasIndex(e => e.boat_id, "idx_service_change_boat");
+            entity.HasIndex(e => e.status, "idx_service_change_status");
+
+            entity.Property(e => e.payload_json).HasColumnType("json");
+            entity.Property(e => e.status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'pending'");
+            entity.Property(e => e.rejection_reason).HasColumnType("text");
+            entity.Property(e => e.created_at)
+                .HasMaxLength(6)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+            entity.Property(e => e.updated_at)
+                .HasMaxLength(6)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(d => d.tour)
+                .WithMany()
+                .HasForeignKey(d => d.tour_id)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_service_change_tour");
+
+            entity.HasOne(d => d.boat)
+                .WithMany()
+                .HasForeignKey(d => d.boat_id)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_service_change_boat");
         });
 
         modelBuilder.Entity<tour_image>(entity =>

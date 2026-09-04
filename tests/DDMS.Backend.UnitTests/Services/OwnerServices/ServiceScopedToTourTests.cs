@@ -1,3 +1,4 @@
+using DDMS.Backend.Common.Exceptions;
 using DDMS.Backend.Models.DTOs.OwnerServices;
 using DDMS.Backend.Models.DTOs.Tour;
 using DDMS.Backend.Models.Entities;
@@ -40,7 +41,7 @@ public class ServiceScopedToTourTests
         docs.Setup(d => d.GetOverviewByUserIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DDMS.Backend.Models.DTOs.OwnerDocument.OwnerDocumentsOverviewResponse());
 
-        var tourGoc = new tour { id = TourDangSua, name = "Tour cu", status = "active" };
+        var tourGoc = new tour { id = TourDangSua, name = "Tour cu", status = "pending" };
         repo.Setup(r => r.FindTourByIdAsync(TourDangSua, It.IsAny<CancellationToken>()))
             .ReturnsAsync(tourGoc);
 
@@ -162,5 +163,41 @@ public class ServiceScopedToTourTests
         cabins.Should().BeEmpty();
         combos.Should().ContainSingle(c =>
             c.tour_id == ketQua.id && c.boat_id == ThuyenId && c.name == "Cau ca dem");
+    }
+
+    [Fact]
+    public async Task CapNhat_TourDangBan_KhongGhiDe_KhongTaoTourMoi()
+    {
+        var (service, repo, cabins, combos, tourGoc) = Build();
+        tourGoc.status = "active";
+        service_change_request? phieu = null;
+        repo.Setup(r => r.AddChangeRequest(It.IsAny<service_change_request>()))
+            .Callback<service_change_request>(x => phieu = x);
+
+        var ketQua = await service.RegisterAsync(YeuCau(TourDangSua), ChuThuyen, CancellationToken.None);
+
+        ketQua.id.Should().Be(TourDangSua);
+        ketQua.status.Should().Be("active");
+        ketQua.approvalKind.Should().Be("service_change");
+        tourGoc.name.Should().Be("Tour cu");
+        cabins.Should().BeEmpty();
+        combos.Should().BeEmpty();
+        phieu.Should().NotBeNull();
+        phieu!.tour_id.Should().Be(TourDangSua);
+        repo.Verify(r => r.RemoveCabinsByTourIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        repo.Verify(
+            r => r.AddChangeRequest(It.IsAny<service_change_request>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CapNhat_IdKhongTonTai_KhongTaoTourMoi()
+    {
+        var (service, _, _, _, _) = Build();
+
+        var act = async () => await service.RegisterAsync(
+            YeuCau(Guid.NewGuid()), ChuThuyen, CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
     }
 }

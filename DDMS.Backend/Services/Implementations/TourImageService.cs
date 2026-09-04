@@ -170,6 +170,7 @@ public class TourImageService : ITourImageService
             price = entity.price,
             description = entity.description,
             durationMinutes = entity.duration_minutes,
+            maxGuests = entity.max_guests,
             location = entity.location,
             status = entity.status,
             cancelPolicy = entity.cancel_policy,

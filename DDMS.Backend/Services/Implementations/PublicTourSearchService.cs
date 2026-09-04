@@ -1,5 +1,6 @@
 ﻿using DDMS.Backend.Common.Constants;
 using DDMS.Backend.Common.Exceptions;
+using DDMS.Backend.Common.Helpers;
 using DDMS.Backend.Common.Responses;
 using DDMS.Backend.Models.DTOs.Tours;
 using DDMS.Backend.Models.Entities;
@@ -132,15 +133,20 @@ public class PublicTourSearchService : IPublicTourSearchService
 
         return schedules
             .OrderBy(s => s.start_time)
-            .Select(s => MapSlot(s, bookedBySchedule))
+            .Select(s => MapSlot(s, bookedBySchedule, entity.max_guests))
             .Where(s => s.remainingCapacity is > 0)
             .ToList();
     }
 
-    private static AvailableSlotResponse MapSlot(tour_schedule schedule, Dictionary<Guid, int> bookedBySchedule)
+    private static AvailableSlotResponse MapSlot(
+        tour_schedule schedule,
+        Dictionary<Guid, int> bookedBySchedule,
+        int? tourMaxGuests)
     {
         var booked = bookedBySchedule.GetValueOrDefault(schedule.id, 0);
-        int? maxCapacity = schedule.boat?.max_passengers;
+        // Cùng công thức với BookingService.EnsureSeatsAvailableAsync, nếu không
+        // thì UI báo còn chỗ mà lúc đặt lại bị từ chối.
+        int? maxCapacity = ScheduleCapacity.Effective(schedule.boat?.max_passengers, tourMaxGuests);
         int? remaining = maxCapacity.HasValue ? Math.Max(0, maxCapacity.Value - booked) : null;
 
         return new AvailableSlotResponse

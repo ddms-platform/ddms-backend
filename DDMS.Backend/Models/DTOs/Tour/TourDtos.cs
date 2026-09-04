@@ -12,6 +12,9 @@ public class CreateTourRequest
     public decimal? infant_price_percent { get; set; }
     public string? description { get; set; }
     public int duration_minutes { get; set; }
+
+    /// <summary>Số khách tối đa cho tour. Null = chưa khai, sức chứa lấy theo thuyền.</summary>
+    public int? max_guests { get; set; }
     public string? location { get; set; }
     /// <summary>cruise | dinner | fishing | speedboat | complex_tour</summary>
     public string? service_type { get; set; }
@@ -41,6 +44,7 @@ public class TourResponse
     public decimal price { get; set; }
     public string? description { get; set; }
     public int duration_minutes { get; set; }
+    public int? max_guests { get; set; }
     public string? location { get; set; }
     public decimal avg_rating { get; set; }
     public int total_reviews { get; set; }
@@ -48,4 +52,9 @@ public class TourResponse
     public string cancel_policy { get; set; } = string.Empty;
     public int? cancel_hours { get; set; }
     public string? rejection_reason { get; set; }
+
+    /// <summary>new_tour | tour_resubmit | service_change — FE dùng để báo owner đã gửi đâu.</summary>
+    public string? approvalKind { get; set; }
+
+    public Guid? changeRequestId { get; set; }
 }

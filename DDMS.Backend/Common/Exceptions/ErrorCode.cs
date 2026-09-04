@@ -48,6 +48,8 @@ public static class ErrorCode
     public const int CertificateTypeCodeExists = 1518;
     public const int HoldNotAllowed = 1519;
     public const int HoldExpired = 1520;
+    public const int ServiceChangeNotFound = 1530;
+    public const int ServiceChangeAlreadyProcessed = 1531;
 
     public const int OwnerDocumentTypeRequired = 1520;
     public const int OwnerDocumentRequired = 1521;
@@ -201,6 +203,9 @@ public static class ErrorCode
         public const string CertificateTypeCodeExists = "Mã loại giấy tờ đã tồn tại.";
         public const string HoldNotAllowed = "Tour khởi hành quá gần, không thể giữ chỗ. Vui lòng thanh toán ngay.";
         public const string HoldExpired = "Chỗ giữ đã hết hạn, vui lòng đặt lại.";
+        public const string ServiceChangeNotFound = "Không tìm thấy phiếu sửa dịch vụ.";
+        public const string ServiceChangeAlreadyProcessed = "Phiếu sửa dịch vụ này đã được xử lý.";
+        public const string ServiceChangeRejectReasonRequired = "Vui lòng nhập lý do từ chối chỉnh sửa dịch vụ.";
 
         public const string OwnerDocumentTypeRequired = "Loại giấy tờ chủ thuyền là bắt buộc.";
         public const string OwnerDocumentRequired = "Thiếu giấy tờ bắt buộc của chủ thuyền.";
@@ -261,6 +266,7 @@ public static class ErrorCode
         public const string TourNameRequired = nameof(TourNameRequired);
         public const string TourPriceInvalid = nameof(TourPriceInvalid);
         public const string TourDurationInvalid = nameof(TourDurationInvalid);
+        public const string TourMaxGuestsInvalid = nameof(TourMaxGuestsInvalid);
         public const string TourStatusInvalid = nameof(TourStatusInvalid);
         public const string TourCancelPolicyInvalid = nameof(TourCancelPolicyInvalid);
         public const string TourCancelHoursInvalid = nameof(TourCancelHoursInvalid);

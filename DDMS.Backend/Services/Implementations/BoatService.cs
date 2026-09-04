@@ -17,11 +17,16 @@ public class BoatService : IBoatService
 
     private readonly IBoatRepository _boatRepository;
     private readonly IOwnerDocumentService _docService;
+    private readonly IOwnerServicesRegistrationRepository _servicesRepo;
 
-    public BoatService(IBoatRepository boatRepository, IOwnerDocumentService docService)
+    public BoatService(
+        IBoatRepository boatRepository,
+        IOwnerDocumentService docService,
+        IOwnerServicesRegistrationRepository servicesRepo)
     {
         _boatRepository = boatRepository;
         _docService = docService;
+        _servicesRepo = servicesRepo;
     }
 
     public async Task<PagedResponse<BoatListItemResponse>> GetBoatsAsync(BoatListQuery query)
@@ -305,7 +310,9 @@ public class BoatService : IBoatService
     private async Task<BoatDetailResponse> MapToDetailAsync(boat b)
     {
         var tours = await _boatRepository.GetLinkedToursForBoatAsync(b.id);
-        return MapToDetail(b, tours);
+        var pendingChangeTourIds = await _servicesRepo.GetPendingChangeTourIdsAsync(
+            tours.Select(t => t.id), CancellationToken.None);
+        return MapToDetail(b, tours, pendingChangeTourIds);
     }
 
     private static int CountLinkedTours(boat b)
@@ -329,7 +336,10 @@ public class BoatService : IBoatService
         return ids.Count;
     }
 
-    private static BoatDetailResponse MapToDetail(boat b, IReadOnlyList<tour> linkedTours) => new()
+    private static BoatDetailResponse MapToDetail(
+        boat b,
+        IReadOnlyList<tour> linkedTours,
+        IReadOnlySet<Guid>? pendingChangeTourIds = null) => new()
     {
         id = b.id,
         name = b.name,
@@ -350,7 +360,7 @@ public class BoatService : IBoatService
             createdAt = c.created_at,
             updatedAt = c.updated_at,
         }).ToList() ?? [],
-        services = BuildServicesFromTours(b, linkedTours),
+        services = BuildServicesFromTours(b, linkedTours, pendingChangeTourIds),
         images = b.boat_images?.OrderBy(i => i.sort_order).Select(i => new BoatImageResponse
         {
             id = i.id,
@@ -375,8 +385,12 @@ public class BoatService : IBoatService
         }).ToList() ?? [],
     };
 
-    private static List<BoatServiceResponse> BuildServicesFromTours(boat b, IReadOnlyList<tour> linkedTours)
+    private static List<BoatServiceResponse> BuildServicesFromTours(
+        boat b,
+        IReadOnlyList<tour> linkedTours,
+        IReadOnlySet<Guid>? pendingChangeTourIds = null)
     {
+        pendingChangeTourIds ??= new HashSet<Guid>();
         // Tour gắn thuyền qua lịch HOẶC phòng/combo. Chỉ nhìn tour_schedules
         // thì tour mới duyệt (chưa có lịch) biến mất khỏi form sửa tàu.
         var fromSchedules = b.tour_schedules?
@@ -419,6 +433,7 @@ public class BoatService : IBoatService
             price = t.price,
             childPricePercent = t.child_price_percent,
             infantPricePercent = t.infant_price_percent,
+            maxGuests = t.max_guests,
             description = t.description,
             imageUrls = t.tour_images?
                 .OrderBy(i => i.sort_order)
@@ -429,6 +444,8 @@ public class BoatService : IBoatService
                 .OrderBy(i => i.sort_order)
                 .Select(i => i.image_url)
                 .FirstOrDefault(),
+            status = t.status,
+            pendingServiceChange = pendingChangeTourIds.Contains(t.id),
             isActive = t.status == "active",
             createdAt = t.created_at,
             updatedAt = t.updated_at,

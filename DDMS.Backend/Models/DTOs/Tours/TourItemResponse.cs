@@ -13,6 +13,13 @@ public class TourItemResponse
     public decimal infantPricePercent { get; set; }
     public string? description { get; set; }
     public int durationMinutes { get; set; }
+
+    /// <summary>Số khách tối đa. Null = chưa khai.</summary>
+    public int? maxGuests { get; set; }
+
+    /// <summary>Thuyền chạy tour này. Null khi tour chưa gắn lịch trình nào.</summary>
+    public Guid? boatId { get; set; }
+    public string? boatName { get; set; }
     public string? location { get; set; }
     public string status { get; set; } = string.Empty;
     public string cancelPolicy { get; set; } = string.Empty;
