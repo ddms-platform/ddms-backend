@@ -107,10 +107,19 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 await _repo.RemoveCabinsByTourIdAsync(existingTour.id, ct);
                 AddCabins(request, existingTour.id, now);
             }
-            if (request.combos != null && request.combos.Count > 0)
+            if (request.combos != null)
             {
                 await _repo.RemoveCombosByTourIdAsync(existingTour.id, ct);
                 AddCombos(request, existingTour.id, now);
+            }
+
+            // Nếu vừa xoá sạch combos/rooms thì phải cắm lại một dòng
+            // boat_service ẩn, nếu không tour bị mất link với con thuyền.
+            var comboSynced = request.combos != null;
+            var roomSynced = request.rooms != null && request.rooms.Count > 0;
+            if (comboSynced && !roomSynced)
+            {
+                EnsureTourLinkedToBoat(request, existingTour.id, now);
             }
 
             await _repo.SaveChangesAsync(ct);
