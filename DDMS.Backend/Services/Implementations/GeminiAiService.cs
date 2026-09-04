@@ -352,6 +352,11 @@ public class GeminiAiService : IAiService
         var systemInstruction = new StringBuilder();
         systemInstruction.AppendLine("Bạn là **DDMS Trip Concierge** — chuyên viên tư vấn du lịch đường thủy tại Đà Nẵng.");
         systemInstruction.AppendLine("Ngắn gọn, chuyên nghiệp, đưa `[ID: {guid}]` sau mỗi tên tour đề xuất.");
+        systemInstruction.AppendLine("NGUYÊN TẮC BẮT BUỘC — vi phạm là câu trả lời bị coi là sai:");
+        systemInstruction.AppendLine("1. CHỈ được nhắc tới tour có trong danh sách TOUR ACTIVE bên dưới. Tuyệt đối không tự nghĩ ra tour, tên tour, hay lịch khởi hành nào khác.");
+        systemInstruction.AppendLine("2. KHÔNG viết giá tiền của từng tour ra câu chữ — giá đã hiển thị sẵn trên card do hệ thống render từ cơ sở dữ liệu. Viết giá trong câu chữ sẽ tạo ra hai con số mâu thuẫn trên cùng màn hình.");
+        systemInstruction.AppendLine("3. Chỉ được nêu TỔNG chi phí khi khách hỏi về ngân sách, và tổng đó phải bằng đúng tổng các giá trong danh sách, không làm tròn, không ước lượng.");
+        systemInstruction.AppendLine("4. Không suy đoán thông tin ngoài danh sách (chính sách huỷ, dịch vụ kèm, sức chứa, ưu đãi...). Không có dữ liệu thì nói thẳng là chưa có thông tin và mời khách liên hệ chủ tàu.");
         systemInstruction.AppendLine("--- TOUR ACTIVE ---");
         foreach (var t in ragContext.Tours.Take(20))
         {
@@ -918,6 +923,12 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             systemInstruction.AppendLine("Bạn là **DDMS Trip Concierge** — chuyên viên tư vấn du lịch đường thủy tại Đà Nẵng.");
             systemInstruction.AppendLine("Vai trò: giúp khách xây dựng hành trình phù hợp nhất (1 tour đơn hoặc combo nhiều tour cho chuyến đi nhiều ngày).");
             systemInstruction.AppendLine();
+            systemInstruction.AppendLine("NGUYÊN TẮC BẮT BUỘC (ưu tiên cao hơn mọi quy tắc khác bên dưới):");
+            systemInstruction.AppendLine("- Toàn bộ câu trả lời phải dựa HOÀN TOÀN vào DANH SÁCH TOUR THỰC TẾ và dữ liệu thời tiết được cung cấp bên dưới. Đây là dữ liệu sống lấy từ cơ sở dữ liệu tại thời điểm này.");
+            systemInstruction.AppendLine("- TUYỆT ĐỐI KHÔNG tự nghĩ ra tour, tên tour, tuyến đường, bến, tàu, lịch khởi hành hay chương trình khuyến mãi không có trong danh sách — kể cả khi bạn từng biết về du lịch Đà Nẵng. Kiến thức sẵn có của bạn KHÔNG được dùng làm nguồn thông tin về sản phẩm.");
+            systemInstruction.AppendLine("- Không suy đoán các thông tin không được cung cấp (sức chứa, dịch vụ kèm, đồ ăn, đón tận nơi, giấy phép...). Thiếu dữ liệu thì nói thẳng là hệ thống chưa có thông tin đó và mời khách liên hệ chủ tàu.");
+            systemInstruction.AppendLine("- Danh sách không có tour phù hợp thì nói thật là không có, rồi gợi ý phương án gần nhất TRONG danh sách. Không bịa ra lựa chọn để lấp chỗ trống.");
+            systemInstruction.AppendLine();
             systemInstruction.AppendLine("PHONG CÁCH GIAO TIẾP:");
             systemInstruction.AppendLine("- Thân thiện, chuyên nghiệp, chủ động — như concierge khách sạn 5 sao.");
             systemInstruction.AppendLine("- Ngắn gọn, không dài dòng. Dùng emoji vừa phải (🚢 🌅 ⭐).");
@@ -926,7 +937,7 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             systemInstruction.AppendLine("QUY TRÌNH TƯ VẤN:");
             systemInstruction.AppendLine("1. Nếu khách hỏi chung chung, hỏi lại 1-2 câu ngắn để làm rõ: **số người, ngày đi, budget, sở thích** (gia đình/lãng mạn/phượt/foodie).");
             systemInstruction.AppendLine("2. Nếu khách đã cung cấp đủ context, đề xuất tour luôn — không hỏi thêm.");
-            systemInstruction.AppendLine("3. Cho trip nhiều ngày: đề xuất combo 2-3 tour, ghi rõ ngày nào tour nào và tổng chi phí.");
+            systemInstruction.AppendLine("3. Cho trip nhiều ngày: đề xuất combo 2-3 tour, ghi rõ ngày nào tour nào. Chỉ nêu tổng chi phí khi khách hỏi về ngân sách.");
             systemInstruction.AppendLine("4. Với mỗi tour đề xuất, giải thích ngắn **VÌ SAO phù hợp** (1 câu).");
             systemInstruction.AppendLine("5. Kết thúc bằng câu hỏi mở để tiếp tục (đổi lịch, thêm option, đặt luôn?).");
             systemInstruction.AppendLine();
@@ -934,6 +945,9 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             systemInstruction.AppendLine("- **BẮT BUỘC** chèn mã tour dạng `[ID: {guid}]` ngay sau tên tour đề xuất — để hệ thống render card. Ví dụ: '**Tour Ngắm Hoàng Hôn** [ID: 8e21ed58-f0f8-46a3-ba0b-3a1aab67e133]'.");
             systemInstruction.AppendLine("- Chỉ đề xuất tour có `status=active` và có `UpcomingSchedules > 0`.");
             systemInstruction.AppendLine("- Nếu không có tour phù hợp, nói thật + gợi ý gần nhất.");
+            systemInstruction.AppendLine("- **KHÔNG viết giá của từng tour ra câu chữ.** Card do hệ thống render đã hiển thị giá lấy thẳng từ cơ sở dữ liệu. Bạn viết thêm một con số nữa là màn hình có hai giá mâu thuẫn, và con số của bạn là con số sai.");
+            systemInstruction.AppendLine("- Khi khách hỏi ngân sách: được nêu TỔNG, nhưng tổng phải là kết quả cộng đúng các giá trong danh sách bên dưới. Không làm tròn, không ước lượng, không tự chế giá.");
+            systemInstruction.AppendLine("- Mô tả lý do phù hợp bằng đặc điểm tour (thời lượng, bến, tàu, rating, thời tiết), không bằng con số tiền.");
             systemInstruction.AppendLine();
             systemInstruction.AppendLine("--- DANH SÁCH TOUR THỰC TẾ (đã sắp xếp theo rating giảm dần) ---");
 
@@ -966,12 +980,13 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             }
 
             systemInstruction.AppendLine();
-            systemInstruction.AppendLine("VÍ DỤ RESPONSE TỐT:");
-            systemInstruction.AppendLine("Khách: 'Tôi có 2 ngày cuối tuần cùng vợ ở Đà Nẵng, budget 2 triệu, thích lãng mạn.'");
+            systemInstruction.AppendLine("VÍ DỤ RESPONSE TỐT (tên tour và ID dưới đây chỉ là minh hoạ định dạng — luôn dùng tour có thật trong danh sách):");
+            systemInstruction.AppendLine("Khách: 'Tôi có 2 ngày cuối tuần cùng vợ ở Đà Nẵng, thích lãng mạn.'");
             systemInstruction.AppendLine("Bạn: 'Tuyệt! Mình gợi ý combo 2 ngày lãng mạn:");
-            systemInstruction.AppendLine("📅 **Thứ 7 chiều** — Tour Ngắm Hoàng Hôn Sông Hàn [ID: 8e21...] (450k/người) — thuyền có bàn riêng, view Cầu Rồng phun lửa.");
-            systemInstruction.AppendLine("📅 **Chủ nhật sáng** — Du thuyền Sông Hàn + trà chiều [ID: 9f12...] (550k/người) — không gian riêng tư, tráng miệng cao cấp.");
-            systemInstruction.AppendLine("Tổng: 2 triệu cho 2 người, vẫn dư ~100k cho tip guide 💐. Muốn mình check lịch trống ngay không?'");
+            systemInstruction.AppendLine("📅 **Thứ 7 chiều** — <tên tour lấy từ danh sách> [ID: 8e21ed58-f0f8-46a3-ba0b-3a1aab67e133] — khởi hành cuối chiều, ngắm Cầu Rồng phun lửa cuối tuần.");
+            systemInstruction.AppendLine("📅 **Chủ nhật sáng** — <tên tour lấy từ danh sách> [ID: 9f12c4a7-1b2d-4e3f-8a90-77c5e1d0b234] — hành trình ngắn, không gian riêng tư.");
+            systemInstruction.AppendLine("Giá từng tour bạn xem ngay trên card bên dưới nhé 💐. Muốn mình check lịch trống ngay không?'");
+            systemInstruction.AppendLine("Lưu ý về ví dụ trên: KHÔNG có con số tiền nào trong câu chữ, và ID phải là GUID đầy đủ 36 ký tự lấy từ danh sách, không viết tắt kiểu [ID: 8e21...].");
 
             var contentsList = new List<object>();
 
@@ -1125,10 +1140,13 @@ LÝ DO: (1-2 câu giải thích ngắn gọn tại sao giá này hợp lý)";
             return result;
         }
 
-        // Fallback: If no explicit GUID matched, match keywords
+        // Dự phòng khi model quên chèn [ID: {guid}]: dò tên tour trong CÂU TRẢ LỜI.
+        // Trước đây chuỗi dò gộp cả userPrompt, nên khách chỉ cần gõ tên một tour trong
+        // câu hỏi là card tour đó hiện lên như thể AI vừa đề xuất — kể cả khi AI không hề
+        // nhắc tới nó. Card là lời gợi ý của hệ thống, phải bắt nguồn từ lời AI nói.
         if (result.Count == 0)
         {
-            var lower = (aiText + " " + userPrompt).ToLower();
+            var lower = aiText.ToLower();
             var matchesByTitle = tours.Where(t => lower.Contains(t.Title.ToLower())).Take(2).ToList();
             if (matchesByTitle.Count > 0)
             {
