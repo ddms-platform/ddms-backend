@@ -23,5 +23,10 @@ public interface IOwnerServicesRegistrationRepository
     Task RemoveCombosByTourIdAsync(Guid tourId, CancellationToken ct);
     Task RemoveCabinsByBoatIdAsync(Guid boatId, CancellationToken ct);
     Task RemoveCombosByBoatIdAsync(Guid boatId, CancellationToken ct);
+    void AddChangeRequest(service_change_request entity);
+    Task<service_change_request?> FindPendingChangeByTourIdAsync(Guid tourId, CancellationToken ct);
+    Task<service_change_request?> FindChangeByIdAsync(Guid id, CancellationToken ct);
+    Task<List<service_change_request>> ListChangesAsync(string? status, CancellationToken ct);
+    Task<HashSet<Guid>> GetPendingChangeTourIdsAsync(IEnumerable<Guid> tourIds, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }

@@ -85,5 +85,51 @@ public class OwnerServicesRegistrationRepository : IOwnerServicesRegistrationRep
         }
     }
 
+    public void AddChangeRequest(service_change_request entity) =>
+        _db.service_change_requests.Add(entity);
+
+    public Task<service_change_request?> FindPendingChangeByTourIdAsync(
+        Guid tourId, CancellationToken ct) =>
+        _db.service_change_requests.FirstOrDefaultAsync(
+            x => x.tour_id == tourId && x.status == "pending", ct);
+
+    public Task<service_change_request?> FindChangeByIdAsync(Guid id, CancellationToken ct) =>
+        _db.service_change_requests
+            .Include(x => x.tour)
+            .Include(x => x.boat)
+            .FirstOrDefaultAsync(x => x.id == id, ct);
+
+    public async Task<List<service_change_request>> ListChangesAsync(
+        string? status, CancellationToken ct)
+    {
+        var query = _db.service_change_requests
+            .Include(x => x.tour)
+            .Include(x => x.boat)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalized = status.Trim().ToLowerInvariant();
+            query = query.Where(x => x.status == normalized);
+        }
+
+        return await query
+            .OrderByDescending(x => x.created_at)
+            .ToListAsync(ct);
+    }
+
+    public async Task<HashSet<Guid>> GetPendingChangeTourIdsAsync(
+        IEnumerable<Guid> tourIds, CancellationToken ct)
+    {
+        var ids = tourIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        var pending = await _db.service_change_requests
+            .Where(x => ids.Contains(x.tour_id) && x.status == "pending")
+            .Select(x => x.tour_id)
+            .ToListAsync(ct);
+        return pending.ToHashSet();
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
 }

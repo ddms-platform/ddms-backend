@@ -52,4 +52,9 @@ public class TourResponse
     public string cancel_policy { get; set; } = string.Empty;
     public int? cancel_hours { get; set; }
     public string? rejection_reason { get; set; }
+
+    /// <summary>new_tour | tour_resubmit | service_change — FE dùng để báo owner đã gửi đâu.</summary>
+    public string? approvalKind { get; set; }
+
+    public Guid? changeRequestId { get; set; }
 }

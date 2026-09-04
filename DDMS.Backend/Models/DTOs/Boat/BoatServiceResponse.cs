@@ -14,6 +14,12 @@ public class BoatServiceResponse
     public string? imageUrl { get; init; }
     public List<string> imageUrls { get; init; } = [];
     public string? serviceType { get; init; }
+    /// <summary>Số khách tối đa chủ thuyền khai cho tour.</summary>
+    public int? maxGuests { get; init; }
+    /// <summary>pending | active | rejected | inactive</summary>
+    public string? status { get; init; }
+    /// <summary>Tour đang bán có phiếu sửa chờ admin duyệt.</summary>
+    public bool pendingServiceChange { get; init; }
     public bool isActive { get; init; }
     public DateTime createdAt { get; init; }
     public DateTime updatedAt { get; init; }
