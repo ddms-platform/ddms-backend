@@ -261,6 +261,7 @@ public static class ErrorCode
         public const string TourNameRequired = nameof(TourNameRequired);
         public const string TourPriceInvalid = nameof(TourPriceInvalid);
         public const string TourDurationInvalid = nameof(TourDurationInvalid);
+        public const string TourMaxGuestsInvalid = nameof(TourMaxGuestsInvalid);
         public const string TourStatusInvalid = nameof(TourStatusInvalid);
         public const string TourCancelPolicyInvalid = nameof(TourCancelPolicyInvalid);
         public const string TourCancelHoursInvalid = nameof(TourCancelHoursInvalid);

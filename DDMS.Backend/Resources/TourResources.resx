@@ -27,6 +27,7 @@
   <data name="TourCancelHoursInvalid" xml:space="preserve"><value>Cancel hours is required and must be &gt;= 0 when policy is partial or no_refund</value></data>
   <data name="TourCancelPolicyInvalid" xml:space="preserve"><value>Cancel policy must be free, partial, or no_refund</value></data>
   <data name="TourDurationInvalid" xml:space="preserve"><value>Tour duration minutes must be greater than 0</value></data>
+  <data name="TourMaxGuestsInvalid" xml:space="preserve"><value>Max guests must be greater than 0</value></data>
   <data name="TourImageFileRequired" xml:space="preserve"><value>Image file is required</value></data>
   <data name="TourImageSortOrderInvalid" xml:space="preserve"><value>Image sort order must be greater than or equal to 0</value></data>
   <data name="TourImageTourNotFound" xml:space="preserve"><value>Tour not found or not owned by current user</value></data>

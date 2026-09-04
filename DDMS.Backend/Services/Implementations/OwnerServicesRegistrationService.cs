@@ -49,6 +49,18 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
 
         var ownerId = boat.owner_id;
 
+        // DTO này không đi qua FluentValidation nên phải tự chặn ở đây.
+        if (request.maxGuests is <= 0)
+        {
+            throw new AppException(
+                ErrorCode.TourValidationFailed,
+                ErrorCode.Messages.TourValidationFailed,
+                new Dictionary<string, List<string>>
+                {
+                    ["maxGuests"] = [ErrorCode.Messages.TourMaxGuestsInvalid]
+                });
+        }
+
         var docOverview = await _docService.GetOverviewByUserIdAsync(userId, ct);
         if (docOverview.IsLocked)
         {
@@ -75,6 +87,8 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 existingTour.child_price_percent = request.childPricePercent.Value;
             if (request.infantPricePercent is not null)
                 existingTour.infant_price_percent = request.infantPricePercent.Value;
+            if (request.maxGuests is not null)
+                existingTour.max_guests = request.maxGuests.Value;
             existingTour.description = BuildDescription(request);
             existingTour.service_type = NormalizeServiceType(request.serviceType);
             existingTour.status = OwnerServiceRegistrationDefaults.TourPendingStatus; // Chuyển về pending để Admin duyệt lại nội dung cập nhật
@@ -121,6 +135,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 description = existingTour.description,
                 price = existingTour.price,
                 duration_minutes = existingTour.duration_minutes,
+                max_guests = existingTour.max_guests,
                 location = existingTour.location,
                 avg_rating = existingTour.avg_rating,
                 total_reviews = existingTour.total_reviews,
@@ -140,6 +155,7 @@ public class OwnerServicesRegistrationService : IOwnerServicesRegistrationServic
                 infant_price_percent = request.infantPricePercent,
                 description = BuildDescription(request),
                 duration_minutes = OwnerServiceRegistrationDefaults.TourDurationMinutes,
+                max_guests = request.maxGuests,
                 location = OwnerServiceRegistrationDefaults.TourLocation,
                 service_type = NormalizeServiceType(request.serviceType),
                 status = OwnerServiceRegistrationDefaults.TourPendingStatus,

@@ -21,6 +21,9 @@ public partial class tour
 
     public int duration_minutes { get; set; }
 
+    /// <summary>Số khách tối đa chủ thuyền khai cho tour. Null = chưa khai, sức chứa lấy theo thuyền.</summary>
+    public int? max_guests { get; set; }
+
     public string? location { get; set; }
 
     /// <summary>

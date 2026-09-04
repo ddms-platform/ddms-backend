@@ -1,4 +1,5 @@
 using DDMS.Backend.Common.Constants;
+using DDMS.Backend.Common.Helpers;
 using DDMS.Backend.Data;
 using DDMS.Backend.Models.DTOs.TourSearch;
 using DDMS.Backend.Repositories.Interfaces;
@@ -84,7 +85,11 @@ public class TourSearchRepository : ITourSearchRepository
         var result = schedules.Select(x =>
         {
             var booked = bookingMap.GetValueOrDefault(x.id, 0);
-            int? remaining = x.boat == null ? null : x.boat.max_passengers - booked;
+            // Sức chứa hiệu dụng = min(thuyền, số khách tối đa khai cho tour),
+            // cùng công thức với BookingService để chỗ trống hiển thị không lệch
+            // với lúc đặt.
+            int? maxCapacity = ScheduleCapacity.Effective(x.boat?.max_passengers, x.tour.max_guests);
+            int? remaining = maxCapacity.HasValue ? Math.Max(0, maxCapacity.Value - booked) : null;
 
             return new TourSearchResponse
             {
@@ -97,7 +102,7 @@ public class TourSearchRepository : ITourSearchRepository
                 schedule_id = x.id,
                 start_time = x.start_time,
                 end_time = x.end_time,
-                max_passengers = x.boat?.max_passengers,
+                max_passengers = maxCapacity,
                 booked_people = booked,
                 remaining_capacity = remaining
             };

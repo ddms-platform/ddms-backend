@@ -199,15 +199,19 @@ public class BookingService : IBookingService
     }
 
     /// <summary>
-    /// Tổng khách đã đặt cộng khách mới không được vượt sức chứa tàu.
-    /// Tàu chưa khai báo sức chứa (dữ liệu cũ, max_passengers = 0) thì bỏ qua,
-    /// không lấy đó làm cớ chặn hết mọi đơn.
+    /// Tổng khách đã đặt cộng khách mới không được vượt sức chứa hiệu dụng của chuyến:
+    /// giá trị nhỏ hơn giữa sức chứa tàu và số khách tối đa chủ thuyền khai cho tour.
+    /// Trước đây chỉ xét tàu, nên chuyến chưa gán tàu là bỏ qua check hoàn toàn —
+    /// đặt bao nhiêu khách cũng qua. Cả hai đều chưa khai (dữ liệu cũ) thì mới bỏ qua,
+    /// không lấy dữ liệu thiếu làm cớ chặn hết mọi đơn.
     /// </summary>
     private async Task EnsureSeatsAvailableAsync(tour_schedule schedule, int numPeople, CancellationToken ct)
     {
-        var capacity = schedule.boat?.max_passengers ?? 0;
-        if (capacity <= 0) return;
+        var effectiveCapacity = ScheduleCapacity.Effective(
+            schedule.boat?.max_passengers, schedule.tour?.max_guests);
+        if (effectiveCapacity is not > 0) return;
 
+        var capacity = effectiveCapacity.Value;
         var bookedSeats = await _repo.GetBookedSeatsAsync(schedule.id, ct);
         if (bookedSeats + numPeople <= capacity) return;
 
